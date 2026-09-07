@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The case room</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="hdr">
+  <div class="mark"><span class="n">CeFEO</span><span class="t">The case room</span></div>
+  <nav id="nav" hidden>
+    <a href="#" aria-current="page">Case</a>
+    <span class="who" id="who"></span>
+    <button id="out" type="button">Sign out</button>
+  </nav>
+</header>
+
+<main>
+  <section id="signin" class="signin card" hidden>
+    <p class="label">Sign in</p>
+    <h1 style="font-size:24px">Your team's room</h1>
+    <p class="lede" style="font-size:16px">One account per team. Your instructor gave you the details.</p>
+    <form id="form">
+      <div class="field"><label class="label" for="email">Team email</label><input id="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label class="label" for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <button class="btn" id="go" type="submit">Enter</button>
+      <div class="err" id="err" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <section id="case" hidden>
+    <p class="label" id="edition"></p>
+    <h1>Interview the people. Read the record. Advise the family.</h1>
+    <p class="lede">You have one conversation with each person. It does not reopen. Take notes; the transcript arrives only when the conversation ends.</p>
+    <div id="gate" class="empty" hidden><span class="tag">before you begin</span><p>The interviews open once your team has submitted its preparation questionnaire. That step is coming to this page shortly.</p></div>
+    <div class="strip">
+      <div class="cell"><div class="label">people</div><div class="v" id="n-people">–</div></div>
+      <div class="cell"><div class="label">conversations held</div><div class="v" id="n-held">–</div></div>
+    </div>
+    <h2>The people</h2>
+    <div class="roster" id="roster"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="cols">
+    <div>Centre for Family Entrepreneurship and Ownership, Jönköping International Business School.</div>
+    <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
+    <div>Part of the family business teaching programme.</div>
+  </div>
+  <div class="base">CASE ROOM · v0.1</div>
+</footer>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
