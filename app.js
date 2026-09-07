@@ -167,7 +167,11 @@
     $("#c-virtual").textContent = p.budget.virtual_minutes ?? "–"; $("#c-wall").textContent = p.budget.wall_minutes ?? "–";
     $("#c-go").addEventListener("click", async () => {
       const b = $("#c-go"); b.disabled = true;
-      try { const r = await post("/sessions", { persona_code: code }); S.personas = null; location.hash = `#/room/${r.session_id}`; }
+      try {
+        const r = await post("/sessions", { persona_code: code }); S.personas = null;
+        try { if (r.opening_line) sessionStorage.setItem(`fb.opening.${r.session_id}`, r.opening_line); } catch {}
+        location.hash = `#/room/${r.session_id}`;
+      }
       catch (err) { $("#c-err").textContent = err.message; b.disabled = false; }
     });
   }
@@ -206,8 +210,9 @@
     if (st.session_state !== "open") { location.hash = `#/transcripts/${id}`; return; }
     recording(p.name); $("#r-name").textContent = p.name; $("#r-label").textContent = p.role || "";
     const box = $("#turns");
-    // The opening line is the only prior turn a fresh room can show; a reload mid-conversation shows what you have already heard only from your notes.
-    if (st.state.allowed && st.state.turn <= 1) { const s = (await api("/sessions")).sessions.find((x) => x.id === Number(id)); void s; }
+    // The opening line is the only earlier turn the room shows. There is no live transcript: a reload mid-conversation shows what you have heard only from your notes.
+    let opening = null; try { opening = sessionStorage.getItem(`fb.opening.${id}`); } catch {}
+    if (opening) addTurn(box, p.name, opening);
     addTurn(box, "sys", "The conversation is running. There is no live transcript: take notes. It arrives when the conversation ends.");
     const wallTotal = p.budget.wall_minutes || null;
     showState(st.state, p.name, wallTotal);
