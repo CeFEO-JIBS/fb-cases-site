@@ -12,16 +12,31 @@
 </head>
 <body>
 <header class="hdr">
-  <div class="mark"><span class="n">CeFEO</span><span class="t">The case room</span></div>
+  <a class="mark" href="#/"><span class="n">CeFEO</span><span class="t">The case room</span></a>
   <nav id="nav" hidden>
-    <a href="#" aria-current="page">Case</a>
+    <a href="#/" data-nav="case">Case</a>
+    <a href="#/file" data-nav="file">Case file</a>
+    <a href="#/transcripts" data-nav="transcripts">Transcripts</a>
+    <a href="#/desk" data-nav="desk">Research desk</a>
     <span class="who" id="who"></span>
     <button id="out" type="button">Sign out</button>
   </nav>
+  <div id="rec" class="rec" hidden><span class="dot"></span><span id="rec-name"></span></div>
 </header>
 
-<main>
-  <section id="signin" class="signin card" hidden>
+<main id="view"></main>
+
+<footer>
+  <div class="cols">
+    <div>Centre for Family Entrepreneurship and Ownership, Jönköping International Business School.</div>
+    <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
+    <div id="foot-edition"></div>
+  </div>
+  <div class="base">CASE ROOM · v0.2</div>
+</footer>
+
+<template id="t-signin">
+  <section class="signin card">
     <p class="label">Sign in</p>
     <h1 style="font-size:24px">Your team's room</h1>
     <p class="lede" style="font-size:16px">One account per team. Your instructor gave you the details.</p>
@@ -32,29 +47,136 @@
       <div class="err" id="err" aria-live="polite"></div>
     </form>
   </section>
+</template>
 
-  <section id="case" hidden>
-    <p class="label" id="edition"></p>
-    <h1>Interview the people. Read the record. Advise the family.</h1>
-    <p class="lede">You have one conversation with each person. It does not reopen. Take notes; the transcript arrives only when the conversation ends.</p>
-    <div id="gate" class="empty" hidden><span class="tag">before you begin</span><p>The interviews open once your team has submitted its preparation questionnaire. That step is coming to this page shortly.</p></div>
-    <div class="strip">
-      <div class="cell"><div class="label">people</div><div class="v" id="n-people">–</div></div>
-      <div class="cell"><div class="label">conversations held</div><div class="v" id="n-held">–</div></div>
-    </div>
-    <h2>The people</h2>
-    <div class="roster" id="roster"></div>
-  </section>
-</main>
-
-<footer>
-  <div class="cols">
-    <div>Centre for Family Entrepreneurship and Ownership, Jönköping International Business School.</div>
-    <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
-    <div>Part of the family business teaching programme.</div>
+<template id="t-case">
+  <p class="label" id="edition"></p>
+  <h1>Interview the people. Read the record. Advise the family.</h1>
+  <p class="lede">You have one conversation with each person. It does not reopen. Take notes; the transcript arrives only when the conversation ends.</p>
+  <div id="gate" class="empty" hidden><span class="tag">before you begin</span><p>The interviews open once your team has submitted its preparation questionnaire.</p><p><a class="btn" href="#/questionnaire">Go to the questionnaire</a></p></div>
+  <div class="strip">
+    <div class="cell"><div class="label">people</div><div class="v" id="n-people">–</div></div>
+    <div class="cell"><div class="label">conversations held</div><div class="v" id="n-held">–</div></div>
+    <div class="cell"><div class="label">documents in your file</div><div class="v" id="n-docs">–</div></div>
   </div>
-  <div class="base">CASE ROOM · v0.1</div>
-</footer>
+  <h2>The people</h2>
+  <div class="roster" id="roster"></div>
+</template>
+
+<template id="t-questionnaire">
+  <p class="label">Preparation</p>
+  <h1>Before you meet anyone</h1>
+  <p class="lede">Commit to a first reading of the situation. Once you submit, this closes and the interviews open. You cannot revise it afterwards.</p>
+  <div class="card">
+    <div class="prose" id="q-text"></div>
+    <form id="q-form">
+      <div class="field"><label class="label" for="q-answer">Your team's answers</label><textarea id="q-answer" rows="14" required minlength="20"></textarea></div>
+      <button class="btn" type="submit" id="q-go">Submit and lock</button>
+      <div class="err" id="q-err"></div>
+    </form>
+    <div id="q-done" hidden><p class="label">Submitted and locked</p><div class="prose" id="q-locked"></div></div>
+  </div>
+</template>
+
+<template id="t-file">
+  <p class="label">The registry</p>
+  <h1>Your case file</h1>
+  <p class="lede">What the registry has released to your team. The rest of the archive is not listed: if you believe a record exists, ask the registry for it by name.</p>
+  <div class="two">
+    <div>
+      <div id="docs"></div>
+    </div>
+    <aside class="card registry">
+      <p class="label">Write to the registry</p>
+      <div class="prose" id="reg-reply"><p>The registry answers requests for specific records. Say which document you are looking for, and if you can, its year and who would hold it.</p></div>
+      <form id="reg-form">
+        <div class="field"><textarea id="reg-text" rows="4" maxlength="1000" placeholder="e.g. the will of the founder, or the articles of association from the year the holding company was formed" required minlength="5"></textarea></div>
+        <button class="btn quiet" type="submit" id="reg-go">Send request</button>
+      </form>
+    </aside>
+  </div>
+</template>
+
+<template id="t-doc">
+  <p class="label" id="d-meta"></p>
+  <h1 id="d-title" style="font-family:var(--read);font-weight:400;font-size:26px"></h1>
+  <div class="toolbar">
+    <button class="btn quiet" id="d-fac" type="button">Open the facsimile</button>
+    <span class="seg"><button type="button" data-lang="en" class="on">English</button><button type="button" data-lang="sv">Svenska</button></span>
+    <a class="btn quiet" href="#/file">Back to the file</a>
+  </div>
+  <div id="d-pages" class="pages" hidden></div>
+  <article class="doc" id="d-text"></article>
+</template>
+
+<template id="t-confirm">
+  <p class="label">Before the conversation</p>
+  <h1 id="c-name"></h1>
+  <p class="lede" id="c-brief"></p>
+  <div class="card">
+    <p>You are about to open your team's one conversation with this person. You will have <strong id="c-virtual"></strong> minutes of their time, inside a <strong id="c-wall"></strong>-minute window. Their time is spent by talking, yours by the clock. When either runs out, the conversation ends and does not reopen.</p>
+    <p>Prepare your questions before you press the button. There is no live transcript: take notes.</p>
+    <div class="toolbar"><button class="btn" id="c-go" type="button">Begin the conversation</button><a class="btn quiet" href="#/">Not yet</a></div>
+    <div class="err" id="c-err"></div>
+  </div>
+</template>
+
+<template id="t-room">
+  <div class="room">
+    <div class="conv">
+      <p class="label" id="r-label"></p>
+      <h1 id="r-name"></h1>
+      <div id="turns" class="turns" aria-live="polite"></div>
+      <form id="ask" class="askbar">
+        <div class="field">
+          <textarea id="question" rows="3" placeholder="Your question" required></textarea>
+          <div class="counter"><span id="count">0</span> / <span id="cap">500</span></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn" type="submit" id="send">Ask</button>
+          <select id="exhibit"><option value="">Show a document…</option></select>
+          <button class="btn quiet" type="button" id="end">End the conversation</button>
+        </div>
+        <div class="err" id="r-err" aria-live="polite"></div>
+      </form>
+    </div>
+    <aside class="clock card">
+      <svg viewBox="0 0 120 120" width="160" height="160" aria-hidden="true">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--rule-soft)" stroke-width="6"></circle>
+        <circle id="ring-wall" cx="60" cy="60" r="52" fill="none" stroke="var(--ledger)" stroke-width="6" stroke-linecap="butt" transform="rotate(-90 60 60)"></circle>
+        <circle cx="60" cy="60" r="40" fill="none" stroke="var(--rule-soft)" stroke-width="8"></circle>
+        <circle id="ring-virt" cx="60" cy="60" r="40" fill="none" stroke="var(--stamp)" stroke-width="8" stroke-linecap="butt" transform="rotate(-90 60 60)"></circle>
+      </svg>
+      <div class="label">their time left</div>
+      <div class="v live" id="k-virt">–</div>
+      <div class="label" style="margin-top:8px">window left</div>
+      <div class="v" id="k-wall">–</div>
+      <p class="note" id="k-note"></p>
+    </aside>
+  </div>
+</template>
+
+<template id="t-transcripts">
+  <p class="label">The record</p>
+  <h1>Transcripts</h1>
+  <p class="lede">Released when a conversation ends, never before.</p>
+  <div id="tr-list"></div>
+</template>
+
+<template id="t-transcript">
+  <p class="label" id="t-meta"></p>
+  <h1 id="t-name"></h1>
+  <div class="toolbar"><a class="btn quiet" href="#/transcripts">All transcripts</a><button class="btn quiet" type="button" id="t-dl">Download as text</button></div>
+  <div id="t-turns" class="turns"></div>
+</template>
+
+<template id="t-desk">
+  <p class="label">The literature</p>
+  <h1>Research desk</h1>
+  <p class="lede">The family tells you what they believe; the desk tells you what the research says. This surface opens later in the course.</p>
+  <div class="empty"><span class="tag">not open yet</span><p>Ask your instructor when the desk opens for your edition.</p></div>
+</template>
+
 <script src="config.js"></script>
 <script src="app.js"></script>
 </body>
