@@ -99,9 +99,12 @@
     const ds = await documents(true);
     const stage = { brief: "Onboarding pack", engagement_only: "The engagement", discovery: "Released to your team", deep: "Requested from the registry" };
     const groups = {};
-    for (const d of ds) (groups[d.release_stage] ||= []).push(d);
-    const order = ["brief", "engagement_only", "discovery", "deep"].filter((k) => groups[k]);
-    $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label">${esc(stage[k] || k)} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
+    const keyOf = (d) => (d.release_stage === "brief" && d.folder ? `brief/${d.folder}` : d.release_stage);
+    for (const d of ds) (groups[keyOf(d)] ||= []).push(d);
+    const folders = Object.keys(groups).filter((k) => k.startsWith("brief/")).sort();
+    const order = [...folders, ...["brief", "engagement_only", "discovery", "deep"].filter((k) => groups[k])];
+    const labelOf = (k) => (k.startsWith("brief/") ? `${stage.brief} · ${k.slice(6)}` : stage[k] || k);
+    $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
       `<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span><div class="ttl">${esc(d.title)}</div><div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
       : `<div class="empty"><span class="tag">nothing yet</span><p>The registry has released nothing to your team so far.</p></div>`;
     $("#reg-form").addEventListener("submit", async (e) => {
