@@ -97,10 +97,10 @@
   async function file() {
     await ensureMe(); nav("file"); render("t-file");
     const ds = await documents(true);
-    const stage = { brief: "The working file", engagement_only: "The engagement", discovery: "Released to your team", deep: "Requested from the registry" };
+    const stage = { brief: "Onboarding pack", engagement_only: "The engagement", discovery: "Released to your team", deep: "Requested from the registry" };
     const groups = {};
     for (const d of ds) (groups[d.release_stage] ||= []).push(d);
-    const order = ["engagement_only", "brief", "discovery", "deep"].filter((k) => groups[k]);
+    const order = ["brief", "engagement_only", "discovery", "deep"].filter((k) => groups[k]);
     $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label">${esc(stage[k] || k)} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
       `<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span><div class="ttl">${esc(d.title)}</div><div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
       : `<div class="empty"><span class="tag">nothing yet</span><p>The registry has released nothing to your team so far.</p></div>`;
