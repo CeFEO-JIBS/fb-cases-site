@@ -161,6 +161,13 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 .turn .sp{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ledger);margin-bottom:4px}
 .turn.q{font-weight:300}.turn.q .sp{color:var(--stamp)}
 .turn.sys{font-family:var(--ui);font-size:13px;color:var(--muted)}
+/* The desk is working. Deliberately not a chat-bubble typing indicator: one
+   quiet pulsing mark, the desk's name, and the elapsed seconds once a pause
+   stops being ordinary. */
+.turn.working{display:flex;align-items:center;gap:9px;font-family:var(--ui);font-size:13px;color:var(--muted)}
+.turn.working .dot{width:7px;height:7px;border-radius:50%;background:var(--stamp);animation:pulse 1.15s ease-in-out infinite;flex:none}
+.turn.working .secs{font-family:var(--mono);font-size:12px;opacity:.7}
+@media (prefers-reduced-motion:reduce){.turn.working .dot{animation:none;opacity:.55}}
 .counter{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
 .counter.over{color:var(--stamp)}
 select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:14px;max-width:320px}

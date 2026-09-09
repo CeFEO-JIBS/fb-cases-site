@@ -654,23 +654,53 @@
       e.preventDefault();
       const b = $("#dk-go"), q = $("#dk-q").value.trim();
       if (!q) return;
-      b.disabled = true; $("#dk-err").textContent = "";
+      const label = b.textContent;
+      b.disabled = true; b.textContent = registry ? "Searching…" : "Asking…";
+      $("#dk-err").textContent = "";
       addDeskTurn(box, desk.name, { speaker: "interviewer", text: q, citations: [] });
-      const waiting = document.createElement("div");
-      waiting.className = "turn sys"; waiting.textContent = "reading…"; box.appendChild(waiting);
+      // A named, animated line so it is never ambiguous whether the desk is
+      // working or has simply said nothing. It carries the elapsed seconds
+      // because a desk that is thinking and a desk that has died look identical
+      // for the first few of them.
+      const waiting = working(box, registry ? `${desk.name} is searching the archive` : `${desk.name} is reading`);
       try {
         const r = await post(`/desks/${encodeURIComponent(code)}/ask`, { question: q });
-        waiting.remove(); $("#dk-q").value = "";
+        waiting.stop(); $("#dk-q").value = "";
         addDeskTurn(box, desk.name, { speaker: "persona", text: r.text, citations: r.citations });
         if (r.granted) S.docs = null;
         asked += 1; left(r.state, asked);
       } catch (err) {
-        waiting.remove();
-        $("#dk-err").textContent = err.body && err.body.message ? err.body.message : err.message;
+        waiting.stop();
+        const m = (err.body && err.body.message) || err.message;
+        $("#dk-err").textContent = m;
+        // A failed answer costs nothing now, so the counter must not move.
         left(err.body && err.body.state, asked);
-      } finally { if (!$("#dk-go").disabled) b.disabled = false; }
+      } finally {
+        b.textContent = label;
+        if (!$("#dk-go").disabled) b.disabled = false;
+      }
       box.scrollIntoView({ block: "end", behavior: "smooth" });
     });
+  }
+
+  /**
+   * A visible "still working" row. Returns a handle whose stop() removes it.
+   * The seconds counter matters: without it a slow answer and a dead service
+   * are the same blank pause, which is exactly the confusion this fixes.
+   */
+  function working(box, what) {
+    const d = document.createElement("div");
+    d.className = "turn working";
+    d.innerHTML = `<span class="dot" aria-hidden="true"></span><span class="what"></span><span class="secs"></span>`;
+    d.querySelector(".what").textContent = what;
+    box.appendChild(d);
+    d.scrollIntoView({ block: "end", behavior: "smooth" });
+    const t0 = Date.now();
+    const tick = setInterval(() => {
+      const s = Math.round((Date.now() - t0) / 1000);
+      d.querySelector(".secs").textContent = s < 3 ? "" : ` · ${s}s`;
+    }, 1000);
+    return { stop() { clearInterval(tick); d.remove(); } };
   }
 
   function addDeskTurn(box, name, t) {
