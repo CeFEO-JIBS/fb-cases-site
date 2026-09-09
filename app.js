@@ -351,6 +351,110 @@
     await load("en");
   }
 
+  async function confirm_(code) {
+    await ensureMe(); nav("case"); render("t-confirm");
+    const p = (await personas()).find((x) => x.code === code);
+    if (!p) { location.hash = "#/people"; return; }
+    $("#c-name").textContent = p.name; $("#c-brief").textContent = p.brief || "";
+    // The same portrait and the same few facts as the roster: this is the last
+    // page before a conversation that does not reopen.
+    $("#c-portrait").innerHTML = p.portrait_url
+      ? `<img class="portrait" src="${esc(p.portrait_url)}" alt="${esc(p.name)}">`
+      : `<div class="portrait none" aria-hidden="true">${esc(initials(p.name))}</div>`;
+    $("#c-facts").textContent = personFacts(p).join(" · ");
+    $("#c-virtual").textContent = p.budget.virtual_minutes ?? "–"; $("#c-wall").textContent = p.budget.wall_minutes ?? "–";
+    $("#c-go").addEventListener("click", async () => {
+      const b = $("#c-go"); b.disabled = true;
+      try {
+        const r = await post("/sessions", { persona_code: code }); S.personas = null;
+        try { if (r.opening_line) sessionStorage.setItem(`fb.opening.${r.session_id}`, r.opening_line); } catch {}
+        location.hash = `#/room/${r.session_id}`;
+      }
+      catch (err) { $("#c-err").textContent = err.message; b.disabled = false; }
+    });
+  }
+
+  function ring(id, frac) {
+    const el = $(id); const r = Number(el.getAttribute("r")); const c = 2 * Math.PI * r;
+    el.setAttribute("stroke-dasharray", c.toFixed(1)); el.setAttribute("stroke-dashoffset", (c * (1 - Math.max(0, Math.min(1, frac)))).toFixed(1));
+  }
+  function showState(st, name, wallTotal) {
+    const note = $("#k-note"); if (!note) return;
+    if (!st.allowed) {
+      $("#k-virt").textContent = "–"; $("#k-wall").textContent = "–"; ring("#ring-virt", 0); ring("#ring-wall", 0);
+      note.textContent = st.message || "The conversation has ended.";
+      $("#send").disabled = true; $("#question").disabled = true; $("#cap").textContent = "–"; return;
+    }
+    const vl = st.virtual_left, vt = st.virtual_total, wl = st.wall_left_min;
+    $("#k-virt").textContent = vl == null ? "–" : `${Math.max(0, vl).toFixed(0)} min`;
+    $("#k-wall").textContent = wl == null ? "–" : `${wl} min`;
+    ring("#ring-virt", vt ? Math.min(vl, vt) / vt : 0); ring("#ring-wall", wallTotal && wl != null ? wl / wallTotal : 0);
+    $("#cap").textContent = st.input_char_cap ?? "–";
+    if (st.in_grace) note.textContent = `${name} is glancing at the clock.`;
+    else if (vl != null && vl <= 10) note.textContent = `You have about ${Math.max(1, Math.round(vl))} minutes of ${name}'s time left.`;
+    else if (wl != null && wl <= 10) note.textContent = `Your window closes in ${wl} minutes. This deadline is real.`;
+    else note.textContent = "";
+  }
+  function addTurn(box, speaker, text) {
+    const d = document.createElement("div"); d.className = `turn ${speaker === "you" ? "q" : speaker === "sys" ? "sys" : ""}`;
+    d.innerHTML = `<div class="sp">${esc(speaker)}</div><div>${esc(text)}</div>`; box.appendChild(d); d.scrollIntoView({ block: "nearest" });
+  }
+
+  async function room(id) {
+    await ensureMe(); render("t-room");
+    const ps = await personas();
+    let st = await api(`/sessions/${id}/state`);
+    const p = ps.find((x) => x.session_id === Number(id)) || ps.find((x) => x.code === st.persona_code) || { name: st.persona_code, budget: {} };
+    if (st.session_state !== "open") { location.hash = `#/transcripts/${id}`; return; }
+    recording(p.name);
+    $("#r-name").textContent = p.name;
+    $("#r-label").textContent = p.role || "";
+    $("#r-brief").textContent = personFacts(p).join(" · ");
+    $("#r-face").innerHTML = faceHtml(p.name, p.portrait_url);
+    const box = $("#turns");
+    // The opening line is the only earlier turn the room shows. There is no live transcript: a reload mid-conversation shows what you have heard only from your notes.
+    let opening = null; try { opening = sessionStorage.getItem(`fb.opening.${id}`); } catch {}
+    if (opening) addTurn(box, p.name, opening);
+    addTurn(box, "sys", "The conversation is running. There is no live transcript: take notes. It arrives when the conversation ends.");
+    const wallTotal = p.budget.wall_minutes || null;
+    showState(st.state, p.name, wallTotal);
+    const ds = await documents(); const sel = $("#exhibit");
+    for (const d of ds) { const o = document.createElement("option"); o.value = d.code; o.textContent = `${d.code} · ${bothNames(d).join(" / ")}`.slice(0, 110); sel.appendChild(o); }
+    sel.addEventListener("change", async () => {
+      const code = sel.value; if (!code) return; sel.disabled = true;
+      try { await post(`/sessions/${id}/exhibit`, { document_code: code }); addTurn(box, "you", `(You place ${code} on the table.)`); }
+      catch (err) { $("#r-err").textContent = err.message; }
+      finally { sel.value = ""; sel.disabled = false; }
+    });
+    const q = $("#question"), cnt = $("#count");
+    q.addEventListener("input", () => { cnt.textContent = q.value.length; const cap = Number($("#cap").textContent); cnt.parentElement.classList.toggle("over", cap && q.value.length > cap); });
+    let lastAnswerAt = Date.now();
+    $("#ask").addEventListener("submit", async (e) => {
+      e.preventDefault(); const text = q.value.trim(); if (!text) return;
+      const cap = Number($("#cap").textContent); if (cap && text.length > cap) { $("#r-err").textContent = `Keep it under ${cap} characters.`; return; }
+      const b = $("#send"); b.disabled = true; $("#r-err").textContent = "";
+      addTurn(box, "you", text); q.value = ""; cnt.textContent = "0";
+      const silence = Math.min(600, Math.round((Date.now() - lastAnswerAt) / 1000));
+      try {
+        const r = await post(`/sessions/${id}/ask`, { question: text, silence_seconds: silence });
+        if (r.kind === "answer") addTurn(box, p.name, r.answer);
+        else addTurn(box, "sys", r.message);
+        showState(r.state, p.name, wallTotal); lastAnswerAt = Date.now();
+        if (r.kind === "closed" || (r.state && !r.state.allowed && String(r.state.reason || "").startsWith("session_"))) setTimeout(() => { location.hash = `#/transcripts/${id}`; }, 1500);
+      } catch (err) { $("#r-err").textContent = err.message; }
+      finally { b.disabled = !st.state.allowed ? true : false; q.focus(); }
+    });
+    $("#end").addEventListener("click", async () => {
+      if (!confirm("End the conversation? It does not reopen. The transcript is released when it ends.")) return;
+      try { await post(`/sessions/${id}/close`); S.personas = null; location.hash = `#/transcripts/${id}`; } catch (err) { $("#r-err").textContent = err.message; }
+    });
+    stopPoll();
+    S.poll = setInterval(async () => {
+      try { st = await api(`/sessions/${id}/state`); showState(st.state, p.name, wallTotal); if (st.session_state !== "open") { stopPoll(); S.personas = null; location.hash = `#/transcripts/${id}`; } }
+      catch {}
+    }, 30000);
+  }
+
   async function transcripts() {
     await ensureMe(); nav("transcripts"); render("t-transcripts");
     const ss = (await api("/sessions")).sessions.filter((s) => s.state !== "open");
