@@ -128,6 +128,10 @@
     return `<div class="empty"><span class="tag">not open yet</span><p>${esc(text)}</p></div>`;
   }
 
+  const faceHtml = (name, url) => (url
+    ? `<img class="portrait" src="${esc(url)}" alt="${esc(name)}">`
+    : `<div class="portrait none" aria-hidden="true">${esc(initials(name))}</div>`);
+
   const groupOf = (p) => (p.generation ? `gen:${p.generation}` : "independent");
 
   function personFacts(p) {
@@ -260,10 +264,10 @@
     const registry = deskList.find((d) => d.desk_kind === "registry");
     if (registry) {
       $("#reg-aside").innerHTML = `<div class="keeperhead">
-          <p class="label">Ask for a record</p>
-          ${registry.portrait_url ? `<img class="keeperface" src="${esc(registry.portrait_url)}" alt="${esc(registry.name)}">` : ""}
+          ${registry.portrait_url ? `<img class="keeperface" src="${esc(registry.portrait_url)}" alt="">` : ""}
+          <span><span class="label">Ask for a record</span><span class="kname">${esc(registry.name)}</span></span>
         </div>
-        <div class="prose"><p><strong>${esc(registry.name)}</strong> keeps the archive. Ask by name and, if it is there, it goes into this file. She remembers what you asked.</p></div>
+        <div class="prose"><p>Keeps the archive. Ask for a record by name and, if it is there, it goes into this file. She remembers what you asked.</p></div>
         <p><a class="btn quiet" href="#/desk/${esc(registry.code)}">Ask ${esc(registry.name.split(" ")[0])}</a></p>`;
       return;
     }
@@ -290,136 +294,61 @@
     if (!meta) { view.innerHTML = `<div class="empty"><span class="tag">not in your file</span><p>The registry has no such record released to your team.</p><p><a href="#/file">Back to the file</a></p></div>`; return; }
     $("#d-meta").textContent = `${meta.code} · ${meta.holding_institution || ""}${meta.doc_year ? " · " + meta.doc_year : ""}`;
     $("#d-title").innerHTML = bothNames(meta).map((t, i) => (i ? `<span class="alt">${esc(t)}</span>` : esc(t))).join("");
+
     // Opening the reading view is the open that counts: it records the disclosure key.
     let signed = null;
     try { signed = await post(`/documents/${encodeURIComponent(code)}/open`); } catch {}
-    async function load(lang) {
-      document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.lang === lang));
-      const t = await api(`/documents/${encodeURIComponent(code)}/text?lang=${lang}`);
-      $("#d-text").textContent = t.text || "(no text in this language)";
-    }
-    document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => load(b.dataset.lang)));
-    await load("en");
-    $("#d-fac").addEventListener("click", async () => {
-      const b = $("#d-fac"); b.disabled = true; b.textContent = "Rendering…";
+    const sign = async () => (signed && Date.now() - signed.at < 45000 ? signed : (signed = Object.assign(await post(`/documents/${encodeURIComponent(code)}/open`), { at: Date.now() })));
+    if (signed) signed.at = Date.now();
+
+    // The facsimile is the document. It renders on arrival rather than behind a
+    // button: a team should meet the paper as it was written, and read the
+    // transcription underneath only if it wants to.
+    const note = $("#d-facnote"); const box = $("#d-pages");
+    (async () => {
+      note.textContent = "Rendering the facsimile…";
       try {
-        const s = signed || (await post(`/documents/${encodeURIComponent(code)}/open`));
+        const s = await sign();
         const pdfjs = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs");
         pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
         const pdf = await pdfjs.getDocument({ url: s.url }).promise;
-        const box = $("#d-pages"); box.replaceChildren(); box.hidden = false;
+        box.replaceChildren();
         for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i); const vp = page.getViewport({ scale: 1.4 });
+          const page = await pdf.getPage(i); const vp = page.getViewport({ scale: 1.6 });
           const cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height; box.appendChild(cv);
           await page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
         }
-        b.textContent = "Facsimile shown above";
-      } catch (e) {
-        // If in-page rendering is not possible, the signed URL still opens for the minute it is valid.
-        try { const s = signed || (await post(`/documents/${encodeURIComponent(code)}/open`)); window.open(s.url, "_blank", "noopener"); b.textContent = "Opened in a new tab"; }
-        catch { b.textContent = "Facsimile unavailable"; }
+        note.textContent = `${pdf.numPages} page${pdf.numPages === 1 ? "" : "s"}, as filed.`;
+      } catch {
+        note.textContent = "The facsimile could not be shown here. The transcription is below, and the download still works.";
       }
-    });
-  }
+    })();
 
-  async function confirm_(code) {
-    await ensureMe(); nav("case"); render("t-confirm");
-    const p = (await personas()).find((x) => x.code === code);
-    if (!p) { location.hash = "#/people"; return; }
-    $("#c-name").textContent = p.name; $("#c-brief").textContent = p.brief || "";
-    // The same portrait and the same few facts as the roster: this is the last
-    // page before a conversation that does not reopen.
-    $("#c-portrait").innerHTML = p.portrait_url
-      ? `<img class="portrait" src="${esc(p.portrait_url)}" alt="${esc(p.name)}">`
-      : `<div class="portrait none" aria-hidden="true">${esc(initials(p.name))}</div>`;
-    $("#c-facts").textContent = personFacts(p).join(" · ");
-    $("#c-virtual").textContent = p.budget.virtual_minutes ?? "–"; $("#c-wall").textContent = p.budget.wall_minutes ?? "–";
-    $("#c-go").addEventListener("click", async () => {
-      const b = $("#c-go"); b.disabled = true;
+    $("#d-dl").addEventListener("click", async () => {
+      const b = $("#d-dl"); const was = b.textContent; b.disabled = true; b.textContent = "Fetching…";
       try {
-        const r = await post("/sessions", { persona_code: code }); S.personas = null;
-        try { if (r.opening_line) sessionStorage.setItem(`fb.opening.${r.session_id}`, r.opening_line); } catch {}
-        location.hash = `#/room/${r.session_id}`;
-      }
-      catch (err) { $("#c-err").textContent = err.message; b.disabled = false; }
+        const s = await sign();
+        const res = await fetch(s.url);
+        if (!res.ok) throw new Error(String(res.status));
+        const url = URL.createObjectURL(await res.blob());
+        const a = document.createElement("a");
+        a.href = url; a.download = `${code}.pdf`; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        b.textContent = "Downloaded";
+      } catch {
+        try { const s = await sign(); window.open(s.url, "_blank", "noopener"); b.textContent = "Opened in a new tab"; }
+        catch { b.textContent = "Unavailable"; }
+      } finally { b.disabled = false; setTimeout(() => { b.textContent = was; }, 4000); }
     });
-  }
 
-  function ring(id, frac) {
-    const el = $(id); const r = Number(el.getAttribute("r")); const c = 2 * Math.PI * r;
-    el.setAttribute("stroke-dasharray", c.toFixed(1)); el.setAttribute("stroke-dashoffset", (c * (1 - Math.max(0, Math.min(1, frac)))).toFixed(1));
-  }
-  function showState(st, name, wallTotal) {
-    const note = $("#k-note"); if (!note) return;
-    if (!st.allowed) {
-      $("#k-virt").textContent = "–"; $("#k-wall").textContent = "–"; ring("#ring-virt", 0); ring("#ring-wall", 0);
-      note.textContent = st.message || "The conversation has ended.";
-      $("#send").disabled = true; $("#question").disabled = true; $("#cap").textContent = "–"; return;
+    // The transcription, in either language, under the paper it transcribes.
+    async function load(lang) {
+      document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.lang === lang));
+      const t = await api(`/documents/${encodeURIComponent(code)}/text?lang=${lang}`);
+      $("#d-text").innerHTML = t.text ? prose(t.text) : "<p class=\"prov\">(no text in this language)</p>";
     }
-    const vl = st.virtual_left, vt = st.virtual_total, wl = st.wall_left_min;
-    $("#k-virt").textContent = vl == null ? "–" : `${Math.max(0, vl).toFixed(0)} min`;
-    $("#k-wall").textContent = wl == null ? "–" : `${wl} min`;
-    ring("#ring-virt", vt ? Math.min(vl, vt) / vt : 0); ring("#ring-wall", wallTotal && wl != null ? wl / wallTotal : 0);
-    $("#cap").textContent = st.input_char_cap ?? "–";
-    if (st.in_grace) note.textContent = `${name} is glancing at the clock.`;
-    else if (vl != null && vl <= 10) note.textContent = `You have about ${Math.max(1, Math.round(vl))} minutes of ${name}'s time left.`;
-    else if (wl != null && wl <= 10) note.textContent = `Your window closes in ${wl} minutes. This deadline is real.`;
-    else note.textContent = "";
-  }
-  function addTurn(box, speaker, text) {
-    const d = document.createElement("div"); d.className = `turn ${speaker === "you" ? "q" : speaker === "sys" ? "sys" : ""}`;
-    d.innerHTML = `<div class="sp">${esc(speaker)}</div><div>${esc(text)}</div>`; box.appendChild(d); d.scrollIntoView({ block: "nearest" });
-  }
-
-  async function room(id) {
-    await ensureMe(); render("t-room");
-    const ps = await personas();
-    let st = await api(`/sessions/${id}/state`);
-    const p = ps.find((x) => x.session_id === Number(id)) || ps.find((x) => x.code === st.persona_code) || { name: st.persona_code, budget: {} };
-    if (st.session_state !== "open") { location.hash = `#/transcripts/${id}`; return; }
-    recording(p.name); $("#r-name").textContent = p.name; $("#r-label").textContent = p.role || "";
-    const box = $("#turns");
-    // The opening line is the only earlier turn the room shows. There is no live transcript: a reload mid-conversation shows what you have heard only from your notes.
-    let opening = null; try { opening = sessionStorage.getItem(`fb.opening.${id}`); } catch {}
-    if (opening) addTurn(box, p.name, opening);
-    addTurn(box, "sys", "The conversation is running. There is no live transcript: take notes. It arrives when the conversation ends.");
-    const wallTotal = p.budget.wall_minutes || null;
-    showState(st.state, p.name, wallTotal);
-    const ds = await documents(); const sel = $("#exhibit");
-    for (const d of ds) { const o = document.createElement("option"); o.value = d.code; o.textContent = `${d.code} · ${bothNames(d).join(" / ")}`.slice(0, 110); sel.appendChild(o); }
-    sel.addEventListener("change", async () => {
-      const code = sel.value; if (!code) return; sel.disabled = true;
-      try { await post(`/sessions/${id}/exhibit`, { document_code: code }); addTurn(box, "you", `(You place ${code} on the table.)`); }
-      catch (err) { $("#r-err").textContent = err.message; }
-      finally { sel.value = ""; sel.disabled = false; }
-    });
-    const q = $("#question"), cnt = $("#count");
-    q.addEventListener("input", () => { cnt.textContent = q.value.length; const cap = Number($("#cap").textContent); cnt.parentElement.classList.toggle("over", cap && q.value.length > cap); });
-    let lastAnswerAt = Date.now();
-    $("#ask").addEventListener("submit", async (e) => {
-      e.preventDefault(); const text = q.value.trim(); if (!text) return;
-      const cap = Number($("#cap").textContent); if (cap && text.length > cap) { $("#r-err").textContent = `Keep it under ${cap} characters.`; return; }
-      const b = $("#send"); b.disabled = true; $("#r-err").textContent = "";
-      addTurn(box, "you", text); q.value = ""; cnt.textContent = "0";
-      const silence = Math.min(600, Math.round((Date.now() - lastAnswerAt) / 1000));
-      try {
-        const r = await post(`/sessions/${id}/ask`, { question: text, silence_seconds: silence });
-        if (r.kind === "answer") addTurn(box, p.name, r.answer);
-        else addTurn(box, "sys", r.message);
-        showState(r.state, p.name, wallTotal); lastAnswerAt = Date.now();
-        if (r.kind === "closed" || (r.state && !r.state.allowed && String(r.state.reason || "").startsWith("session_"))) setTimeout(() => { location.hash = `#/transcripts/${id}`; }, 1500);
-      } catch (err) { $("#r-err").textContent = err.message; }
-      finally { b.disabled = !st.state.allowed ? true : false; q.focus(); }
-    });
-    $("#end").addEventListener("click", async () => {
-      if (!confirm("End the conversation? It does not reopen. The transcript is released when it ends.")) return;
-      try { await post(`/sessions/${id}/close`); S.personas = null; location.hash = `#/transcripts/${id}`; } catch (err) { $("#r-err").textContent = err.message; }
-    });
-    stopPoll();
-    S.poll = setInterval(async () => {
-      try { st = await api(`/sessions/${id}/state`); showState(st.state, p.name, wallTotal); if (st.session_state !== "open") { stopPoll(); S.personas = null; location.hash = `#/transcripts/${id}`; } }
-      catch {}
-    }, 30000);
+    document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => load(b.dataset.lang)));
+    await load("en");
   }
 
   async function transcripts() {
@@ -467,9 +396,7 @@
     const desk = d.desk;
     $("#dk-label").textContent = desk.subtitle || "The literature";
     $("#dk-name").textContent = desk.name;
-    $("#dk-face").innerHTML = desk.portrait_url
-      ? `<img class="portrait" src="${esc(desk.portrait_url)}" alt="${esc(desk.name)}">`
-      : "";
+    $("#dk-face").innerHTML = faceHtml(desk.name, desk.portrait_url);
     const registry = desk.desk_kind === "registry";
     $("#dk-brief").textContent = desk.brief || (registry
       ? "Ask for a record by name. If the archive holds it, it goes into your case file."
