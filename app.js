@@ -134,9 +134,11 @@
       $("#ld-packnote").textContent = p.pack_note || "What the family, its companies and the public registers would hand you on the first day.";
       $("#ld-packlist").innerHTML = d.pack.map((x) => `<li><span>${esc(x.folder || "Papers")}</span><span class="n">${x.n}</span></li>`).join("");
     }
-    $("#ld-gate").hidden = !open || me.interviews_open;
-    $("#ld-go").hidden = !(open && me.interviews_open);
-    watchGate((m) => !(m.edition.status === "open" && m.interviews_open), landing);
+    const gate = interviewGate(me);
+    $("#ld-gate").hidden = !open || !gate;
+    if (open && gate) $("#ld-gate").innerHTML = `<span class="tag">${esc(gate.tag)}</span><p>${esc(gate.text)}</p>`;
+    $("#ld-go").hidden = !!gate;
+    watchGate((m) => !!interviewGate(m), landing);
   }
 
   // The people. A portrait first, because a team chooses whom to spend an hour
@@ -161,6 +163,21 @@
     : `<div class="portrait none" aria-hidden="true">${esc(initials(name))}</div>`);
 
   const groupOf = (p) => (p.generation ? `gen:${p.generation}` : "independent");
+
+  /**
+   * Why a team cannot start a conversation, if it cannot. The course has to be
+   * open and the interviews have to be switched on, and these are two different
+   * controls: a banner that names the wrong one sends everybody to the wrong
+   * place. Null when nothing is in the way.
+   */
+  function interviewGate(me) {
+    const g = courseGate(me);
+    if (g) return { tag: "course not open", text: g };
+    if (!me.interviews_open) {
+      return { tag: "not yet", text: "The course is open, but your instructor has not started the interviews. You can read the people and their CVs in the meantime — this page opens itself when the interviews begin." };
+    }
+    return null;
+  }
 
   function personFacts(p) {
     return [
@@ -232,9 +249,11 @@
   async function people() {
     const me = await ensureMe(); nav("case"); render("t-case");
     $("#edition").textContent = me.edition.title || me.edition.code;
-    const open = me.interviews_open && me.edition.status === "open";
+    const gate = interviewGate(me);
+    const open = !gate;
     $("#gate").hidden = open;
-    watchGate((m) => !(m.interviews_open && m.edition.status === "open"), people);
+    if (gate) $("#gate").innerHTML = `<span class="tag">${esc(gate.tag)}</span><p>${esc(gate.text)}</p>`;
+    watchGate((m) => !!interviewGate(m), people);
     const ps = await personas(true);
     const held = ps.filter((p) => p.state === "completed").length;
     $("#n-people").textContent = ps.length;
