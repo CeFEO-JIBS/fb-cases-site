@@ -220,14 +220,16 @@
   async function file() {
     const me = await ensureMe(); nav("file"); render("t-file");
     const ds = await documents(true);
-    const stage = { brief: "Onboarding pack", engagement_only: "The engagement", discovery: "Released to your team", deep: "From the registry" };
+    const stage = { brief: "Onboarding pack", roster: "The people you may interview", engagement_only: "The engagement", discovery: "Released to your team", deep: "From the registry" };
     // How this team came by a document, in their own terms. Never why.
     const via = { trigger: "released after an interview", request: "you asked for it", instructor: "given by your instructor", event: "released to every team" };
     const groups = {};
-    const keyOf = (d) => (d.release_stage === "brief" && d.folder ? `brief/${d.folder}` : d.release_stage);
+    // A CV that is in the file because you may interview its subject belongs
+    // with the people, not with whatever stage the archive happens to file it at.
+    const keyOf = (d) => (d.roster_cv ? "roster" : d.release_stage === "brief" && d.folder ? `brief/${d.folder}` : d.release_stage);
     for (const d of ds) (groups[keyOf(d)] ||= []).push(d);
     const folders = Object.keys(groups).filter((k) => k.startsWith("brief/")).sort();
-    const order = [...folders, ...["brief", "engagement_only", "discovery", "deep"].filter((k) => groups[k])];
+    const order = [...folders, ...["brief", "roster", "engagement_only", "discovery", "deep"].filter((k) => groups[k])];
     const labelOf = (k) => (k.startsWith("brief/") ? `${stage.brief} · ${k.slice(6)}` : stage[k] || k);
     $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
       `<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
