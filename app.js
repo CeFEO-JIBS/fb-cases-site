@@ -293,7 +293,78 @@
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([head + txt], { type: "text/plain" })); a.download = `${safe}-${id}.txt`; a.click();
     });
   }
-  async function desk() { await ensureMe(); nav("desk"); render("t-desk"); }
+  async function desks() {
+    await ensureMe(); nav("desk"); render("t-desks");
+    const ds = (await api("/desks")).desks;
+    if (ds.length === 1) { location.hash = `#/desk/${ds[0].code}`; return; }
+    $("#desk-list").innerHTML = ds.length ? ds.map((d) => {
+      const items = d.sources.reduce((a, s) => a + (s.item_count || 0), 0);
+      const cap = d.questions_total || d.turn_cap;
+      return `<a class="desk-card" href="#/desk/${esc(d.code)}"><div class="nm">${esc(d.name)}</div>${d.subtitle ? `<div class="sub">${esc(d.subtitle)}</div>` : ""}<div class="meta">${d.sources.length} source${d.sources.length === 1 ? "" : "s"}${items ? ` · ${items.toLocaleString()} items` : ""}${cap ? ` · ${Math.max(0, cap - d.asked)} of ${cap} questions left` : ""}</div></a>`;
+    }).join("") : `<div class="empty"><span class="tag">not open yet</span><p>No desk is open in this course.</p></div>`;
+  }
+
+  async function deskPage(code) {
+    await ensureMe(); nav("desk"); render("t-desk");
+    let d;
+    try { d = await api(`/desks/${encodeURIComponent(code)}`); }
+    catch (err) { view.innerHTML = `<div class="empty"><span class="tag">no such desk</span><p>${esc(err.message)}</p><p><a href="#/desk">The desks</a></p></div>`; return; }
+    const desk = d.desk;
+    $("#dk-label").textContent = desk.subtitle || "The literature";
+    $("#dk-name").textContent = desk.name;
+    $("#dk-brief").textContent = desk.brief || "Ask about the literature. The desk answers from what it reads, and cites it.";
+    $("#dk-sources").innerHTML = desk.sources.length
+      ? desk.sources.map((s) => `<li><span>${esc(s.label)}</span><span class="n">${s.item_count ? s.item_count.toLocaleString() : ""}</span></li>`).join("")
+      : `<li><span class="prov">This desk has no sources switched on.</span></li>`;
+
+    const box = $("#dk-thread");
+    const draw = (turns) => {
+      box.innerHTML = "";
+      if (!turns.length) box.innerHTML = `<div class="empty"><span class="tag">nothing asked yet</span><p>Ask your first question. The desk answers in a few sentences and tells you what it read.</p></div>`;
+      for (const t of turns) addDeskTurn(box, desk.name, t);
+    };
+    draw(d.turns);
+    const left = (state, asked) => {
+      const cap = desk.questions_total || desk.turn_cap;
+      const n = cap ? Math.max(0, cap - asked) : null;
+      $("#dk-left").textContent = n === null ? "" : n === 0 ? "no questions left" : `${n} question${n === 1 ? "" : "s"} left`;
+      $("#dk-go").disabled = n === 0 || (state && state.allowed === false);
+    };
+    let asked = d.turns.filter((t) => t.speaker === "interviewer").length;
+    left(d.state, asked);
+
+    $("#dk-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const b = $("#dk-go"), q = $("#dk-q").value.trim();
+      if (!q) return;
+      b.disabled = true; $("#dk-err").textContent = "";
+      addDeskTurn(box, desk.name, { speaker: "interviewer", text: q, citations: [] });
+      const waiting = document.createElement("div");
+      waiting.className = "turn sys"; waiting.textContent = "reading…"; box.appendChild(waiting);
+      try {
+        const r = await post(`/desks/${encodeURIComponent(code)}/ask`, { question: q });
+        waiting.remove(); $("#dk-q").value = "";
+        addDeskTurn(box, desk.name, { speaker: "persona", text: r.text, citations: r.citations });
+        asked += 1; left(r.state, asked);
+      } catch (err) {
+        waiting.remove();
+        $("#dk-err").textContent = err.body && err.body.message ? err.body.message : err.message;
+        left(err.body && err.body.state, asked);
+      } finally { if (!$("#dk-go").disabled) b.disabled = false; }
+      box.scrollIntoView({ block: "end", behavior: "smooth" });
+    });
+  }
+
+  function addDeskTurn(box, name, t) {
+    const d = document.createElement("div");
+    d.className = `turn ${t.speaker === "interviewer" ? "q" : ""}`;
+    const who = t.speaker === "interviewer" ? "You" : name;
+    const cites = (t.citations || []).length
+      ? `<ul class="cites">${t.citations.map((c) => `<li><span class="pos">[${c.position}]</span><span>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.reference)}</a>` : esc(c.reference)}</span></li>`).join("")}</ul>`
+      : "";
+    d.innerHTML = `<div class="sp">${esc(who)}</div>${paras(t.text)}${cites}`;
+    box.appendChild(d);
+  }
 
   // ── router ──────────────────────────────────────────────────────────────
   async function route() {
@@ -308,7 +379,7 @@
       if (a === "interview" && b) return await confirm_(b);
       if (a === "room" && b) return await room(b);
       if (a === "transcripts") return b ? await transcript(b) : await transcripts();
-      if (a === "desk") return await desk();
+      if (a === "desk") return b ? await deskPage(decodeURIComponent(b)) : await desks();
       location.hash = "#/";
     } catch (err) {
       if (err.code === "sign_in_required") return signin();

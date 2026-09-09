@@ -118,3 +118,19 @@ select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;backgroun
 .notice.live{border-left-color:var(--stamp)}
 .notice strong{font-weight:600}
 .docrow .via{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted)}
+
+/* the research desks */
+.desk-card{display:block;background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:16px 18px;margin:0 0 10px;text-decoration:none;color:inherit}
+.desk-card:hover{border-color:var(--ledger)}
+.desk-card .nm{font-weight:600;font-size:16px}
+.desk-card .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.desk-card .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);margin-top:8px}
+ul.sources{list-style:none;margin:6px 0 12px;padding:0;font-size:13px}
+ul.sources li{padding:3px 0;border-bottom:1px solid var(--rule-soft);display:flex;justify-content:space-between;gap:10px}
+ul.sources li:last-child{border-bottom:0}
+ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.cites{margin:8px 0 0;padding:10px 0 0;border-top:1px solid var(--rule-soft);list-style:none}
+.cites li{font-size:13px;line-height:1.45;margin-bottom:5px;display:flex;gap:8px}
+.cites .pos{font-family:var(--mono);font-size:11px;color:var(--stamp);flex:none}
+.askbar{display:flex;align-items:center;gap:12px}
+form.ask{margin-top:14px}

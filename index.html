@@ -17,7 +17,7 @@
     <a href="#/" data-nav="case">Case</a>
     <a href="#/file" data-nav="file">Case file</a>
     <a href="#/transcripts" data-nav="transcripts">Transcripts</a>
-    <a href="#/desk" data-nav="desk">Research desk</a>
+    <a href="#/desk" data-nav="desk">Research desks</a>
     <span class="who" id="who"></span>
     <button id="out" type="button">Sign out</button>
   </nav>
@@ -172,11 +172,32 @@
   <div id="t-turns" class="turns"></div>
 </template>
 
-<template id="t-desk">
+<template id="t-desks">
   <p class="label">The literature</p>
-  <h1>Research desk</h1>
-  <p class="lede">The family tells you what they believe; the desk tells you what the research says. This surface opens later in the course.</p>
-  <div class="empty"><span class="tag">not open yet</span><p>Ask your instructor when the desk opens for your edition.</p></div>
+  <h1>Research desks</h1>
+  <p class="lede">The family tells you what it believes. A desk tells you what the literature says, and where to read it. A desk has never heard of this family and cannot be asked about it.</p>
+  <div id="desk-list"></div>
+</template>
+
+<template id="t-desk">
+  <p class="label" id="dk-label"></p>
+  <h1 id="dk-name"></h1>
+  <p class="lede" id="dk-brief"></p>
+  <div class="two">
+    <div>
+      <div id="dk-thread" class="turns"></div>
+      <form id="dk-form" class="ask">
+        <div class="field"><textarea id="dk-q" rows="3" placeholder="Ask about the literature, not about the family" required minlength="5"></textarea></div>
+        <div class="askbar"><button class="btn" type="submit" id="dk-go">Ask the desk</button><span class="prov" id="dk-left"></span></div>
+        <p class="err" id="dk-err"></p>
+      </form>
+    </div>
+    <aside class="card">
+      <p class="label">What this desk reads</p>
+      <ul class="sources" id="dk-sources"></ul>
+      <p class="prov" id="dk-note">Answers cite what they used. Follow the citation and read the source before you rely on it.</p>
+    </aside>
+  </div>
 </template>
 
 <script src="config.js"></script>
