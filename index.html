@@ -18,7 +18,7 @@
     <a href="#/people" data-nav="case">The people</a>
     <a href="#/file" data-nav="file">Case file</a>
     <a href="#/transcripts" data-nav="transcripts">Transcripts</a>
-    <a href="#/desk" data-nav="desk">Research desks</a>
+    <a href="#/desk" data-nav="desk">Research desk</a>
     <span class="who" id="who"></span>
     <button id="out" type="button">Sign out</button>
   </nav>
@@ -192,12 +192,18 @@
 </template>
 
 <template id="t-desk">
-  <p class="label" id="dk-label"></p>
-  <h1 id="dk-name"></h1>
-  <p class="lede" id="dk-brief"></p>
+  <div class="deskhead">
+    <div>
+      <p class="label" id="dk-label"></p>
+      <h1 id="dk-name"></h1>
+      <p class="lede" id="dk-brief"></p>
+    </div>
+    <div id="dk-face" class="keeper"></div>
+  </div>
   <div class="two">
     <div>
       <div id="dk-thread" class="turns"></div>
+      <div id="dk-gate" class="empty" hidden></div>
       <form id="dk-form" class="ask">
         <div class="field"><textarea id="dk-q" rows="3" placeholder="Ask about the literature, not about the family" required minlength="5"></textarea></div>
         <div class="askbar"><button class="btn" type="submit" id="dk-go">Ask the desk</button><span class="prov" id="dk-left"></span></div>

@@ -114,6 +114,22 @@
   // The people. A portrait first, because a team chooses whom to spend an hour
   // with by looking at them, and then the few facts that place a person in the
   // family: how old they are, which branch they belong to, which generation.
+  // The course-level gate. Everything a team can do — the desks, the archive,
+  // an interview — is behind course_editions.status = 'open'. Until an
+  // instructor opens the course, say so plainly instead of letting a team
+  // write a question and refusing it on submit.
+  function courseGate(me) {
+    if (me.edition.status === "open") return null;
+    return me.edition.status === "closed"
+      ? "This course has closed. You can still read your case file and your transcripts."
+      : "This course has not opened yet. Your instructor opens it when the engagement begins.";
+  }
+  function gateBanner(text) {
+    return `<div class="empty"><span class="tag">not open yet</span><p>${esc(text)}</p></div>`;
+  }
+
+  const groupOf = (p) => (p.generation ? `gen:${p.generation}` : "independent");
+
   function personFacts(p) {
     return [
       p.age != null ? `${p.age}` : p.died ? `${p.born || "?"}\u2013${p.died}` : null,
@@ -143,18 +159,17 @@
     const action = shut
       ? `<span class="pbtn off">Not open yet</span>`
       : `<a class="pbtn" href="${href}">${p.state === "in_progress" ? "Return to the room" : p.state === "completed" ? "Read the transcript" : "Begin the interview"}</a>`;
-    // The CV is a record like any other: named here, released by the archive.
-    const cv = !p.cv ? ""
-      : p.cv.held
-        ? `<button type="button" class="pbtn quiet cv-get" data-code="${esc(p.cv.code)}" data-name="${esc(p.name)}">Download CV (PDF)</button>`
-        : `<a class="pbtn quiet" href="#/desk" title="The archive holds a CV for this person. Ask the document desk for it.">CV — ask the desk</a>`;
-    return `<article class="person ${cls}" data-gen="${esc(p.generation || "")}">
+    // Direct access: the CV of someone you may interview is yours, so the button
+    // fetches the file rather than sending you to a desk to ask for it.
+    const cv = p.cv
+      ? `<button type="button" class="pbtn quiet cv-get" data-code="${esc(p.cv.code)}" data-name="${esc(p.name)}">CV (PDF)</button>`
+      : "";
+    return `<article class="person ${cls}" data-group="${esc(groupOf(p))}">
       ${face}
       <div class="pbody">
         <h3 class="pname">${esc(p.name)}</h3>
         ${facts.length ? `<p class="pfacts">${facts.map(esc).join(" · ")}</p>` : ""}
         ${p.role ? `<p class="prole">${esc(p.role)}</p>` : ""}
-        ${p.brief ? `<p class="pbrief">${esc(p.brief)}</p>` : ""}
         <p class="pstate">${esc(st)}${mins && p.state === "not_started" && !shut ? ` · ${mins}` : ""}</p>
         <div class="pacts">${action}${cv}</div>
       </div>
@@ -193,17 +208,21 @@
     $("#n-held").textContent = held;
     $("#n-left").textContent = ps.length - held;
 
-    // A generation filter, but only where the case says which generation anyone is in.
+    // The filter, built from the people who are actually there: one chip per
+    // generation the case knows, and one for everybody outside the family tree
+    // — the board and the management, who belong to no generation of it.
     const gens = [...new Set(ps.map((p) => p.generation).filter(Boolean))];
-    if (gens.length > 1) {
+    const independents = ps.filter((p) => !p.generation).length;
+    if (gens.length > 1 || (gens.length && independents)) {
       const bar = $("#gen-filter"); bar.hidden = false;
-      bar.innerHTML = `<button type="button" class="gen on" data-gen="">Everyone</button>` +
-        gens.map((g) => `<button type="button" class="gen" data-gen="${esc(g)}">${esc(/^\d+$/.test(String(g)) ? `Generation ${g}` : g)}</button>`).join("");
+      bar.innerHTML = `<button type="button" class="gen on" data-group="">Everyone</button>`
+        + gens.map((g) => `<button type="button" class="gen" data-group="gen:${esc(g)}">${esc(/^\d+$/.test(String(g)) ? `Generation ${g}` : g)}</button>`).join("")
+        + (independents ? `<button type="button" class="gen" data-group="independent">Independent</button>` : "");
       bar.addEventListener("click", (e) => {
         const b = e.target.closest("button.gen"); if (!b) return;
         bar.querySelectorAll("button.gen").forEach((x) => x.classList.toggle("on", x === b));
         document.querySelectorAll("#roster .person").forEach((el) => {
-          el.hidden = !!b.dataset.gen && el.dataset.gen !== b.dataset.gen;
+          el.hidden = !!b.dataset.group && el.dataset.group !== b.dataset.group;
         });
       });
     }
@@ -240,9 +259,12 @@
     try { deskList = (await api("/desks")).desks; } catch { /* the desks are optional */ }
     const registry = deskList.find((d) => d.desk_kind === "registry");
     if (registry) {
-      $("#reg-aside").innerHTML = `<p class="label">Ask for a record</p>
-        <div class="prose"><p><strong>${esc(registry.name)}</strong> keeps the archive. Ask by name and, if it is there, it goes into this file. The desk remembers what you asked.</p></div>
-        <p><a class="btn quiet" href="#/desk/${esc(registry.code)}">Go to the desk</a></p>`;
+      $("#reg-aside").innerHTML = `<div class="keeperhead">
+          <p class="label">Ask for a record</p>
+          ${registry.portrait_url ? `<img class="keeperface" src="${esc(registry.portrait_url)}" alt="${esc(registry.name)}">` : ""}
+        </div>
+        <div class="prose"><p><strong>${esc(registry.name)}</strong> keeps the archive. Ask by name and, if it is there, it goes into this file. She remembers what you asked.</p></div>
+        <p><a class="btn quiet" href="#/desk/${esc(registry.code)}">Ask ${esc(registry.name.split(" ")[0])}</a></p>`;
       return;
     }
     $("#reg-form").addEventListener("submit", async (e) => {
@@ -422,8 +444,10 @@
     });
   }
   async function desks() {
-    await ensureMe(); nav("desk"); render("t-desks");
-    const ds = (await api("/desks")).desks;
+    const me = await ensureMe(); nav("desk"); render("t-desks");
+    const shut = courseGate(me);
+    const ds = (await api("/desks")).desks.filter((d) => d.desk_kind !== "registry");
+    if (shut) { $("#desk-list").innerHTML = gateBanner(shut); return; }
     if (ds.length === 1) { location.hash = `#/desk/${ds[0].code}`; return; }
     $("#desk-list").innerHTML = ds.length ? ds.map((d) => {
       const items = d.sources.reduce((a, s) => a + (s.item_count || 0), 0);
@@ -443,6 +467,9 @@
     const desk = d.desk;
     $("#dk-label").textContent = desk.subtitle || "The literature";
     $("#dk-name").textContent = desk.name;
+    $("#dk-face").innerHTML = desk.portrait_url
+      ? `<img class="portrait" src="${esc(desk.portrait_url)}" alt="${esc(desk.name)}">`
+      : "";
     const registry = desk.desk_kind === "registry";
     $("#dk-brief").textContent = desk.brief || (registry
       ? "Ask for a record by name. If the archive holds it, it goes into your case file."
@@ -460,6 +487,13 @@
       : desk.sources.length
         ? desk.sources.map((s) => `<li><span>${esc(s.label)}</span><span class="n">${s.item_count ? s.item_count.toLocaleString() : ""}</span></li>`).join("")
         : `<li><span class="prov">This desk has no sources switched on.</span></li>`;
+
+    const shut = courseGate(S.me);
+    if (shut) {
+      $("#dk-form").hidden = true;
+      $("#dk-gate").hidden = false;
+      $("#dk-gate").innerHTML = `<span class="tag">not open yet</span><p>${esc(shut)}</p>`;
+    }
 
     const box = $("#dk-thread");
     const draw = (turns) => {

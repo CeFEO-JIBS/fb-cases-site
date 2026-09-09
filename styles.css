@@ -46,6 +46,17 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 /* ── The people ────────────────────────────────────────────────────────────
    A portrait first. A team chooses whom to spend an hour with by looking at
    someone, so the picture carries the card and the facts sit under it. */
+/* The desk keeper, upper right: you are writing to a person, not a search box. */
+.deskhead{display:flex;gap:22px;align-items:flex-start;justify-content:space-between}
+.deskhead>div:first-child{flex:1;min-width:0}
+.deskhead .keeper{flex:none;width:132px}
+.deskhead .keeper .portrait{aspect-ratio:1/1;border:1px solid var(--rule);border-radius:2px}
+@media (max-width:640px){.deskhead{flex-direction:row-reverse;gap:14px}.deskhead .keeper{width:84px}}
+
+.keeperhead{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.keeperhead .label{margin:0}
+.keeperface{flex:none;width:64px;height:64px;object-fit:cover;border:1px solid var(--rule);border-radius:2px;background:var(--rule-soft)}
+
 .genbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
 .genbar .gen{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;background:none;border:1px solid var(--rule);color:var(--muted);padding:5px 10px;border-radius:2px;cursor:pointer}
 .genbar .gen.on{border-color:var(--ink);color:var(--ink);background:var(--card)}
@@ -65,12 +76,10 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 /* Age, generation, branch — where the person stands, in the machine's voice. */
 .pfacts{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ledger);margin:6px 0 0}
 .prole{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:3px 0 0}
-.pbrief{font-family:var(--read);font-size:14.5px;line-height:1.42;margin:9px 0 0;color:var(--ink)}
-.person.spent .pbrief{color:var(--spent)}
-.pstate{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 0}
+.pstate{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 12px}
 .person.live .pstate{color:var(--stamp)}
 
-.pacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule-soft)}
+.pacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid var(--rule-soft)}
 .pbtn{display:inline-block;font-family:var(--ui);font-size:12.5px;font-weight:500;text-decoration:none;background:var(--ledger);color:#fff;border:1px solid var(--ledger);padding:6px 11px;border-radius:2px;cursor:pointer}
 .pbtn.quiet{background:none;color:var(--ledger)}
 .pbtn.off{background:none;border-color:var(--rule);color:var(--muted);cursor:default}
