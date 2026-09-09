@@ -119,7 +119,7 @@ footer .base{max-width:1080px;margin:14px auto 0;padding-top:10px;border-top:1px
 .rec{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#F3D9EE}
 .rec .dot{width:8px;height:8px;border-radius:50%;background:var(--stamp);animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
-.two{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;align-items:start}
 @media (max-width:860px){.two{grid-template-columns:1fr}}
 .prose{font-family:var(--read);font-size:17px;line-height:1.62;max-width:62ch}
 .prose p{margin:0 0 12px}
@@ -148,7 +148,9 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 .pages{display:flex;flex-direction:column;gap:10px;margin:10px 0 18px}
 .pages canvas{max-width:100%;border:1px solid var(--rule);background:#fff}
 
-.room{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:22px;align-items:start}
+.room{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;align-items:start}
+.conv{min-width:0}
+@media (max-width:860px){.room{grid-template-columns:1fr}}
 @media (max-width:860px){.room{grid-template-columns:1fr}.clock{order:-1}}
 .turns{margin-top:18px;border-top:0}
 .turn{padding:16px 0;border-bottom:1px solid var(--rule-soft);font-family:var(--read);font-size:17px;line-height:1.58}
@@ -156,7 +158,6 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 .turn .sp{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ledger);margin-bottom:4px}
 .turn.q{font-weight:300}.turn.q .sp{color:var(--stamp)}
 .turn.sys{font-family:var(--ui);font-size:13px;color:var(--muted)}
-.askbar{margin-top:16px}
 .counter{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
 .counter.over{color:var(--stamp)}
 select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:14px;max-width:320px}
@@ -185,8 +186,14 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .cites{margin:8px 0 0;padding:10px 0 0;border-top:1px solid var(--rule-soft);list-style:none}
 .cites li{font-size:13px;line-height:1.45;margin-bottom:5px;display:flex;gap:8px}
 .cites .pos{font-family:var(--mono);font-size:11px;color:var(--stamp);flex:none}
-.askbar{display:flex;align-items:center;gap:12px}
-form.ask{margin-top:14px}
+/* The composer, the same in an interview and at either desk: what you write,
+   then what you can do with it, then anything that went wrong. */
+.compose{margin-top:20px;padding-top:16px;border-top:2px solid var(--ink)}
+.compose .field{margin-bottom:10px}
+.composebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.composebar .prov{margin-left:auto}
+.compose .err:empty{display:none}
+.compose .err{margin:10px 0 0}
 
 /* the landing page */
 .prose.read{font-family:var(--read);font-size:17.5px;line-height:1.6;max-width:66ch}
