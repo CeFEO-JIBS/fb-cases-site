@@ -179,6 +179,21 @@
     return null;
   }
 
+  /**
+   * Who you are speaking with, in the card the roster already uses: the
+   * portrait, the name, the facts that place them, what they are, and the
+   * state of this conversation. An interview and both desks share it.
+   */
+  function whoCard(a) {
+    return `${faceHtml(a.name, a.portrait_url)}
+      <div class="whobody">
+        <h1 class="pname">${esc(a.name)}</h1>
+        ${a.facts ? `<p class="pfacts">${esc(a.facts)}</p>` : ""}
+        ${a.role ? `<p class="prole">${esc(a.role)}</p>` : ""}
+        ${a.state ? `<p class="pstate">${esc(a.state)}</p>` : ""}
+      </div>`;
+  }
+
   function personFacts(p) {
     return [
       p.age != null ? `${p.age}` : p.died ? `${p.born || "?"}\u2013${p.died}` : null,
@@ -455,10 +470,12 @@
     const p = ps.find((x) => x.session_id === Number(id)) || ps.find((x) => x.code === st.persona_code) || { name: st.persona_code, budget: {} };
     if (st.session_state !== "open") { location.hash = `#/transcripts/${id}`; return; }
     recording(p.name);
-    $("#r-name").textContent = p.name;
-    $("#r-label").textContent = p.role || "";
-    $("#r-brief").textContent = personFacts(p).join(" · ");
-    $("#r-face").innerHTML = faceHtml(p.name, p.portrait_url);
+    $("#r-label").textContent = "The interview";
+    $("#r-who").innerHTML = whoCard({
+      name: p.name, portrait_url: p.portrait_url, role: p.role,
+      facts: personFacts(p).join(" · "),
+      state: "conversation running",
+    });
     const box = $("#turns");
     // The opening line is the only earlier turn the room shows. There is no live transcript: a reload mid-conversation shows what you have heard only from your notes.
     let opening = null; try { opening = sessionStorage.getItem(`fb.opening.${id}`); } catch {}
@@ -547,10 +564,8 @@
     catch (err) { view.innerHTML = `<div class="empty"><span class="tag">no such desk</span><p>${esc(err.message)}</p><p><a href="#/desk">The desks</a></p></div>`; return; }
     const desk = d.desk;
     $("#dk-label").textContent = desk.subtitle || "The literature";
-    $("#dk-name").textContent = desk.name;
-    $("#dk-face").innerHTML = faceHtml(desk.name, desk.portrait_url);
     const registry = desk.desk_kind === "registry";
-    $("#dk-brief").textContent = desk.brief || (registry
+    const deskBrief = desk.brief || (registry
       ? "Ask for a record by name. If the archive holds it, it goes into your case file."
       : "Ask about the literature. The desk answers from what it reads, and cites it.");
     $("#dk-q").placeholder = registry
@@ -558,6 +573,7 @@
       : "Ask about the literature, not about the family";
     $("#dk-go").textContent = registry ? "Ask for it" : "Ask the desk";
     $("#dk-srclabel").textContent = registry ? "What this desk holds" : "What this desk reads";
+    $("#dk-brief").textContent = deskBrief;
     $("#dk-note").textContent = registry
       ? "The archive is large and most of it is not listed. Name a year, a party to it, or who would have kept it."
       : "Answers cite what they used. Follow the citation and read the source before you rely on it.";
@@ -590,6 +606,13 @@
     };
     let asked = d.turns.filter((t) => t.speaker === "interviewer").length;
     left(d.state, asked);
+    const deskCap = desk.questions_total || desk.turn_cap;
+    $("#dk-who").innerHTML = whoCard({
+      name: desk.name, portrait_url: desk.portrait_url,
+      role: desk.subtitle || (registry ? "the document registry" : "the literature desk"),
+      facts: registry ? "the case archive" : `${desk.sources.length} source${desk.sources.length === 1 ? "" : "s"}`,
+      state: deskCap ? `${Math.max(0, deskCap - asked)} of ${deskCap} questions left` : "",
+    });
 
     $("#dk-form").addEventListener("submit", async (e) => {
       e.preventDefault();
