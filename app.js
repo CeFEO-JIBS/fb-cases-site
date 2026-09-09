@@ -557,11 +557,47 @@
     }).join("") : `<div class="empty"><span class="tag">not open yet</span><p>No desk is open in this course.</p></div>`;
   }
 
-  async function deskPage(code) {
-    await ensureMe(); nav("desk"); render("t-desk");
+  /**
+   * A desk gets the same page before it that a person does: who you are about
+   * to write to, and what the rules of this particular conversation are. It
+   * appears only while nothing has been asked — after that the thread is the
+   * page, exactly as an interview goes straight to the room once it is open.
+   */
+  function deskIntro(d, code) {
+    const desk = d.desk;
+    render("t-deskintro");
+    const registry = desk.desk_kind === "registry";
+    const cap = desk.questions_total || desk.turn_cap;
+    const items = desk.sources.reduce((a, s2) => a + (s2.item_count || 0), 0);
+    $("#di-portrait").innerHTML = faceHtml(desk.name, desk.portrait_url);
+    $("#di-name").textContent = desk.name;
+    $("#di-facts").textContent = [
+      desk.subtitle || (registry ? "the document registry" : "the literature desk"),
+      registry ? "the case archive" : `${desk.sources.length} source${desk.sources.length === 1 ? "" : "s"}${items ? `, ${items.toLocaleString()} items` : ""}`,
+    ].join(" · ");
+    $("#di-brief").textContent = desk.brief || (registry
+      ? "Keeps the archive. Ask for a record by name and, if it is there, it goes into your case file."
+      : "Reads the literature of the field and answers from it, citing what it used.");
+    $("#di-rules").innerHTML = registry
+      ? `<p>You are about to write to the archive. Ask for <strong>one record at a time</strong>, by name — a year, a party to it, or who would have kept it will narrow a request that is too broad. A record that is found and released to your team goes straight into your case file.</p>
+         <p>The registrar will not describe what is inside a document she is not releasing, and every request you make is recorded${cap ? `. Your team has <strong>${cap}</strong> request${cap === 1 ? "" : "s"} in this course` : ""}.</p>
+         <p>Unlike an interview, this conversation does not close. She remembers what you have already asked.</p>`
+      : `<p>You are about to write to the literature desk. It answers from the sources listed beside the conversation and cites what it used${cap ? `, and your team has <strong>${cap}</strong> question${cap === 1 ? "" : "s"} in this course` : ""}.</p>
+         <p>It has never heard of the family, the firm or the people you are studying, and it will say so if you ask about them. Ask it about the field, not about the case.</p>
+         <p>Unlike an interview, this conversation does not close. It remembers what you have already asked.</p>`;
+    $("#di-go").textContent = registry ? "Ask for a record" : "Open the desk";
+    $("#di-back").href = registry ? "#/file" : "#/desk";
+    $("#di-go").addEventListener("click", () => deskPage(code, true));
+  }
+
+  async function deskPage(code, skipIntro) {
+    await ensureMe(); nav("desk");
     let d;
     try { d = await api(`/desks/${encodeURIComponent(code)}`); }
-    catch (err) { view.innerHTML = `<div class="empty"><span class="tag">no such desk</span><p>${esc(err.message)}</p><p><a href="#/desk">The desks</a></p></div>`; return; }
+    catch (err) { render("t-desk"); view.innerHTML = `<div class="empty"><span class="tag">no such desk</span><p>${esc(err.message)}</p><p><a href="#/desk">The desks</a></p></div>`; return; }
+    // Nothing asked yet, and the course is open: meet the desk first.
+    if (!skipIntro && !d.turns.length && !courseGate(S.me)) return deskIntro(d, code);
+    render("t-desk");
     const desk = d.desk;
     $("#dk-label").textContent = desk.subtitle || "The literature";
     const registry = desk.desk_kind === "registry";
