@@ -99,37 +99,26 @@
       $("#ld-packnote").textContent = p.pack_note || "What the family, its companies and the public registers would hand you on the first day.";
       $("#ld-packlist").innerHTML = d.pack.map((x) => `<li><span>${esc(x.folder || "Papers")}</span><span class="n">${x.n}</span></li>`).join("");
     }
-    $("#ld-gate").hidden = me.questionnaire_locked || !open;
-    $("#ld-go").hidden = !(me.questionnaire_locked && open);
+    $("#ld-gate").hidden = !open || me.interviews_open;
+    $("#ld-go").hidden = !(open && me.interviews_open);
   }
 
   async function people() {
     const me = await ensureMe(); nav("case"); render("t-case");
     $("#edition").textContent = me.edition.title || me.edition.code;
-    $("#gate").hidden = me.questionnaire_locked || me.edition.status !== "open";
+    $("#gate").hidden = me.interviews_open && me.edition.status === "open";
     const [ps, ds] = await Promise.all([personas(true), documents(true)]);
     $("#n-people").textContent = ps.length; $("#n-held").textContent = ps.filter((p) => p.state === "completed").length; $("#n-docs").textContent = ds.length;
     $("#roster").innerHTML = ps.length ? ps.map((p) => {
       const cls = p.state === "in_progress" ? "live" : p.state === "completed" ? "spent" : "";
       const face = p.portrait_url ? `<img class="face" src="${esc(p.portrait_url)}" alt="">` : `<div class="face" aria-hidden="true">${esc(initials(p.name))}</div>`;
-      const st = { not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held" }[p.state] || p.state;
-      const href = p.state === "in_progress" ? `#/room/${p.session_id}` : p.state === "completed" ? `#/transcripts/${p.session_id}` : me.questionnaire_locked ? `#/interview/${p.code}` : "#/questionnaire";
-      return `<a class="person ${cls}" href="${href}">${face}<div><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role || "")}</div><div class="br">${esc(p.brief || "")}</div><div class="st">${st}</div></div></a>`;
+      const shut = p.state === "not_started" && !me.interviews_open;
+      const st = shut ? "not open yet" : ({ not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held" }[p.state] || p.state);
+      const href = p.state === "in_progress" ? `#/room/${p.session_id}` : p.state === "completed" ? `#/transcripts/${p.session_id}` : `#/interview/${p.code}`;
+      const body = `${face}<div><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role || "")}</div><div class="br">${esc(p.brief || "")}</div><div class="st">${st}</div></div>`;
+      // Until the instructor opens the interviews a person is readable but not enterable.
+      return shut ? `<div class="person shut">${body}</div>` : `<a class="person ${cls}" href="${href}">${body}</a>`;
     }).join("") : `<div class="empty"><span class="tag">no one available</span><p>No conversations are open in this edition yet.</p></div>`;
-  }
-
-  async function questionnaire() {
-    const me = await ensureMe(); nav("case"); render("t-questionnaire");
-    $("#q-text").innerHTML = me.questionnaire_text ? paras(me.questionnaire_text) : "<p>Your instructor has not set the questions yet.</p>";
-    const existing = (await api("/questionnaire")).submission;
-    if (existing) { $("#q-form").hidden = true; $("#q-done").hidden = false; $("#q-locked").innerHTML = paras(existing.content); return; }
-    $("#q-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!confirm("Once you submit, this closes and the interviews open. You cannot revise it afterwards. Submit now?")) return;
-      const b = $("#q-go"); b.disabled = true; $("#q-err").textContent = "";
-      try { await post("/questionnaire", { content: $("#q-answer").value }); S.me = null; location.hash = "#/people"; }
-      catch (err) { $("#q-err").textContent = err.code === "already_submitted" ? "Already submitted." : err.message; b.disabled = false; }
-    });
   }
 
   async function file() {
@@ -433,7 +422,6 @@
     try {
       if (!a) return await landing();
       if (a === "people") return await people();
-      if (a === "questionnaire") return await questionnaire();
       if (a === "file") return b ? await doc(decodeURIComponent(b)) : await file();
       if (a === "interview" && b) return await confirm_(b);
       if (a === "room" && b) return await room(b);

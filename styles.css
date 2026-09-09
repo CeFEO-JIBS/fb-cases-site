@@ -47,6 +47,7 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .person{display:flex;gap:12px;background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:14px;position:relative}
 .person.live{border-left:3px solid var(--stamp)}
 .person.spent{background:#F1F2EE;color:var(--spent)}
+.person.shut{color:var(--muted);cursor:default}
 .person .face{width:56px;height:56px;flex:none;border-radius:2px;background:var(--rule-soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px;color:var(--muted);overflow:hidden;object-fit:cover}
 .person img.face{object-fit:cover;object-position:top}
 .person .nm{font-weight:600}

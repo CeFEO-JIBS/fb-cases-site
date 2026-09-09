@@ -67,7 +67,7 @@
   <section class="start">
     <h2>The work</h2>
     <p>You have one conversation with each person, and it does not reopen. Read the pack before you spend one.</p>
-    <div id="ld-gate" class="empty" hidden><span class="tag">before you begin</span><p>The interviews open once your team has submitted its preparation questionnaire.</p><p><a class="btn" href="#/questionnaire">Go to the questionnaire</a></p></div>
+    <div id="ld-gate" class="empty" hidden><span class="tag">not yet</span><p>The interviews are not open yet. Your instructor opens them when the seminar begins — read the pack in the meantime.</p></div>
     <p id="ld-go" hidden><a class="btn" href="#/people">The people</a></p>
   </section>
 </template>
@@ -76,7 +76,7 @@
   <p class="label" id="edition"></p>
   <h1>The people</h1>
   <p class="lede">You have one conversation with each person. It does not reopen. Take notes; the transcript arrives only when the conversation ends.</p>
-  <div id="gate" class="empty" hidden><span class="tag">before you begin</span><p>The interviews open once your team has submitted its preparation questionnaire.</p><p><a class="btn" href="#/questionnaire">Go to the questionnaire</a></p></div>
+  <div id="gate" class="empty" hidden><span class="tag">not yet</span><p>The interviews are not open yet. Your instructor opens them when the seminar begins.</p></div>
   <div class="strip">
     <div class="cell"><div class="label">people</div><div class="v" id="n-people">–</div></div>
     <div class="cell"><div class="label">conversations held</div><div class="v" id="n-held">–</div></div>
@@ -84,21 +84,6 @@
   </div>
   <h2>The people</h2>
   <div class="roster" id="roster"></div>
-</template>
-
-<template id="t-questionnaire">
-  <p class="label">Preparation</p>
-  <h1>Before you meet anyone</h1>
-  <p class="lede">Commit to a first reading of the situation. Once you submit, this closes and the interviews open. You cannot revise it afterwards.</p>
-  <div class="card">
-    <div class="prose" id="q-text"></div>
-    <form id="q-form">
-      <div class="field"><label class="label" for="q-answer">Your team's answers</label><textarea id="q-answer" rows="14" required minlength="20"></textarea></div>
-      <button class="btn" type="submit" id="q-go">Submit and lock</button>
-      <div class="err" id="q-err"></div>
-    </form>
-    <div id="q-done" hidden><p class="label">Submitted and locked</p><div class="prose" id="q-locked"></div></div>
-  </div>
 </template>
 
 <template id="t-file">
