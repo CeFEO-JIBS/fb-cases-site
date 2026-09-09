@@ -88,6 +88,9 @@ textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:
 .docrow:hover{background:#F7F8F4}
 .docrow .code{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .docrow .ttl{font-family:var(--read);font-size:15.5px}
+/* The record's other name, under its own: quieter, but there to be read. */
+.docrow .ttl-alt{font-family:var(--read);font-size:14px;font-style:italic;color:var(--muted);margin-top:1px}
+h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;font-size:.62em;color:var(--muted);margin-top:6px}
 .docrow .prov{font-size:12px;color:var(--muted)}
 .docrow .st{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .docrow .st.new{color:var(--stamp)}

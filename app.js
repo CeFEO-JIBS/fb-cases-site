@@ -53,6 +53,14 @@
     document.querySelectorAll("[data-nav]").forEach((a) => a.toggleAttribute("aria-current", a.dataset.nav === key));
   }
   function recording(name) { const r = $("#rec"); r.hidden = !name; $("#rec-name").textContent = name || ""; $("#nav").hidden = !!name; }
+  // A record carries its name twice: the language it was filed in and the
+  // language the team works in. Either may be absent, in which case the
+  // authored title stands for both, and identical names are shown once.
+  const nameSv = (d) => (d.title_sv || "").trim() || d.title || "";
+  const nameEn = (d) => (d.title_en || "").trim() || d.title || "";
+  const bothNames = (d) => { const a = nameSv(d), b = nameEn(d); return a === b ? [a] : [a, b]; };
+  const titleHtml = (d) => bothNames(d).map((t, i) => `<div class="${i ? "ttl-alt" : "ttl"}">${esc(t)}</div>`).join("");
+
   async function ensureMe() { if (!S.me) S.me = await api("/me"); $("#who").textContent = S.me.group.code; $("#foot-edition").textContent = `${S.me.edition.title || S.me.edition.code} · ${S.me.group.code}`; return S.me; }
   async function personas(force) { if (force || !S.personas) S.personas = (await api("/personas")).personas; return S.personas; }
   async function documents(force) { if (force || !S.docs) S.docs = (await api("/documents")).documents; return S.docs; }
@@ -134,7 +142,7 @@
     const order = [...folders, ...["brief", "engagement_only", "discovery", "deep"].filter((k) => groups[k])];
     const labelOf = (k) => (k.startsWith("brief/") ? `${stage.brief} · ${k.slice(6)}` : stage[k] || k);
     $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
-      `<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span><div class="ttl">${esc(d.title)}</div><div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
+      `<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
       : me.edition.status === "open"
         ? `<div class="empty"><span class="tag">nothing yet</span><p>Your onboarding pack is not in place yet. Ask your instructor.</p></div>`
         : `<div class="empty"><span class="tag">not open yet</span><p>Your file opens when your instructor opens the course.</p></div>`;
@@ -152,8 +160,8 @@
       try {
         const r = await post("/registry/request", { text: $("#reg-text").value });
         const say = {
-          granted: `<p>I have found it. <strong>${esc(r.title)}</strong> is now in your file under ${esc(r.code)}.</p>`,
-          already: `<p>That one is already in your file: <strong>${esc(r.title)}</strong>, ${esc(r.code)}.</p>`,
+          granted: `<p>I have found it. <strong>${esc(bothNames(r).join(" / "))}</strong> is now in your file under ${esc(r.code)}.</p>`,
+          already: `<p>That one is already in your file: <strong>${esc(bothNames(r).join(" / "))}</strong>, ${esc(r.code)}.</p>`,
           ambiguous: `<p>That could be more than one record. Give me a year, a party to it, or who would have kept it, and I will look again.</p>`,
           not_found: `<p>I have nothing under that description. If you believe the record exists, tell me who would have produced it and roughly when.</p>`,
         }[r.outcome] || `<p>${esc(r.outcome)}</p>`;
@@ -169,7 +177,7 @@
     const ds = await documents(); const meta = ds.find((d) => d.code === code);
     if (!meta) { view.innerHTML = `<div class="empty"><span class="tag">not in your file</span><p>The registry has no such record released to your team.</p><p><a href="#/file">Back to the file</a></p></div>`; return; }
     $("#d-meta").textContent = `${meta.code} · ${meta.holding_institution || ""}${meta.doc_year ? " · " + meta.doc_year : ""}`;
-    $("#d-title").textContent = meta.title;
+    $("#d-title").innerHTML = bothNames(meta).map((t, i) => (i ? `<span class="alt">${esc(t)}</span>` : esc(t))).join("");
     // Opening the reading view is the open that counts: it records the disclosure key.
     let signed = null;
     try { signed = await post(`/documents/${encodeURIComponent(code)}/open`); } catch {}
@@ -260,7 +268,7 @@
     const wallTotal = p.budget.wall_minutes || null;
     showState(st.state, p.name, wallTotal);
     const ds = await documents(); const sel = $("#exhibit");
-    for (const d of ds) { const o = document.createElement("option"); o.value = d.code; o.textContent = `${d.code} · ${d.title}`.slice(0, 90); sel.appendChild(o); }
+    for (const d of ds) { const o = document.createElement("option"); o.value = d.code; o.textContent = `${d.code} · ${bothNames(d).join(" / ")}`.slice(0, 110); sel.appendChild(o); }
     sel.addEventListener("change", async () => {
       const code = sel.value; if (!code) return; sel.disabled = true;
       try { await post(`/sessions/${id}/exhibit`, { document_code: code }); addTurn(box, "you", `(You place ${code} on the table.)`); }
