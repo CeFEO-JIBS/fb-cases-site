@@ -487,7 +487,7 @@
     for (const d of ds) { const o = document.createElement("option"); o.value = d.code; o.textContent = `${d.code} · ${bothNames(d).join(" / ")}`.slice(0, 110); sel.appendChild(o); }
     sel.addEventListener("change", async () => {
       const code = sel.value; if (!code) return; sel.disabled = true;
-      try { await post(`/sessions/${id}/exhibit`, { document_code: code }); addTurn(box, "you", `(You place ${code} on the table.)`); }
+      try { await post(`/sessions/${id}/exhibit`, { document_code: code }); addTurn(box, "you", `(You share ${code} on screen.)`); }
       catch (err) { $("#r-err").textContent = err.message; }
       finally { sel.value = ""; sel.disabled = false; }
     });
