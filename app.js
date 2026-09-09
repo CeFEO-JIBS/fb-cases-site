@@ -149,6 +149,15 @@
       : me.edition.status === "open"
         ? `<div class="empty"><span class="tag">nothing yet</span><p>Your onboarding pack is not in place yet. Ask your instructor.</p></div>`
         : `<div class="empty"><span class="tag">not open yet</span><p>Your file opens when your instructor opens the course.</p></div>`;
+    let deskList = [];
+    try { deskList = (await api("/desks")).desks; } catch { /* the desks are optional */ }
+    const registry = deskList.find((d) => d.desk_kind === "registry");
+    if (registry) {
+      $("#reg-aside").innerHTML = `<p class="label">Ask for a record</p>
+        <div class="prose"><p><strong>${esc(registry.name)}</strong> keeps the archive. Ask by name and, if it is there, it goes into this file. The desk remembers what you asked.</p></div>
+        <p><a class="btn quiet" href="#/desk/${esc(registry.code)}">Go to the desk</a></p>`;
+      return;
+    }
     $("#reg-form").addEventListener("submit", async (e) => {
       e.preventDefault(); const b = $("#reg-go"); b.disabled = true;
       try {
@@ -326,7 +335,10 @@
     $("#desk-list").innerHTML = ds.length ? ds.map((d) => {
       const items = d.sources.reduce((a, s) => a + (s.item_count || 0), 0);
       const cap = d.questions_total || d.turn_cap;
-      return `<a class="desk-card" href="#/desk/${esc(d.code)}"><div class="nm">${esc(d.name)}</div>${d.subtitle ? `<div class="sub">${esc(d.subtitle)}</div>` : ""}<div class="meta">${d.sources.length} source${d.sources.length === 1 ? "" : "s"}${items ? ` · ${items.toLocaleString()} items` : ""}${cap ? ` · ${Math.max(0, cap - d.asked)} of ${cap} questions left` : ""}</div></a>`;
+      const what = d.desk_kind === "registry"
+        ? "asks the archive for a record and hands it over"
+        : `${d.sources.length} source${d.sources.length === 1 ? "" : "s"}${items ? ` · ${items.toLocaleString()} items` : ""}`;
+      return `<a class="desk-card" href="#/desk/${esc(d.code)}"><div class="nm">${esc(d.name)}</div>${d.subtitle ? `<div class="sub">${esc(d.subtitle)}</div>` : ""}<div class="meta">${esc(what)}${cap ? ` · ${Math.max(0, cap - d.asked)} of ${cap} questions left` : ""}</div></a>`;
     }).join("") : `<div class="empty"><span class="tag">not open yet</span><p>No desk is open in this course.</p></div>`;
   }
 
@@ -338,10 +350,23 @@
     const desk = d.desk;
     $("#dk-label").textContent = desk.subtitle || "The literature";
     $("#dk-name").textContent = desk.name;
-    $("#dk-brief").textContent = desk.brief || "Ask about the literature. The desk answers from what it reads, and cites it.";
-    $("#dk-sources").innerHTML = desk.sources.length
-      ? desk.sources.map((s) => `<li><span>${esc(s.label)}</span><span class="n">${s.item_count ? s.item_count.toLocaleString() : ""}</span></li>`).join("")
-      : `<li><span class="prov">This desk has no sources switched on.</span></li>`;
+    const registry = desk.desk_kind === "registry";
+    $("#dk-brief").textContent = desk.brief || (registry
+      ? "Ask for a record by name. If the archive holds it, it goes into your case file."
+      : "Ask about the literature. The desk answers from what it reads, and cites it.");
+    $("#dk-q").placeholder = registry
+      ? "e.g. the will of the founder, or the articles of association from the year the holding company was formed"
+      : "Ask about the literature, not about the family";
+    $("#dk-go").textContent = registry ? "Ask for it" : "Ask the desk";
+    $("#dk-srclabel").textContent = registry ? "What this desk holds" : "What this desk reads";
+    $("#dk-note").textContent = registry
+      ? "The archive is large and most of it is not listed. Name a year, a party to it, or who would have kept it."
+      : "Answers cite what they used. Follow the citation and read the source before you rely on it.";
+    $("#dk-sources").innerHTML = registry
+      ? `<li><span class="prov">The case archive. Ask for one record at a time.</span></li>`
+      : desk.sources.length
+        ? desk.sources.map((s) => `<li><span>${esc(s.label)}</span><span class="n">${s.item_count ? s.item_count.toLocaleString() : ""}</span></li>`).join("")
+        : `<li><span class="prov">This desk has no sources switched on.</span></li>`;
 
     const box = $("#dk-thread");
     const draw = (turns) => {
@@ -371,6 +396,7 @@
         const r = await post(`/desks/${encodeURIComponent(code)}/ask`, { question: q });
         waiting.remove(); $("#dk-q").value = "";
         addDeskTurn(box, desk.name, { speaker: "persona", text: r.text, citations: r.citations });
+        if (r.granted) S.docs = null;
         asked += 1; left(r.state, asked);
       } catch (err) {
         waiting.remove();
@@ -386,7 +412,13 @@
     d.className = `turn ${t.speaker === "interviewer" ? "q" : ""}`;
     const who = t.speaker === "interviewer" ? "You" : name;
     const cites = (t.citations || []).length
-      ? `<ul class="cites">${t.citations.map((c) => `<li><span class="pos">[${c.position}]</span><span>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.reference)}</a>` : esc(c.reference)}</span></li>`).join("")}</ul>`
+      ? `<ul class="cites">${t.citations.map((c) => {
+          if (c.source_key === "registry") {
+            const code = c.item_id || "";
+            return `<li><span class="pos">▸</span><span><a href="#/file/${esc(code)}">${esc(c.title)}</a> <span class="prov">now in your case file${code ? ` · ${esc(code)}` : ""}</span></span></li>`;
+          }
+          return `<li><span class="pos">[${c.position}]</span><span>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.reference)}</a>` : esc(c.reference)}</span></li>`;
+        }).join("")}</ul>`
       : "";
     d.innerHTML = `<div class="sp">${esc(who)}</div>${paras(t.text)}${cites}`;
     box.appendChild(d);
