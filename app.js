@@ -61,7 +61,34 @@
   const bothNames = (d) => { const a = nameSv(d), b = nameEn(d); return a === b ? [a] : [a, b]; };
   const titleHtml = (d) => bothNames(d).map((t, i) => `<div class="${i ? "ttl-alt" : "ttl"}">${esc(t)}</div>`).join("");
 
-  async function ensureMe() { if (!S.me) S.me = await api("/me"); $("#who").textContent = S.me.group.code; $("#foot-edition").textContent = `${S.me.edition.title || S.me.edition.code} · ${S.me.group.code}`; return S.me; }
+  // /me carries the two gates — whether the course is open and whether the
+  // interviews are — and both move while a team is sitting in front of the
+  // page. Caching it for the life of the tab meant an instructor could open
+  // the interviews and the students would go on being told they were shut
+  // until somebody thought to reload. It is one row; re-read it.
+  const ME_TTL = 15000;
+  async function ensureMe(force) {
+    if (force || !S.me || Date.now() - (S.meAt || 0) > ME_TTL) { S.me = await api("/me"); S.meAt = Date.now(); }
+    $("#who").textContent = S.me.group.code;
+    $("#foot-edition").textContent = `${S.me.edition.title || S.me.edition.code} · ${S.me.group.code}`;
+    return S.me;
+  }
+
+  /**
+   * A gate is a switch someone else throws while you wait. Watch it rather than
+   * asking the team to reload: when it moves, the page redraws itself. The
+   * watcher only runs while a gate is actually shut, and stops on the way out.
+   */
+  function stopGate() { if (S.gate) { clearInterval(S.gate); S.gate = null; } }
+  function watchGate(shut, redraw) {
+    stopGate();
+    if (!shut(S.me)) return;
+    S.gate = setInterval(async () => {
+      let me;
+      try { me = await ensureMe(true); } catch { return; }
+      if (!shut(me)) { stopGate(); redraw(); }
+    }, 10000);
+  }
   async function personas(force) { if (force || !S.personas) S.personas = (await api("/personas")).personas; return S.personas; }
   async function documents(force) { if (force || !S.docs) S.docs = (await api("/documents")).documents; return S.docs; }
   function stopPoll() { if (S.poll) { clearInterval(S.poll); S.poll = null; } }
@@ -109,6 +136,7 @@
     }
     $("#ld-gate").hidden = !open || me.interviews_open;
     $("#ld-go").hidden = !(open && me.interviews_open);
+    watchGate((m) => !(m.edition.status === "open" && m.interviews_open), landing);
   }
 
   // The people. A portrait first, because a team chooses whom to spend an hour
@@ -206,6 +234,7 @@
     $("#edition").textContent = me.edition.title || me.edition.code;
     const open = me.interviews_open && me.edition.status === "open";
     $("#gate").hidden = open;
+    watchGate((m) => !(m.interviews_open && m.edition.status === "open"), people);
     const ps = await personas(true);
     const held = ps.filter((p) => p.state === "completed").length;
     $("#n-people").textContent = ps.length;
@@ -480,7 +509,7 @@
     const me = await ensureMe(); nav("desk"); render("t-desks");
     const shut = courseGate(me);
     const ds = (await api("/desks")).desks.filter((d) => d.desk_kind !== "registry");
-    if (shut) { $("#desk-list").innerHTML = gateBanner(shut); return; }
+    if (shut) { $("#desk-list").innerHTML = gateBanner(shut); watchGate((m) => !!courseGate(m), desks); return; }
     if (ds.length === 1) { location.hash = `#/desk/${ds[0].code}`; return; }
     $("#desk-list").innerHTML = ds.length ? ds.map((d) => {
       const items = d.sources.reduce((a, s) => a + (s.item_count || 0), 0);
@@ -524,6 +553,7 @@
       $("#dk-form").hidden = true;
       $("#dk-gate").hidden = false;
       $("#dk-gate").innerHTML = `<span class="tag">not open yet</span><p>${esc(shut)}</p>`;
+      watchGate((m) => !!courseGate(m), () => deskPage(code));
     }
 
     const box = $("#dk-thread");
@@ -588,6 +618,7 @@
     const [a, b] = h.split("/");
     if (!store.get()) return signin();
     if (a !== "room") { stopPoll(); recording(null); }
+    stopGate();
     try {
       if (!a) return await landing();
       if (a === "people") return await people();
