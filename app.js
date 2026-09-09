@@ -111,22 +111,110 @@
     $("#ld-go").hidden = !(open && me.interviews_open);
   }
 
+  // The people. A portrait first, because a team chooses whom to spend an hour
+  // with by looking at them, and then the few facts that place a person in the
+  // family: how old they are, which branch they belong to, which generation.
+  function personFacts(p) {
+    return [
+      p.age != null ? `${p.age}` : p.died ? `${p.born || "?"}\u2013${p.died}` : null,
+      p.generation ? (/^\d+$/.test(String(p.generation)) ? `generation ${p.generation}` : String(p.generation)) : null,
+      p.branch ? (/^(branch|gren)\b/i.test(String(p.branch)) ? String(p.branch) : `branch ${p.branch}`) : null,
+    ].filter(Boolean);
+  }
+
+  function personCard(p, interviewsOpen) {
+    const shut = p.state === "not_started" && !interviewsOpen;
+    const cls = p.state === "in_progress" ? "live" : p.state === "completed" ? "spent" : shut ? "shut" : "";
+    const face = p.portrait_url
+      ? `<img class="portrait" src="${esc(p.portrait_url)}" alt="${esc(p.name)}" loading="lazy">`
+      : `<div class="portrait none" aria-hidden="true">${esc(initials(p.name))}</div>`;
+    // Only what the case actually carries. A missing fact is left out, not guessed.
+    const facts = [
+      p.age != null ? `${p.age}` : p.died ? `${p.born || "?"}–${p.died}` : null,
+      p.generation ? (/^\d+$/.test(String(p.generation)) ? `generation ${p.generation}` : String(p.generation)) : null,
+      p.branch ? (/^(branch|gren)\b/i.test(String(p.branch)) ? String(p.branch) : `branch ${p.branch}`) : null,
+    ].filter(Boolean);
+    const st = shut ? "not open yet"
+      : { not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held" }[p.state] || p.state;
+    const mins = p.budget && p.budget.virtual_minutes ? `${p.budget.virtual_minutes} minutes` : "";
+    const href = p.state === "in_progress" ? `#/room/${p.session_id}`
+      : p.state === "completed" ? `#/transcripts/${p.session_id}`
+      : `#/interview/${p.code}`;
+    const action = shut
+      ? `<span class="pbtn off">Not open yet</span>`
+      : `<a class="pbtn" href="${href}">${p.state === "in_progress" ? "Return to the room" : p.state === "completed" ? "Read the transcript" : "Begin the interview"}</a>`;
+    // The CV is a record like any other: named here, released by the archive.
+    const cv = !p.cv ? ""
+      : p.cv.held
+        ? `<button type="button" class="pbtn quiet cv-get" data-code="${esc(p.cv.code)}" data-name="${esc(p.name)}">Download CV (PDF)</button>`
+        : `<a class="pbtn quiet" href="#/desk" title="The archive holds a CV for this person. Ask the document desk for it.">CV — ask the desk</a>`;
+    return `<article class="person ${cls}" data-gen="${esc(p.generation || "")}">
+      ${face}
+      <div class="pbody">
+        <h3 class="pname">${esc(p.name)}</h3>
+        ${facts.length ? `<p class="pfacts">${facts.map(esc).join(" · ")}</p>` : ""}
+        ${p.role ? `<p class="prole">${esc(p.role)}</p>` : ""}
+        ${p.brief ? `<p class="pbrief">${esc(p.brief)}</p>` : ""}
+        <p class="pstate">${esc(st)}${mins && p.state === "not_started" && !shut ? ` · ${mins}` : ""}</p>
+        <div class="pacts">${action}${cv}</div>
+      </div>
+    </article>`;
+  }
+
+  // A signed URL lives for a minute, so the file is fetched and handed over as
+  // a blob: the download works even after the URL has expired in the address bar.
+  async function downloadDoc(code, filename, btn) {
+    const was = btn.textContent;
+    btn.disabled = true; btn.textContent = "Fetching…";
+    try {
+      const s = await post(`/documents/${encodeURIComponent(code)}/open`);
+      const res = await fetch(s.url);
+      if (!res.ok) throw new Error(`the archive returned ${res.status}`);
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      btn.textContent = "Downloaded";
+    } catch (e) {
+      // The blob route can fail behind a strict network; the signed URL still opens.
+      try { const s = await post(`/documents/${encodeURIComponent(code)}/open`); window.open(s.url, "_blank", "noopener"); btn.textContent = "Opened in a new tab"; }
+      catch { btn.textContent = "Unavailable"; }
+    } finally { btn.disabled = false; setTimeout(() => { btn.textContent = was; }, 4000); }
+  }
+
   async function people() {
     const me = await ensureMe(); nav("case"); render("t-case");
     $("#edition").textContent = me.edition.title || me.edition.code;
-    $("#gate").hidden = me.interviews_open && me.edition.status === "open";
-    const [ps, ds] = await Promise.all([personas(true), documents(true)]);
-    $("#n-people").textContent = ps.length; $("#n-held").textContent = ps.filter((p) => p.state === "completed").length; $("#n-docs").textContent = ds.length;
-    $("#roster").innerHTML = ps.length ? ps.map((p) => {
-      const cls = p.state === "in_progress" ? "live" : p.state === "completed" ? "spent" : "";
-      const face = p.portrait_url ? `<img class="face" src="${esc(p.portrait_url)}" alt="">` : `<div class="face" aria-hidden="true">${esc(initials(p.name))}</div>`;
-      const shut = p.state === "not_started" && !me.interviews_open;
-      const st = shut ? "not open yet" : ({ not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held" }[p.state] || p.state);
-      const href = p.state === "in_progress" ? `#/room/${p.session_id}` : p.state === "completed" ? `#/transcripts/${p.session_id}` : `#/interview/${p.code}`;
-      const body = `${face}<div><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.role || "")}</div><div class="br">${esc(p.brief || "")}</div><div class="st">${st}</div></div>`;
-      // Until the instructor opens the interviews a person is readable but not enterable.
-      return shut ? `<div class="person shut">${body}</div>` : `<a class="person ${cls}" href="${href}">${body}</a>`;
-    }).join("") : `<div class="empty"><span class="tag">no one available</span><p>No conversations are open in this edition yet.</p></div>`;
+    const open = me.interviews_open && me.edition.status === "open";
+    $("#gate").hidden = open;
+    const ps = await personas(true);
+    const held = ps.filter((p) => p.state === "completed").length;
+    $("#n-people").textContent = ps.length;
+    $("#n-held").textContent = held;
+    $("#n-left").textContent = ps.length - held;
+
+    // A generation filter, but only where the case says which generation anyone is in.
+    const gens = [...new Set(ps.map((p) => p.generation).filter(Boolean))];
+    if (gens.length > 1) {
+      const bar = $("#gen-filter"); bar.hidden = false;
+      bar.innerHTML = `<button type="button" class="gen on" data-gen="">Everyone</button>` +
+        gens.map((g) => `<button type="button" class="gen" data-gen="${esc(g)}">${esc(/^\d+$/.test(String(g)) ? `Generation ${g}` : g)}</button>`).join("");
+      bar.addEventListener("click", (e) => {
+        const b = e.target.closest("button.gen"); if (!b) return;
+        bar.querySelectorAll("button.gen").forEach((x) => x.classList.toggle("on", x === b));
+        document.querySelectorAll("#roster .person").forEach((el) => {
+          el.hidden = !!b.dataset.gen && el.dataset.gen !== b.dataset.gen;
+        });
+      });
+    }
+
+    $("#roster").innerHTML = ps.length
+      ? ps.map((p) => personCard(p, open)).join("")
+      : `<div class="empty"><span class="tag">no one available</span><p>No conversations are open in this edition yet.</p></div>`;
+    $("#roster").addEventListener("click", (e) => {
+      const b = e.target.closest(".cv-get"); if (!b) return;
+      downloadDoc(b.dataset.code, `${b.dataset.name.replace(/[^\p{L}\p{N} .-]/gu, "")} CV.pdf`, b);
+    });
   }
 
   async function file() {
@@ -215,6 +303,12 @@
     const p = (await personas()).find((x) => x.code === code);
     if (!p) { location.hash = "#/people"; return; }
     $("#c-name").textContent = p.name; $("#c-brief").textContent = p.brief || "";
+    // The same portrait and the same few facts as the roster: this is the last
+    // page before a conversation that does not reopen.
+    $("#c-portrait").innerHTML = p.portrait_url
+      ? `<img class="portrait" src="${esc(p.portrait_url)}" alt="${esc(p.name)}">`
+      : `<div class="portrait none" aria-hidden="true">${esc(initials(p.name))}</div>`;
+    $("#c-facts").textContent = personFacts(p).join(" · ");
     $("#c-virtual").textContent = p.budget.virtual_minutes ?? "–"; $("#c-wall").textContent = p.budget.wall_minutes ?? "–";
     $("#c-go").addEventListener("click", async () => {
       const b = $("#c-go"); b.disabled = true;

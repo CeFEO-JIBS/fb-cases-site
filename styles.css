@@ -43,18 +43,45 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .strip .v{font-family:var(--mono);font-size:18px;color:var(--ledger)}
 .strip .v.live{color:var(--stamp)}
 
-.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.person{display:flex;gap:12px;background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:14px;position:relative}
-.person.live{border-left:3px solid var(--stamp)}
-.person.spent{background:#F1F2EE;color:var(--spent)}
-.person.shut{color:var(--muted);cursor:default}
-.person .face{width:56px;height:56px;flex:none;border-radius:2px;background:var(--rule-soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px;color:var(--muted);overflow:hidden;object-fit:cover}
-.person img.face{object-fit:cover;object-position:top}
-.person .nm{font-weight:600}
-.person .rl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.person .br{font-family:var(--read);font-size:14.5px;line-height:1.4;margin-top:4px}
-.person .st{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:8px}
-.person.live .st{color:var(--stamp)}
+/* ── The people ────────────────────────────────────────────────────────────
+   A portrait first. A team chooses whom to spend an hour with by looking at
+   someone, so the picture carries the card and the facts sit under it. */
+.genbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.genbar .gen{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;background:none;border:1px solid var(--rule);color:var(--muted);padding:5px 10px;border-radius:2px;cursor:pointer}
+.genbar .gen.on{border-color:var(--ink);color:var(--ink);background:var(--card)}
+
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:16px}
+.person{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.person.live{border-color:var(--stamp);border-top:3px solid var(--stamp)}
+.person.spent{background:#F1F2EE}
+.person.spent .portrait{filter:grayscale(1);opacity:.62}
+.person.shut .portrait{opacity:.82}
+
+.portrait{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;object-position:50% 18%;background:var(--rule-soft);border-bottom:1px solid var(--rule)}
+.portrait.none{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:34px;letter-spacing:.06em;color:var(--muted)}
+
+.pbody{padding:12px 14px 14px;display:flex;flex-direction:column;flex:1}
+.pname{font-family:var(--read);font-weight:500;font-size:20px;line-height:1.15;margin:0}
+/* Age, generation, branch — where the person stands, in the machine's voice. */
+.pfacts{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ledger);margin:6px 0 0}
+.prole{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:3px 0 0}
+.pbrief{font-family:var(--read);font-size:14.5px;line-height:1.42;margin:9px 0 0;color:var(--ink)}
+.person.spent .pbrief{color:var(--spent)}
+.pstate{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 0}
+.person.live .pstate{color:var(--stamp)}
+
+.pacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule-soft)}
+.pbtn{display:inline-block;font-family:var(--ui);font-size:12.5px;font-weight:500;text-decoration:none;background:var(--ledger);color:#fff;border:1px solid var(--ledger);padding:6px 11px;border-radius:2px;cursor:pointer}
+.pbtn.quiet{background:none;color:var(--ledger)}
+.pbtn.off{background:none;border-color:var(--rule);color:var(--muted);cursor:default}
+.pbtn[disabled]{opacity:.6;cursor:progress}
+
+/* The moment before a conversation that does not reopen: the same face again. */
+.cmeet{display:flex;gap:20px;align-items:flex-start;margin-bottom:8px}
+.cmeet>div:first-child{flex:none;width:150px}
+.cmeet h1{margin-top:0}
+.cmeet .pfacts{margin:0 0 8px}
+@media (max-width:560px){.cmeet{flex-direction:column;gap:12px}.cmeet>div:first-child{width:130px}}
 
 .empty{border:1px dashed var(--rule);border-radius:2px;padding:22px;color:var(--muted)}
 .tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;border:1px solid var(--stamp);color:var(--stamp);padding:2px 7px;border-radius:2px}
