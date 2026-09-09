@@ -14,7 +14,8 @@
 <header class="hdr">
   <a class="mark" href="#/"><span class="n">CeFEO</span><span class="t">The case room</span></a>
   <nav id="nav" hidden>
-    <a href="#/" data-nav="case">Case</a>
+    <a href="#/" data-nav="landing">The case</a>
+    <a href="#/people" data-nav="case">The people</a>
     <a href="#/file" data-nav="file">Case file</a>
     <a href="#/transcripts" data-nav="transcripts">Transcripts</a>
     <a href="#/desk" data-nav="desk">Research desks</a>
@@ -49,12 +50,32 @@
   </section>
 </template>
 
+<template id="t-landing">
+  <p class="label" id="ld-label"></p>
+  <h1 id="ld-headline"></h1>
+  <p class="lede" id="ld-standfirst"></p>
+  <div id="ld-status" class="notice" hidden></div>
+  <div id="ld-released" class="notice live" hidden></div>
+  <div id="ld-films"></div>
+  <div class="prose read" id="ld-history"></div>
+  <section class="pack" id="ld-pack" hidden>
+    <h2>The onboarding pack</h2>
+    <p id="ld-packnote"></p>
+    <ul class="sources" id="ld-packlist"></ul>
+    <p><a class="btn" href="#/file">Open the case file</a></p>
+  </section>
+  <section class="start">
+    <h2>The work</h2>
+    <p>You have one conversation with each person, and it does not reopen. Read the pack before you spend one.</p>
+    <div id="ld-gate" class="empty" hidden><span class="tag">before you begin</span><p>The interviews open once your team has submitted its preparation questionnaire.</p><p><a class="btn" href="#/questionnaire">Go to the questionnaire</a></p></div>
+    <p id="ld-go" hidden><a class="btn" href="#/people">The people</a></p>
+  </section>
+</template>
+
 <template id="t-case">
   <p class="label" id="edition"></p>
-  <h1>Interview the people. Read the record. Advise the family.</h1>
+  <h1>The people</h1>
   <p class="lede">You have one conversation with each person. It does not reopen. Take notes; the transcript arrives only when the conversation ends.</p>
-  <div id="status" class="notice" hidden></div>
-  <div id="released" class="notice live" hidden></div>
   <div id="gate" class="empty" hidden><span class="tag">before you begin</span><p>The interviews open once your team has submitted its preparation questionnaire.</p><p><a class="btn" href="#/questionnaire">Go to the questionnaire</a></p></div>
   <div class="strip">
     <div class="cell"><div class="label">people</div><div class="v" id="n-people">–</div></div>
@@ -118,7 +139,7 @@
   <div class="card">
     <p>You are about to open your team's one conversation with this person. You will have <strong id="c-virtual"></strong> minutes of their time, inside a <strong id="c-wall"></strong>-minute window. Their time is spent by talking, yours by the clock. When either runs out, the conversation ends and does not reopen.</p>
     <p>Prepare your questions before you press the button. There is no live transcript: take notes.</p>
-    <div class="toolbar"><button class="btn" id="c-go" type="button">Begin the conversation</button><a class="btn quiet" href="#/">Not yet</a></div>
+    <div class="toolbar"><button class="btn" id="c-go" type="button">Begin the conversation</button><a class="btn quiet" href="#/people">Not yet</a></div>
     <div class="err" id="c-err"></div>
   </div>
 </template>

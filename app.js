@@ -41,6 +41,11 @@
   // ── helpers ─────────────────────────────────────────────────────────────
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const initials = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  const prose = (t) => String(t ?? "").split(/\n{2,}/).map((b) => {
+    const x = b.trim();
+    if (!x) return "";
+    return /^##\s+/.test(x) ? `<h2>${esc(x.replace(/^##\s+/, ""))}</h2>` : `<p>${esc(x).replace(/\n/g, "<br>")}</p>`;
+  }).join("");
   const paras = (t) => String(t ?? "").split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
   function render(id) { const t = document.getElementById(id); view.replaceChildren(t.content.cloneNode(true)); }
   function nav(key) {
@@ -65,22 +70,43 @@
     });
   }
 
-  async function caseScreen() {
-    const me = await ensureMe(); nav("case"); render("t-case");
-    $("#edition").textContent = me.edition.title || me.edition.code;
+  async function landing() {
+    const me = await ensureMe(); nav("landing"); render("t-landing");
     const open = me.edition.status === "open";
+    let d = { page: { headline: null, standfirst: null, history: null, pack_note: null, videos: [] }, pack: [] };
+    try { d = await api("/case"); } catch { /* the page is optional; the course still works without it */ }
+    const p = d.page;
+    $("#ld-label").textContent = me.edition.title || me.edition.code;
+    $("#ld-headline").textContent = p.headline || me.edition.title || "The case";
+    $("#ld-standfirst").textContent = p.standfirst || "Interview the people. Read the record. Advise the family.";
     if (!open) {
-      $("#status").hidden = false;
-      $("#status").innerHTML = me.edition.status === "closed" || me.edition.status === "archived"
+      $("#ld-status").hidden = false;
+      $("#ld-status").innerHTML = me.edition.status === "closed" || me.edition.status === "archived"
         ? "<strong>This course is closed.</strong> No new conversation can start. Your transcripts stay here."
         : "<strong>This course has not opened yet.</strong> Your file and the interviews open when your instructor opens it.";
     }
-    // The engagement release is a moment in the course: say so once it has happened.
     if (me.engagement_released) {
-      $("#released").hidden = false;
-      $("#released").innerHTML = "<strong>The engagement documents have been released.</strong> They are in your case file, under Engagement.";
+      $("#ld-released").hidden = false;
+      $("#ld-released").innerHTML = "<strong>The engagement documents have been released.</strong> They are in your case file, under Engagement.";
     }
-    $("#gate").hidden = me.questionnaire_locked || !open;
+    $("#ld-films").innerHTML = p.videos.length
+      ? `<div class="films">${p.videos.map((v) => `<figure class="film">${v.title ? `<div class="ttl">${esc(v.title)}</div>` : ""}<div class="embed"><iframe src="${esc(v.embed_url)}" title="${esc(v.title || "Film")}" allow="fullscreen; picture-in-picture" loading="lazy" referrerpolicy="strict-origin"></iframe></div>${v.caption ? `<figcaption class="cap">${esc(v.caption)}</figcaption>` : ""}</figure>`).join("")}</div>`
+      : "";
+    $("#ld-history").innerHTML = p.history ? prose(p.history) : "";
+    const total = d.pack.reduce((a, x) => a + x.n, 0);
+    if (total) {
+      $("#ld-pack").hidden = false;
+      $("#ld-packnote").textContent = p.pack_note || "What the family, its companies and the public registers would hand you on the first day.";
+      $("#ld-packlist").innerHTML = d.pack.map((x) => `<li><span>${esc(x.folder || "Papers")}</span><span class="n">${x.n}</span></li>`).join("");
+    }
+    $("#ld-gate").hidden = me.questionnaire_locked || !open;
+    $("#ld-go").hidden = !(me.questionnaire_locked && open);
+  }
+
+  async function people() {
+    const me = await ensureMe(); nav("case"); render("t-case");
+    $("#edition").textContent = me.edition.title || me.edition.code;
+    $("#gate").hidden = me.questionnaire_locked || me.edition.status !== "open";
     const [ps, ds] = await Promise.all([personas(true), documents(true)]);
     $("#n-people").textContent = ps.length; $("#n-held").textContent = ps.filter((p) => p.state === "completed").length; $("#n-docs").textContent = ds.length;
     $("#roster").innerHTML = ps.length ? ps.map((p) => {
@@ -101,7 +127,7 @@
       e.preventDefault();
       if (!confirm("Once you submit, this closes and the interviews open. You cannot revise it afterwards. Submit now?")) return;
       const b = $("#q-go"); b.disabled = true; $("#q-err").textContent = "";
-      try { await post("/questionnaire", { content: $("#q-answer").value }); S.me = null; location.hash = "#/"; }
+      try { await post("/questionnaire", { content: $("#q-answer").value }); S.me = null; location.hash = "#/people"; }
       catch (err) { $("#q-err").textContent = err.code === "already_submitted" ? "Already submitted." : err.message; b.disabled = false; }
     });
   }
@@ -181,7 +207,7 @@
   async function confirm_(code) {
     await ensureMe(); nav("case"); render("t-confirm");
     const p = (await personas()).find((x) => x.code === code);
-    if (!p) { location.hash = "#/"; return; }
+    if (!p) { location.hash = "#/people"; return; }
     $("#c-name").textContent = p.name; $("#c-brief").textContent = p.brief || "";
     $("#c-virtual").textContent = p.budget.virtual_minutes ?? "–"; $("#c-wall").textContent = p.budget.wall_minutes ?? "–";
     $("#c-go").addEventListener("click", async () => {
@@ -373,7 +399,8 @@
     if (!store.get()) return signin();
     if (a !== "room") { stopPoll(); recording(null); }
     try {
-      if (!a) return await caseScreen();
+      if (!a) return await landing();
+      if (a === "people") return await people();
       if (a === "questionnaire") return await questionnaire();
       if (a === "file") return b ? await doc(decodeURIComponent(b)) : await file();
       if (a === "interview" && b) return await confirm_(b);
