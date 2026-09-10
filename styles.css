@@ -369,8 +369,10 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .exhit .exttl{font-family:var(--read);font-size:15px;min-width:0}
 /* The window has not started yet, said where the team is about to start it. */
 .warn{font-size:13px;line-height:1.45;color:var(--muted);border-left:2px solid var(--rule);
-      padding-left:10px;margin:12px 0 0}
+      padding-left:10px;margin:12px 0 16px}
 .warn:empty{display:none}
+/* The strip above it already carries 18px of its own. */
+.strip + .warn{margin-top:0}
 
 /* the landing page */
 .prose.read{font-family:var(--read);font-size:17.5px;line-height:1.6;max-width:66ch}
