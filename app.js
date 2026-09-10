@@ -1223,21 +1223,42 @@
    *
    * Best effort, and quiet about failing. The call is unauthenticated, which
    * GitHub rates at sixty an hour per address, and a lecture hall behind one
-   * university address could spend that — so the answer is kept in
-   * localStorage for an hour, and when there is no answer the footer falls back
-   * to the last-modified date of the very script that is executing, which is
-   * always available and is the more useful figure anyway when the question is
-   * "am I looking at a stale copy?".
+   * university address could spend that — so the answer is kept per tab, and
+   * when there is no answer the footer falls back to the last-modified date of
+   * the very script that is executing.
+   *
+   * The line also says when the browser is a deployment behind, because that
+   * is the one thing it cannot be allowed to hide. GitHub Pages serves this
+   * script with a ten-minute cache and no version in its name, so a tab left
+   * open keeps running old code indefinitely while the footer, if it were only
+   * reporting GitHub, would happily print the number of a deployment this page
+   * has never seen.
    */
   async function stamp() {
     const el = $("#stamp"); if (!el || !C.REPO) return;
-    const set = (extra) => { el.textContent = extra ? `${C.VERSION || "v0"} · ${extra}` : (C.VERSION || "v0"); };
+    const base = C.VERSION || "v0";
+    const set = (extra, stale) => {
+      el.textContent = extra ? `${base} · ${extra}` : base;
+      if (stale) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "lnk stale"; b.textContent = "a newer version has shipped — reload";
+        b.addEventListener("click", () => location.reload());
+        el.append(document.createTextNode(" · "), b);
+      }
+    };
     set("");
+    // The number is GitHub's own count of Pages deployments, so it moves on its
+    // own every time the site ships. It is held in sessionStorage rather than
+    // localStorage: an hour-long cache made the footer report a deployment
+    // older than the page it was printed on, which is worse than no number,
+    // because the one question this line exists to answer is "am I looking at
+    // a stale copy?". Per tab is often enough to be polite to GitHub's sixty
+    // unauthenticated calls an hour and fresh enough to be true.
     const KEY = "fb.deploy";
-    const fresh = (v) => v && Date.now() - v.at < 3600e3;
+    try { localStorage.removeItem(KEY); } catch {}
     let got = null;
-    try { got = JSON.parse(localStorage.getItem(KEY) || "null"); } catch {}
-    if (!fresh(got)) {
+    try { got = JSON.parse(sessionStorage.getItem(KEY) || "null"); } catch {}
+    if (!got) {
       try {
         const r = await fetch(`https://api.github.com/repos/${C.REPO}/actions/runs?per_page=1`, {
           headers: { Accept: "application/vnd.github+json" },
@@ -1245,23 +1266,41 @@
         if (r.ok) {
           const run = ((await r.json()).workflow_runs || [])[0];
           if (run && run.run_number) {
-            got = { n: run.run_number, when: run.updated_at, at: Date.now() };
-            try { localStorage.setItem(KEY, JSON.stringify(got)); } catch {}
+            got = { n: run.run_number, when: run.updated_at };
+            try { sessionStorage.setItem(KEY, JSON.stringify(got)); } catch {}
           }
         }
       } catch { /* offline, blocked, or rate-limited: the fallback covers it */ }
     }
+    // Whether the code running here is the code that has been deployed. The
+    // script in this browser carries the date it was served with, and GitHub
+    // has just said when the newest deployment finished; if the script is
+    // meaningfully older than the deployment, this tab is behind. Read from
+    // the cache — force-cache returns the copy the page is running without
+    // going to the network — so the check costs nothing.
+    //
+    // Five minutes of slack, because a deployment finishes a few seconds after
+    // the file it publishes is stamped, and a difference of seconds means the
+    // two agree.
+    let stale = false;
+    try {
+      if (got && got.when) {
+        const mine = (await fetch("app.js", { cache: "force-cache" })).headers.get("last-modified");
+        if (mine) stale = new Date(got.when) - new Date(mine) > 300e3;
+      }
+    } catch { /* no date to compare says nothing either way */ }
     const day = (iso) => {
       const d = new Date(iso);
       return isNaN(d) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
     };
-    if (fresh(got) || (got && got.n)) return set(`deploy ${got.n}${got.when ? ` · ${day(got.when)}` : ""}`);
+    if (got && got.n) return set(`deploy ${got.n}${got.when ? ` · ${day(got.when)}` : ""}`, stale);
     // No number to be had. Say when this script was published instead.
     try {
       const r = await fetch("app.js", { method: "HEAD" });
       const lm = r.headers.get("last-modified");
-      if (lm) return set(day(lm));
+      if (lm) return set(day(lm), stale);
     } catch {}
+    if (stale) set("", true);
   }
 
   window.addEventListener("hashchange", route);

@@ -420,3 +420,9 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
   .recintro{font-size:14.5px}
   .reclist .rttl{font-size:15px}
 }
+
+/* The footer saying the browser is a deployment behind. Quiet, but not so
+   quiet that it is missed — this is the line that explains why a change is
+   not visible. */
+.lnk.stale{background:none;border:0;padding:0;font:inherit;color:var(--stamp);cursor:pointer;text-decoration:underline}
+.lnk.stale:hover{text-decoration:none}
