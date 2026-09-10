@@ -394,3 +394,29 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
   .person .pacts{padding-top:10px}
   footer{padding:18px 14px}
 }
+
+/* The records worth putting to this person, read before the conversation.
+   The registrar's portrait is a graphic device: it says the papers were put
+   together by someone, for this person. It is not a conversation. */
+.recbox{margin-top:22px;border:1px solid var(--rule);border-radius:2px;background:var(--card);padding:16px 18px}
+.rechead{display:flex;gap:14px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.regface{flex:none}
+.regface .portrait{width:56px;height:70px;object-fit:cover;object-position:50% 18%;border:1px solid var(--rule);border-radius:2px;display:block}
+.regface .portrait.none{display:flex;align-items:center;justify-content:center;background:var(--rule-soft);color:var(--muted);font-family:var(--mono);font-size:13px}
+.rechead .label{margin:0 0 3px}
+.recintro{margin:0;font-family:var(--read);font-size:15px;line-height:1.45;color:var(--ink);max-width:64ch}
+.reclist{list-style:none;margin:0;padding:0}
+.reclist li{padding:13px 0;border-bottom:1px solid var(--rule-soft)}
+.reclist li:last-child{border-bottom:0}
+.reclist .rttl{font-family:var(--read);font-size:16px;line-height:1.35;color:var(--ink)}
+.reclist a.rttl{text-decoration:none;border-bottom:1px solid var(--rule)}
+.reclist a.rttl:hover{border-bottom-color:var(--ink)}
+.reclist .rmeta{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ledger);margin-top:3px}
+.reclist .rmeta .ask{color:var(--stamp)}
+.reclist .rblurb{margin:6px 0 0;font-family:var(--read);font-size:14.5px;line-height:1.5;color:var(--muted);max-width:72ch}
+@media (max-width:560px){
+  .recbox{padding:13px 14px}
+  .regface .portrait{width:44px;height:55px}
+  .recintro{font-size:14.5px}
+  .reclist .rttl{font-size:15px}
+}

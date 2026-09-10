@@ -598,6 +598,13 @@
         : `This is one of your team's ${bs.budget} conversations. ${bs.left} ${bs.left === 1 ? "is" : "are"} left, and this one is counted from the moment the room opens — leave without asking anything and it comes back.`;
       if (bs.left === 0) $("#c-go").disabled = true;
     }
+    // The papers worth bringing to this conversation. Read before it starts,
+    // because the point of the page is preparation: what exists about this
+    // person, what the team already holds, and what it would have to ask the
+    // registry for by name. Contents are never here — a description and, for
+    // a record the team holds, a link to read the record itself.
+    records(code).catch(() => {});
+
     $("#c-go").addEventListener("click", async () => {
       const b = $("#c-go"); b.disabled = true;
       try {
@@ -607,6 +614,45 @@
       }
       catch (err) { $("#c-err").textContent = err.message; b.disabled = false; }
     });
+  }
+
+  /**
+   * The registry's dossier on one person: the records the case says are worth
+   * putting to them, in the order it set. A record the team holds links to
+   * itself; one it does not is marked as something to ask for, which is the
+   * whole reason a team is told it exists.
+   *
+   * The registrar's portrait is a graphic device — these papers were put
+   * together by someone, for this person. Nothing here is a conversation, and
+   * the desk is not asked anything to draw it.
+   */
+  async function records(code) {
+    let rs = [];
+    try { rs = (await api(`/personas/${encodeURIComponent(code)}/records`)).records || []; } catch { return; }
+    if (!rs.length) return;
+    const box = $("#c-records"); if (!box) return;
+    // Whoever keeps the archive in this case, by name and by face.
+    let keeper = null;
+    try { keeper = (await api("/desks")).desks.find((d) => d.desk_kind === "registry") || null; } catch { /* the box stands without a face */ }
+    const held = rs.filter((r) => r.held).length;
+    const ask = rs.length - held;
+    $("#c-reg-face").innerHTML = keeper ? faceHtml(keeper.name, keeper.portrait_url) : "";
+    $("#c-reg-label").textContent = keeper ? keeper.name : "From the registry";
+    $("#c-reg-intro").textContent =
+      `${rs.length} record${rs.length === 1 ? "" : "s"} in the archive bear on this person`
+      + (held ? ` · ${held} already in your case file` : "")
+      + (ask ? ` · ${ask} ${ask === 1 ? "has" : "have"} to be asked for by name` : "");
+    $("#c-reclist").innerHTML = rs.map((r) => {
+      const name = esc(docName(r));
+      const ttl = r.held ? `<a class="rttl" href="#/file/${esc(r.code)}">${name}</a>` : `<span class="rttl">${name}</span>`;
+      const bits = [esc(r.code), r.doc_year ? esc(r.doc_year) : null,
+        r.record_class ? esc(String(r.record_class).replace(/_/g, " ")) : null,
+        r.holding_institution ? esc(r.holding_institution) : null].filter(Boolean).join(" · ");
+      const mark = r.held ? "in your file" : `<span class="ask">ask the registry for it</span>`;
+      return `<li>${ttl}<span class="rmeta">${bits} · ${mark}</span>${
+        r.blurb ? `<p class="rblurb">${esc(r.blurb)}</p>` : ""}</li>`;
+    }).join("");
+    box.hidden = false;
   }
 
   function ring(id, frac) {
