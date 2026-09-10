@@ -1016,7 +1016,58 @@
       view.innerHTML = `<div class="empty"><span class="tag">something went wrong</span><p>${esc(err.message)}</p><p><a href="#/">Back to the case</a></p></div>`;
     }
   }
+  /**
+   * Which deployment the page came from. The footer used to carry a version
+   * typed into the source, which meant it said whatever it said the last time
+   * somebody remembered to change it. The number here is GitHub's own count of
+   * Pages deployments of this repository, so it moves on its own every time the
+   * site ships and nobody has to keep it honest.
+   *
+   * Best effort, and quiet about failing. The call is unauthenticated, which
+   * GitHub rates at sixty an hour per address, and a lecture hall behind one
+   * university address could spend that — so the answer is kept in
+   * localStorage for an hour, and when there is no answer the footer falls back
+   * to the last-modified date of the very script that is executing, which is
+   * always available and is the more useful figure anyway when the question is
+   * "am I looking at a stale copy?".
+   */
+  async function stamp() {
+    const el = $("#stamp"); if (!el || !C.REPO) return;
+    const set = (extra) => { el.textContent = extra ? `${C.VERSION || "v0"} · ${extra}` : (C.VERSION || "v0"); };
+    set("");
+    const KEY = "fb.deploy";
+    const fresh = (v) => v && Date.now() - v.at < 3600e3;
+    let got = null;
+    try { got = JSON.parse(localStorage.getItem(KEY) || "null"); } catch {}
+    if (!fresh(got)) {
+      try {
+        const r = await fetch(`https://api.github.com/repos/${C.REPO}/actions/runs?per_page=1`, {
+          headers: { Accept: "application/vnd.github+json" },
+        });
+        if (r.ok) {
+          const run = ((await r.json()).workflow_runs || [])[0];
+          if (run && run.run_number) {
+            got = { n: run.run_number, when: run.updated_at, at: Date.now() };
+            try { localStorage.setItem(KEY, JSON.stringify(got)); } catch {}
+          }
+        }
+      } catch { /* offline, blocked, or rate-limited: the fallback covers it */ }
+    }
+    const day = (iso) => {
+      const d = new Date(iso);
+      return isNaN(d) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    };
+    if (fresh(got) || (got && got.n)) return set(`deploy ${got.n}${got.when ? ` · ${day(got.when)}` : ""}`);
+    // No number to be had. Say when this script was published instead.
+    try {
+      const r = await fetch("app.js", { method: "HEAD" });
+      const lm = r.headers.get("last-modified");
+      if (lm) return set(day(lm));
+    } catch {}
+  }
+
   window.addEventListener("hashchange", route);
   $("#out").addEventListener("click", () => { store.set(null); S.me = S.personas = S.docs = null; location.hash = "#/"; signin(); });
   route();
+  stamp();
 })();
