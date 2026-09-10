@@ -395,7 +395,12 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
    in one place and label, headline, standfirst, film, history and the two
    closing sections keep their common edge. */
 :root{--col:820px}
-#ld-label,#ld-headline,#ld-standfirst,#ld-films,.prose.read,section.pack,section.start{max-width:var(--col)}
+/* Centred, not ranged left: the column is the page's own measure, so it sits
+   in the middle of it rather than against the left edge with the width of a
+   second column empty beside it. The two notices are on the list because a
+   block that ignored the measure would give the page a second left edge. */
+#ld-label,#ld-headline,#ld-standfirst,#ld-status,#ld-released,#ld-films,
+.prose.read,section.pack,section.start{max-width:var(--col);margin-inline:auto}
 /* The type grows with the column. A history set at 17.5px across 820 pixels
    runs to ninety-four characters a line, which is a paragraph you scan and
    lose your place in; at 21px the same column holds about eighty, and the
