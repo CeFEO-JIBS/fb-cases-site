@@ -137,16 +137,13 @@ footer .base{max-width:1080px;margin:14px auto 0;padding-top:10px;border-top:1px
   .two>aside.side{display:contents}
   .two>aside.side>.whocard{order:-1}
 }
-/* A desk's own page goes one step further: the label and the brief that
-   describe the person sit outside the two columns, so on a phone she was
-   introduced after her own job description. Dissolve the grid into the page's
-   own flow — `main` becomes the column — and she leads it. */
+/* A desk's own page leads with the person on every screen: her card is the
+   first row of the grid, and the label and brief that describe her sit in the
+   column beside her rather than above the grid pushing her down. On a phone
+   the grid dissolves and she comes first, with the reading list left last. */
 @media (max-width:860px){
-  main:has(.two.desk){display:flex;flex-direction:column;align-items:stretch}
-  .two.desk{display:contents}
-  .two.desk>aside.side>.whocard{order:-1;margin-bottom:18px}
-  .two.desk>div{order:1;min-width:0}
-  .two.desk>aside.side>.card:not(.whocard){order:2;margin-top:18px}
+  .two.desk>aside.side>.whocard{margin-bottom:2px}
+  .two.desk>aside.side>.card:not(.whocard){order:2}
 }
 .prose{font-family:var(--read);font-size:17px;line-height:1.62;max-width:62ch}
 .prose p{margin:0 0 12px}

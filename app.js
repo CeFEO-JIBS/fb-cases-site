@@ -332,7 +332,7 @@
     // Malmö and one for "will" finds a testamente filed in English.
     const findable = (d) => fold([d.code, ...bothNames(d), d.doc_year, d.record_class, d.holding_institution, via[d.granted_via], labelOf(keyOf(d))].filter(Boolean).join(" "));
     $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label" data-label="${esc(labelOf(k))}" data-total="${groups[k].length}">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
-      `<a class="docrow" id="row-${esc(d.code)}" href="#/file/${esc(d.code)}" data-find="${esc(findable(d))}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
+      `<a class="docrow" id="row-${esc(d.code)}" href="#/file/${esc(d.code)}" data-find="${esc(findable(d))}" data-kind="${esc(d.doc_class || "other")}" data-new="${d.first_opened ? "" : "1"}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
       : me.edition.status === "open"
         ? `<div class="empty"><span class="tag">nothing yet</span><p>Your onboarding pack is not in place yet. Ask your instructor.</p></div>`
         : `<div class="empty"><span class="tag">not open yet</span><p>Your file opens when your instructor opens the course.</p></div>`;
@@ -342,14 +342,40 @@
     // how much of the file is still in front of them. Nothing leaves the page.
     const rows = [...document.querySelectorAll("#docs .docrow")];
     const heads = [...document.querySelectorAll("#docs .grp")];
+
+    // The list is grouped by how a record reached the team, which is the right
+    // question early and the wrong one by the end of a course: two folders
+    // swallow everything. The kind of record is what a team actually asks for
+    // — "show me the shareholders' agreements" — and doc_class has carried it
+    // in the payload all along, unused. These are the same chips the roster
+    // uses for generations, built from the kinds this file actually holds.
+    const kindName = {
+      constitution: "Articles and statutes", shareholders_agreement: "Shareholders' agreements",
+      financial: "Financial", will: "Wills and estates", correspondence: "Correspondence",
+      memorandum: "Memoranda", policy: "Policies", cv: "People", other: "Other",
+    };
+    const kindOrder = ["constitution", "shareholders_agreement", "financial", "will", "correspondence", "memorandum", "policy", "cv", "other"];
+    const tally = {};
+    for (const r of rows) tally[r.dataset.kind] = (tally[r.dataset.kind] || 0) + 1;
+    const kinds = kindOrder.filter((k) => tally[k]).concat(Object.keys(tally).filter((k) => !kindOrder.includes(k)).sort());
+    const unopened = rows.filter((r) => r.dataset.new).length;
+    let pick = "";                                     // "" is everything
     if (rows.length) {
+      const bar = $("#doc-kinds");
+      if (kinds.length > 1) {
+        bar.hidden = false;
+        bar.innerHTML = `<button type="button" class="gen on" data-pick="">Everything · ${rows.length}</button>`
+          + kinds.map((k) => `<button type="button" class="gen" data-pick="kind:${esc(k)}">${esc(kindName[k] || k.replace(/_/g, " "))} · ${tally[k]}</button>`).join("")
+          + (unopened && unopened < rows.length ? `<button type="button" class="gen" data-pick="new">Not yet opened · ${unopened}</button>` : "");
+      }
       $("#doc-filter").hidden = false;
       const q = $("#doc-q");
       const apply = () => {
         const terms = fold(q.value).split(/\s+/).filter(Boolean);
         let shown = 0;
         for (const r of rows) {
-          const hit = terms.every((t) => r.dataset.find.includes(t));
+          const kindOk = !pick || (pick === "new" ? !!r.dataset.new : r.dataset.kind === pick.slice(5));
+          const hit = kindOk && terms.every((t) => r.dataset.find.includes(t));
           r.hidden = !hit;
           if (hit) shown++;
         }
@@ -359,12 +385,18 @@
           h.hidden = n === 0;
           h.textContent = `${h.dataset.label} · ${terms.length ? `${n} of ${h.dataset.total}` : h.dataset.total}`;
         }
-        $("#doc-count").textContent = terms.length
+        $("#doc-count").textContent = terms.length || pick
           ? `${shown} of ${rows.length} record${rows.length === 1 ? "" : "s"}`
           : `${rows.length} record${rows.length === 1 ? "" : "s"}`;
       };
       q.addEventListener("input", apply);
       q.addEventListener("keydown", (e) => { if (e.key === "Escape") { q.value = ""; apply(); } });
+      bar.addEventListener("click", (e) => {
+        const b = e.target.closest("button.gen"); if (!b) return;
+        pick = b.dataset.pick;
+        bar.querySelectorAll("button.gen").forEach((x) => x.classList.toggle("on", x === b));
+        apply();
+      });
       apply();
     }
     if (at) {
@@ -379,12 +411,19 @@
     try { deskList = (await api("/desks")).desks; } catch { /* the desks are optional */ }
     const registry = deskList.find((d) => d.desk_kind === "registry");
     if (registry) {
-      $("#reg-aside").innerHTML = `<div class="keeperhead">
-          ${registry.portrait_url ? `<img class="keeperface" src="${esc(registry.portrait_url)}" alt="">` : ""}
-          <span><span class="label">Ask for a record</span><span class="kname">${esc(registry.name)}</span></span>
-        </div>
-        <div class="prose"><p>Keeps the archive. Ask for a record by name and, if it is there, it goes into this file. She remembers what you asked.</p></div>
-        <p><a class="btn quiet" href="#/desk/${esc(registry.code)}">Ask ${esc(registry.name.split(" ")[0])}</a></p>`;
+      // The registrar is a person, and she gets the card a person gets — the
+      // same one the desk page and the roster use. She was a 52px thumbnail
+      // beside a label here, which made the one human being on the page the
+      // smallest thing on it.
+      $("#reg-aside").innerHTML = `<div class="whocard">${whoCard({
+        name: registry.name, portrait_url: registry.portrait_url,
+        role: registry.subtitle || "the document registry",
+        facts: "the case archive",
+      })}</div>
+        <div class="card">
+          <div class="prose"><p>Keeps the archive. Ask for a record by name and, if it is there, it goes into this file. She remembers what you asked.</p></div>
+          <p><a class="btn quiet" href="#/desk/${esc(registry.code)}">Ask ${esc(registry.name.split(" ")[0])}</a></p>
+        </div>`;
       return;
     }
     $("#reg-form").addEventListener("submit", async (e) => {
@@ -576,7 +615,14 @@
   async function transcripts() {
     await ensureMe(); nav("transcripts"); render("t-transcripts");
     const ss = (await api("/sessions")).sessions.filter((s) => s.state !== "open");
-    $("#tr-list").innerHTML = ss.length ? `<div class="doclist">${ss.map((s) => `<a class="docrow" href="#/transcripts/${s.id}"><span class="code">${esc(s.closed_at ? s.closed_at.slice(0, 16).replace("T", " ") : "")}</span><span><div class="ttl">${esc(s.name)}</div><div class="prov">${s.turn_count} turns · ${(s.virtual_seconds / 60).toFixed(0)} minutes of their time</div></span><span></span><span class="st">${esc(s.state.replace("_", " "))}</span></a>`).join("")}</div>`
+    // Interviews only. A desk conversation is not a transcript: it is a
+    // reference tool a group returns to, and it lives on its desk's own page
+    // beside the group's other conversations there. It only started appearing
+    // here at all because nothing used to close a desk thread, so none had
+    // ever reached a state this page lists.
+    const iv = ss.filter((s) => s.kind !== "desk");
+    const mins = (n) => `${n} minute${n === 1 ? "" : "s"} of their time`;
+    $("#tr-list").innerHTML = iv.length ? `<div class="doclist">${iv.map((s) => `<a class="docrow" href="#/transcripts/${s.id}"><span class="code">${esc(s.closed_at ? s.closed_at.slice(0, 16).replace("T", " ") : "")}</span><span><div class="ttl">${esc(s.name)}</div><div class="prov">${s.turn_count} turns · ${esc(mins(Math.round(s.virtual_seconds / 60)))}</div></span><span></span><span class="st">${esc(s.state.replace("_", " "))}</span></a>`).join("")}</div>`
       : `<div class="empty"><span class="tag">none yet</span><p>A transcript appears here when a conversation ends.</p></div>`;
   }
   async function transcript(id) {
