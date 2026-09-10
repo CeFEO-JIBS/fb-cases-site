@@ -8,7 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<!-- GitHub Pages serves every file with max-age=600 and no fingerprint in the
+     name, so a browser can hold an old stylesheet for ten minutes after new
+     markup has arrived and show a half-updated page. The query makes the
+     three files move together: bump it whenever styles.css or app.js
+     changes. -->
+<link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
 <header class="hdr">
@@ -287,7 +292,7 @@
   </div>
 </template>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="config.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
