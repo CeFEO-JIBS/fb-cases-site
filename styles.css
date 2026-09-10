@@ -384,10 +384,35 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .strip + .warn{margin-top:0}
 
 /* the landing page */
-.prose.read{font-family:var(--read);font-size:17.5px;line-height:1.6;max-width:66ch}
-.prose.read h2{font-family:var(--ui);font-size:15px;margin:26px 0 6px}
-.prose.read p{margin:0 0 14px}
+/* One measure, in pixels, for every block on it. The film used to run the
+   full width of the page while the history sat in a 66-character column
+   beside nothing: two different right-hand edges, and the text read as an
+   afterthought to the film. A character measure cannot fix that — ch
+   resolves against each element's own font, so 78ch of Newsreader and 78ch
+   of Archivo are eighty pixels apart. So: one pixel column, wide enough
+   that the film is a presence and the prose is not a gutter, and the type
+   goes up with it so a line is still read rather than scanned. Change --col
+   in one place and label, headline, standfirst, film, history and the two
+   closing sections keep their common edge. */
+:root{--col:820px}
+#ld-label,#ld-headline,#ld-standfirst,#ld-films,.prose.read,section.pack,section.start{max-width:var(--col)}
+/* The type grows with the column. A history set at 17.5px across 820 pixels
+   runs to ninety-four characters a line, which is a paragraph you scan and
+   lose your place in; at 21px the same column holds about eighty, and the
+   page reads like a case rather than a form. */
+.prose.read{font-family:var(--read);font-size:21px;line-height:1.6}
+.prose.read h2{font-family:var(--ui);font-size:15px;margin:30px 0 8px}
+.prose.read p{margin:0 0 16px}
+/* The standfirst stays above the history in the hierarchy, so it moves up
+   with it, and the case title above them both. */
+#ld-standfirst{font-size:23px;line-height:1.4}
+#ld-headline{font-size:36px}
+/* And the two closing sections stop looking like small print beside it. */
+section.pack p,section.start p{font-size:16px;line-height:1.5}
 .films{display:grid;gap:18px;margin:18px 0 26px}
+/* A figure carries 40px of margin from the browser's own stylesheet, which
+   would inset the film from the column it is meant to define. */
+.films .film{margin:0}
 .film .embed{position:relative;padding-top:56.25%;background:#15171B;border-radius:2px;overflow:hidden}
 .film .embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .film .cap{font-size:13px;color:var(--muted);margin-top:6px}
@@ -419,7 +444,10 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
 }
 @media (max-width:560px){
   main{padding:22px 14px}
-  h1{font-size:25px}
+  h1,#ld-headline{font-size:25px}
+  :root{--col:100%}
+  .prose.read{font-size:19px}
+  #ld-standfirst{font-size:20px}
   h2{font-size:15.5px;margin:22px 0 8px}
   .lede{font-size:17px;margin-bottom:18px}
   .card{padding:16px 14px}
