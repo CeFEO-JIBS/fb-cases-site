@@ -672,23 +672,42 @@
       const bits = [esc(r.code), r.doc_year ? esc(r.doc_year) : null,
         r.record_class ? esc(String(r.record_class).replace(/_/g, " ")) : null,
         r.holding_institution ? esc(r.holding_institution) : null].filter(Boolean).join(" · ");
-      // Held: read it. Not held: ask the registrar for it, by name, and the
-      // link carries the name so the request is already typed.
+      // Held: read it. Not held: ask for it here, and it is handed over here.
+      // The list is authored, so the paper the team pressed is the paper it
+      // gets — no conversation, and no resolution to get wrong.
       const mark = r.held
         ? `<a class="rmark" href="#/file/${esc(r.code)}">read it</a>`
-        : keeper
-          ? `<a class="rmark ask" href="#/desk/${esc(keeper.code)}/new" data-ask="${esc(docName(r))}">ask ${esc(first)} for it</a>`
-          : `<span class="rmark ask">ask the registry for it</span>`;
+        : `<button type="button" class="rmark ask" data-code="${esc(r.code)}">ask ${esc(first || "the registry")} for it</button>`;
       return `<li><details class="recrow"><summary><span class="rttl">${name}</span>
           <span class="rmeta">${bits}</span></summary>${
         r.blurb ? `<p class="rblurb">${esc(r.blurb)}</p>` : ""}</details>${mark}</li>`;
     }).join("");
-    // Asking for a record is a request to the desk with the record's name in
-    // it. Stash the name so the desk's composer opens with it already there —
-    // a team still sends it, and can still change it.
-    $("#c-reclist").addEventListener("click", (e) => {
-      const a = e.target.closest("a.rmark[data-ask]"); if (!a) return;
-      try { sessionStorage.setItem("fb.ask", a.dataset.ask); } catch {}
+    // Asking is the whole transaction: the record goes into the case file and
+    // the button becomes the way to read it, without leaving the page.
+    $("#c-reclist").addEventListener("click", async (e) => {
+      const b = e.target.closest("button.rmark.ask"); if (!b) return;
+      const doc = b.dataset.code;
+      b.disabled = true; const was = b.textContent; b.textContent = "asking…";
+      try {
+        await post(`/personas/${encodeURIComponent(code)}/records/${encodeURIComponent(doc)}`);
+        const a = document.createElement("a");
+        a.className = "rmark"; a.href = `#/file/${doc}`; a.textContent = "read it";
+        b.replaceWith(a);
+        // The case file is now out of date in this tab.
+        S.docs = null;
+        const c = $("#c-reg-counts"); if (c) {
+          const held = document.querySelectorAll("#c-reclist a.rmark").length;
+          const ask = document.querySelectorAll("#c-reclist button.rmark.ask").length;
+          c.innerHTML = [
+            ["", held + ask, `record${held + ask === 1 ? "" : "s"} bear on this person`],
+            ...(held ? [["", held, "now in your case file"]] : []),
+            ...(ask ? [["ask", ask, `to ask ${first ? esc(first) : "the registry"} for`]] : []),
+          ].map(([cls, n, what]) => `<div class="${cls}"><dt>${n}</dt><dd>${what}</dd></div>`).join("");
+        }
+      } catch (err) {
+        b.disabled = false; b.textContent = was;
+        const p = $("#c-err"); if (p) p.textContent = err.message;
+      }
     });
     box.hidden = false;
   }
@@ -1092,13 +1111,6 @@
       state: deskCap ? `${Math.max(0, deskCap - desk.asked)} of ${deskCap} questions left in the course` : "",
     });
 
-    // A request begun on the page before a conversation: the record's name is
-    // already typed, and the team sends it or changes it.
-    try {
-      const pre = sessionStorage.getItem("fb.ask");
-      if (pre && registry && !$("#dk-q").value) { $("#dk-q").value = pre; $("#dk-q").focus(); }
-      sessionStorage.removeItem("fb.ask");
-    } catch {}
     sendOnEnter($("#dk-q"), "#dk-form");
     $("#dk-form").addEventListener("submit", async (e) => {
       e.preventDefault();

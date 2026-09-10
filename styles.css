@@ -101,11 +101,28 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .pbtn[disabled]{opacity:.6;cursor:progress}
 
 /* The moment before a conversation that does not reopen: the same face again. */
-.cmeet{display:flex;gap:20px;align-items:flex-start;margin-bottom:8px}
-.cmeet>div:first-child{flex:none;width:150px}
-.cmeet h1{margin-top:0}
-.cmeet .pfacts{margin:0 0 8px}
-@media (max-width:560px){.cmeet{flex-direction:column;gap:12px}.cmeet>div:first-child{width:130px}}
+/* The page before a conversation meets the person the way the desks do: the
+   card is the portrait with the name under it, and the brief reads beside it.
+   --face is that card's width, declared once at the root, because the
+   registrar's portrait further down the same page is a fixed fraction of it
+   and the two must not drift apart. */
+:root{--face:230px}
+@media (max-width:560px){:root{--face:150px}}
+.cmeet{display:flex;gap:22px;align-items:flex-start;margin-bottom:14px}
+.cmeet>.whocard{flex:none;width:var(--face)}
+.cmeet .whobody .pfacts{margin:5px 0 0}
+.cbrief{min-width:0;padding-top:2px}
+.cbrief .lede{margin:0;max-width:60ch}
+@media (max-width:860px){
+  .cmeet>.whocard{display:block}
+  .cmeet>.whocard .portrait{width:100%;border-bottom:1px solid var(--rule);border-right:0}
+}
+@media (max-width:560px){
+  .cmeet{gap:14px}
+  .cmeet .whobody{padding:10px 11px 12px}
+  .cmeet .whobody .pname{font-size:17px}
+  .cbrief .lede{font-size:16px}
+}
 
 .empty{border:1px dashed var(--rule);border-radius:2px;padding:22px;color:var(--muted)}
 .tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;border:1px solid var(--stamp);color:var(--stamp);padding:2px 7px;border-radius:2px}
@@ -412,11 +429,13 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
    Two columns: the papers, and the registrar who keeps them. She is a column
    rather than a banner because that is what she is — the archive standing
    beside the list, not a heading over it. */
-.recbox{margin-top:22px;display:grid;grid-template-columns:1fr 214px;gap:0 24px;align-items:start;
+.recbox{margin-top:22px;display:grid;grid-template-columns:1fr calc(var(--face) * .6 + 20px);gap:0 24px;align-items:start;
         border:1px solid var(--rule);border-radius:2px;background:var(--card);padding:6px 18px 10px}
 .recwho{border-left:1px solid var(--rule);padding:14px 0 4px 20px;align-self:stretch}
 .recwho .whocard{border:0;background:none}
-.recwho .whocard .portrait{border:1px solid var(--rule);border-radius:2px;aspect-ratio:4/5}
+/* Three fifths of the interviewee's portrait: she keeps the archive, she is
+   not the person being interviewed, and the page should say so at a glance. */
+.recwho .whocard .portrait{width:calc(var(--face) * .6);border:1px solid var(--rule);border-radius:2px;aspect-ratio:4/5}
 .recwho .whobody{padding:10px 0 0}
 .recwho .whobody .pname{font-size:17px}
 /* The count, as a column reads it: the figure, then what it counts. */
@@ -441,19 +460,24 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
 .reclist .rmeta{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ledger);margin-top:3px}
 .reclist .rblurb{margin:8px 0 2px 16px;font-family:var(--read);font-size:14.5px;line-height:1.5;color:var(--muted);max-width:70ch}
 .rmark{flex:none;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
-       color:var(--ledger);text-decoration:none;border:1px solid var(--rule);border-radius:2px;padding:5px 9px;white-space:nowrap}
-a.rmark:hover{border-color:var(--ink);color:var(--ink)}
+       color:var(--ledger);text-decoration:none;background:none;border:1px solid var(--rule);border-radius:2px;
+       padding:5px 9px;white-space:nowrap;cursor:pointer}
+.rmark:hover{border-color:var(--ink);color:var(--ink)}
 .rmark.ask{color:var(--stamp);border-color:var(--stamp)}
-a.rmark.ask:hover{background:var(--stamp);color:#fff}
+.rmark.ask:hover{background:var(--stamp);color:#fff}
+.rmark:disabled{opacity:.5;cursor:default}
+.rmark:disabled:hover{background:none;color:var(--stamp)}
 @media (max-width:860px){
   /* One column, and the registrar goes on top — the same order the desk and
      the room use on a narrow screen — laid out as a row so she costs a strip
      rather than a screen. */
   .recbox{grid-template-columns:1fr;padding:12px 14px}
   .recwho{order:-1;border-left:0;border-bottom:1px solid var(--rule);padding:2px 0 12px;
-          display:grid;grid-template-columns:64px 1fr;gap:0 12px;align-items:start}
+          display:grid;grid-template-columns:calc(var(--face) * .6) 1fr;gap:0 12px;align-items:start}
   .recwho .whocard{display:contents}
-  .recwho .whocard .portrait{width:64px}
+  /* Still three fifths of the interviewee's portrait, at whatever width the
+     narrow screen gives that card. */
+  .recwho .whocard .portrait{width:calc(var(--face) * .6)}
   .recwho .whobody{padding:0}
   .rwcount{grid-column:1/-1;margin-top:12px;padding-top:12px}
 }
