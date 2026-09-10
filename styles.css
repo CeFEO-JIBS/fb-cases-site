@@ -112,7 +112,16 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .cmeet>.whocard{flex:none;width:var(--face)}
 .cmeet .whobody .pfacts{margin:5px 0 0}
 .cbrief{min-width:0;padding-top:2px}
-.cbrief .lede{margin:0;max-width:60ch}
+.cbrief .lede{margin:0;max-width:64ch}
+.cbrief .lede p{margin:0 0 11px}
+.cbrief .lede p:last-child{margin-bottom:0}
+/* The papers to have open while reading the brief. */
+.cpapers{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:0 10px;align-items:baseline}
+.cpapers:empty{display:none}
+.cpapers a{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+           color:var(--ledger);text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:2px}
+.cpapers a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+.cpapers .sep{color:var(--muted)}
 @media (max-width:860px){
   .cmeet>.whocard{display:block}
   .cmeet>.whocard .portrait{width:100%;border-bottom:1px solid var(--rule);border-right:0}

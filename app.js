@@ -610,7 +610,23 @@
     await ensureMe(); nav("case"); render("t-confirm");
     const p = (await personas()).find((x) => x.code === code);
     if (!p) { location.hash = "#/people"; return; }
-    $("#c-name").textContent = p.name; $("#c-brief").textContent = p.brief || "";
+    $("#c-name").textContent = p.name;
+    $("#c-brief").innerHTML = paras(p.brief || "");
+    // The two papers a team wants open while it reads the brief: this
+    // person's curriculum vitae, and the family tree the brief places them
+    // in. Both are records of the case, so both go through the case file
+    // rather than being rendered here. The genogram is offered only when the
+    // team can actually reach it.
+    (async () => {
+      const el = $("#c-papers"); if (!el) return;
+      const bits = [];
+      if (p.cv && p.cv.code) bits.push(`<a href="#/file/${esc(p.cv.code)}">Curriculum vitae</a>`);
+      try {
+        const tree = (await documents()).find((d) => /genogram/i.test(d.code) || /genogram/i.test(docName(d)));
+        if (tree) bits.push(`<a href="#/file/${esc(tree.code)}">${esc(docName(tree))}</a>`);
+      } catch { /* the CV alone is worth the line */ }
+      el.innerHTML = bits.length ? bits.join('<span class="sep">·</span>') : "";
+    })();
     // The same portrait and the same few facts as the roster: this is the last
     // page before a conversation that does not reopen.
     $("#c-portrait").innerHTML = p.portrait_url
