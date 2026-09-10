@@ -195,7 +195,14 @@ textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:
 .docmore:hover{color:var(--ink)}
 .docmore.none{cursor:default}
 .docblurb{grid-column:2;margin:0 0 11px;padding-right:12px;font-family:var(--read);font-size:14.5px;line-height:1.5;color:var(--muted);max-width:74ch}
-.docrow{grid-area:1/2;display:grid;grid-template-columns:162px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px 10px 0;align-items:center;text-decoration:none}
+.docrow{display:grid;grid-template-columns:162px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px;
+        border-bottom:1px solid var(--rule-soft);align-items:center;text-decoration:none}
+.docrow:last-child{border-bottom:0}
+.docrow:hover{background:#F7F8F4}
+/* Inside a foldable item the chevron holds the left gutter and the wrapper
+   draws the rule, so the row gives both up. */
+.docitem>.docrow{grid-area:1/2;padding-left:0;border-bottom:0}
+.docitem>.docrow:hover{background:none}
 .docrow .code{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
 .docrow .ttl{font-family:var(--read);font-size:15.5px}
 /* The record's other name, under its own: quieter, but there to be read. */
@@ -208,7 +215,8 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
    code and what the team has done with it keep each other company on the top
    line, the way they do in a ledger, and the names sit under them. */
 @media (max-width:720px){
-  .docrow{grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:baseline;padding:10px 12px 10px 0}
+  .docrow{grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:baseline;padding:10px 12px}
+  .docitem>.docrow{padding-left:0}
   .docmore{align-self:start;margin-top:9px}
   .docrow .code{grid-area:1/1}
   .docrow .st{grid-area:1/2;text-align:right}
