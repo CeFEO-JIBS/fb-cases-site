@@ -1055,6 +1055,9 @@
     // which is why a follow-up needed a page reload: reloading re-fetched the
     // state after the wait had passed. Now the wait is a countdown that expires.
     let waitTimer = null;
+    // Seconds still to run on the desk's enforced gap, and the question a team
+    // pressed send on while it ran.
+    let waitLeft = 0, queued = null;
     // Two caps, and they are not the same cap. `turn_cap` is per conversation
     // and the engine counts it in TURNS — a question and its answer are two —
     // so a cap of eight is four questions, not eight. `questions_total` is per
@@ -1083,7 +1086,12 @@
           : full ? "this request is full"
           : secs > 0 ? `ready in ${secs}s${parts.length ? ` · ${parts.join(" · ")}` : ""}`
           : parts.join(" · ");
-        $("#dk-go").disabled = done || full || secs > 0
+        // The gap between questions is a rate limit, not a lockout. The button
+        // stays live through it: press it and the question is held for the few
+        // seconds that remain and then sent. A dead button for twenty seconds
+        // reads as a broken page, and the reload it invites does not help.
+        waitLeft = secs;
+        $("#dk-go").disabled = done || full
           || (!!state && state.allowed === false && state.reason !== "too_soon");
       };
       show(wait);
@@ -1117,7 +1125,20 @@
       const b = $("#dk-go"), q = $("#dk-q").value.trim();
       if (!q) return;
       const label = b.textContent;
-      b.disabled = true; b.textContent = registry ? "Searching…" : "Asking…";
+      b.disabled = true;
+      // Held rather than refused: the desk will not take a question yet, so
+      // the page waits out the remainder and sends it. The team sees the
+      // countdown on the button they just pressed.
+      if (waitLeft > 0) {
+        queued = q;
+        for (let i = waitLeft; i > 0; i--) {
+          b.textContent = `Sending in ${i}s…`;
+          await new Promise((r) => setTimeout(r, 1000));
+          if (queued !== q) return;                 // superseded or abandoned
+        }
+        queued = null;
+      }
+      b.textContent = registry ? "Searching…" : "Asking…";
       $("#dk-err").textContent = "";
       addDeskTurn(box, desk.name, { speaker: "interviewer", text: q, citations: [] });
       // A named, animated line so it is never ambiguous whether the desk is
@@ -1131,6 +1152,14 @@
         addDeskTurn(box, desk.name, { speaker: "persona", text: r.text, citations: r.citations });
         if (r.granted) S.docs = null;
         desk.asked += 1; left(r.state);
+        // can_take_turn returns the reason alone while it is refusing, so the
+        // state that comes back with an answer carries no turn_cap and the
+        // per-request figure would vanish exactly when it changed. Read the
+        // whole state from the engine instead of remembering the old one.
+        try {
+          const fresh = await api(`/desks/${encodeURIComponent(code)}/state`);
+          if (fresh && fresh.state) left(fresh.state);
+        } catch { /* the figure from the answer stands */ }
         // The blank page has become a real request. Correct the address
         // without re-rendering, so a reload reads the request rather than
         // offering another empty one.
