@@ -164,9 +164,21 @@ textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:
 
 .doclist{border:1px solid var(--rule);border-radius:2px;background:var(--card)}
 .doclist .grp{padding:8px 12px;border-bottom:1px solid var(--rule-soft);background:#F4F5F1}
-.docrow{display:grid;grid-template-columns:162px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px;border-bottom:1px solid var(--rule-soft);align-items:center;text-decoration:none}
-.docrow:last-child{border-bottom:0}
-.docrow:hover{background:#F7F8F4}
+/* A record in the file: the row opens the record, the chevron beside it opens
+   the description. The toggle is a sibling of the anchor rather than a child,
+   because a button inside a link is neither. */
+.docitem{display:grid;grid-template-columns:20px minmax(0,1fr);border-bottom:1px solid var(--rule-soft)}
+.docitem:last-child{border-bottom:0}
+.docitem:hover{background:#F7F8F4}
+.docitem.open{background:#F7F8F4}
+.docmore{grid-area:1/1;align-self:center;justify-self:center;width:20px;height:22px;padding:0;border:0;background:none;
+         cursor:pointer;color:var(--muted);font-family:var(--mono);font-size:11px;line-height:1}
+.docmore::before{content:"▸"}
+.docitem.open .docmore::before{content:"▾"}
+.docmore:hover{color:var(--ink)}
+.docmore.none{cursor:default}
+.docblurb{grid-column:2;margin:0 0 11px;padding-right:12px;font-family:var(--read);font-size:14.5px;line-height:1.5;color:var(--muted);max-width:74ch}
+.docrow{grid-area:1/2;display:grid;grid-template-columns:162px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px 10px 0;align-items:center;text-decoration:none}
 .docrow .code{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
 .docrow .ttl{font-family:var(--read);font-size:15.5px}
 /* The record's other name, under its own: quieter, but there to be read. */
@@ -179,7 +191,8 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
    code and what the team has done with it keep each other company on the top
    line, the way they do in a ledger, and the names sit under them. */
 @media (max-width:720px){
-  .docrow{grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:baseline}
+  .docrow{grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:baseline;padding:10px 12px 10px 0}
+  .docmore{align-self:start;margin-top:9px}
   .docrow .code{grid-area:1/1}
   .docrow .st{grid-area:1/2;text-align:right}
   .docrow>span:nth-child(2){grid-area:2/1/3/3}
@@ -224,7 +237,7 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 /* A record you have just been sent, found in a file of seventy rows. Marked
    with the live-state stamp, then let go — a highlight that persists into the
    next visit is a bug, not a feature. */
-.docrow.landed{box-shadow:inset 3px 0 0 var(--stamp);background:var(--card);transition:background .5s ease,box-shadow .5s ease}
+.docitem.landed{box-shadow:inset 3px 0 0 var(--stamp);background:var(--card);transition:background .5s ease,box-shadow .5s ease}
 .backrow{text-decoration:none;border-bottom:1px dotted var(--rule)}
 .backrow:hover{border-bottom-color:var(--stamp)}
 .turn.working{display:flex;align-items:center;gap:9px;font-family:var(--ui);font-size:13px;color:var(--muted)}
@@ -396,17 +409,23 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
 }
 
 /* The records worth putting to this person, read before the conversation.
-   The registrar's portrait is a graphic device: it says the papers were put
-   together by someone, for this person. It is not a conversation. */
-.recbox{margin-top:22px;border:1px solid var(--rule);border-radius:2px;background:var(--card);padding:16px 18px}
-.rechead{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;
-         padding-bottom:12px;border-bottom:1px solid var(--rule)}
-.recwho{min-width:0}
-.regface{flex:none;order:2}
-.regface .portrait{width:56px;height:70px;object-fit:cover;object-position:50% 18%;border:1px solid var(--rule);border-radius:2px;display:block}
-.regface .portrait.none{display:flex;align-items:center;justify-content:center;background:var(--rule-soft);color:var(--muted);font-family:var(--mono);font-size:13px}
-.rechead .label{margin:0 0 3px}
-.recintro{margin:0;font-family:var(--read);font-size:15px;line-height:1.45;color:var(--ink);max-width:64ch}
+   Two columns: the papers, and the registrar who keeps them. She is a column
+   rather than a banner because that is what she is — the archive standing
+   beside the list, not a heading over it. */
+.recbox{margin-top:22px;display:grid;grid-template-columns:1fr 214px;gap:0 24px;align-items:start;
+        border:1px solid var(--rule);border-radius:2px;background:var(--card);padding:6px 18px 10px}
+.recwho{border-left:1px solid var(--rule);padding:14px 0 4px 20px;align-self:stretch}
+.recwho .whocard{border:0;background:none}
+.recwho .whocard .portrait{border:1px solid var(--rule);border-radius:2px;aspect-ratio:4/5}
+.recwho .whobody{padding:10px 0 0}
+.recwho .whobody .pname{font-size:17px}
+/* The count, as a column reads it: the figure, then what it counts. */
+.rwcount{margin:14px 0 0;padding:14px 0 0;border-top:1px solid var(--rule-soft)}
+.rwcount>div{display:grid;grid-template-columns:24px 1fr;gap:0 9px;align-items:baseline;margin-bottom:7px}
+.rwcount>div:last-child{margin-bottom:0}
+.rwcount dt{font-family:var(--mono);font-size:15px;color:var(--ink);text-align:right}
+.rwcount dd{margin:0;font-family:var(--read);font-size:13.5px;line-height:1.3;color:var(--muted)}
+.rwcount>div.ask dt,.rwcount>div.ask dd{color:var(--stamp)}
 .reclist{list-style:none;margin:0;padding:0}
 .reclist li{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;
             padding:11px 0;border-bottom:1px solid var(--rule-soft)}
@@ -426,10 +445,19 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
 a.rmark:hover{border-color:var(--ink);color:var(--ink)}
 .rmark.ask{color:var(--stamp);border-color:var(--stamp)}
 a.rmark.ask:hover{background:var(--stamp);color:#fff}
+@media (max-width:860px){
+  /* One column, and the registrar goes on top — the same order the desk and
+     the room use on a narrow screen — laid out as a row so she costs a strip
+     rather than a screen. */
+  .recbox{grid-template-columns:1fr;padding:12px 14px}
+  .recwho{order:-1;border-left:0;border-bottom:1px solid var(--rule);padding:2px 0 12px;
+          display:grid;grid-template-columns:64px 1fr;gap:0 12px;align-items:start}
+  .recwho .whocard{display:contents}
+  .recwho .whocard .portrait{width:64px}
+  .recwho .whobody{padding:0}
+  .rwcount{grid-column:1/-1;margin-top:12px;padding-top:12px}
+}
 @media (max-width:560px){
-  .recbox{padding:13px 14px}
-  .regface .portrait{width:44px;height:55px}
-  .recintro{font-size:14.5px}
   .reclist .rttl{font-size:15px}
   /* The action drops under the line rather than squeezing the name. */
   .reclist li{flex-wrap:wrap}

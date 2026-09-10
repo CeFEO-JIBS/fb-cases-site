@@ -402,15 +402,31 @@
     // Malmö and one for "will" finds a testamente filed in English.
     const findable = (d) => fold([d.code, ...bothNames(d), d.doc_year, d.record_class, d.holding_institution, via[d.granted_via], labelOf(keyOf(d))].filter(Boolean).join(" "));
     $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label" data-label="${esc(labelOf(k))}" data-total="${groups[k].length}">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
-      `<a class="docrow" id="row-${esc(d.code)}" href="#/file/${esc(d.code)}" data-find="${esc(findable(d))}" data-kind="${esc(d.doc_class || "other")}" data-new="${d.first_opened ? "" : "1"}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
+      // The row still opens the record. The chevron beside it opens the
+      // description, which is the cheaper question — "what is this?" — and
+      // does not spend a click on the wrong paper. The toggle sits outside
+      // the anchor because a button inside a link is neither.
+      `<div class="docitem" id="row-${esc(d.code)}" data-find="${esc(findable(d))}" data-kind="${esc(d.doc_class || "other")}" data-new="${d.first_opened ? "" : "1"}">${
+        d.blurb_en ? `<button type="button" class="docmore" aria-expanded="false" aria-label="What this record is"></button>` : `<span class="docmore none"></span>`
+      }<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>${
+        d.blurb_en ? `<p class="docblurb" hidden>${esc(d.blurb_en)}</p>` : ""}</div>`).join("")).join("")}</div>`
       : me.edition.status === "open"
         ? `<div class="empty"><span class="tag">nothing yet</span><p>Your onboarding pack is not in place yet. Ask your instructor.</p></div>`
         : `<div class="empty"><span class="tag">not open yet</span><p>Your file opens when your instructor opens the course.</p></div>`;
+    $("#docs").addEventListener("click", (e) => {
+      const b = e.target.closest("button.docmore"); if (!b) return;
+      const item = b.closest(".docitem"); const p = item.querySelector(".docblurb");
+      if (!p) return;
+      p.hidden = !p.hidden;
+      b.setAttribute("aria-expanded", String(!p.hidden));
+      item.classList.toggle("open", !p.hidden);
+    });
+
     // The file runs past seventy rows in six folders by the end of a course, and
     // the row a team wants is one it can already name. The filter narrows the
     // list as they type, empties out the folders that stop answering, and says
     // how much of the file is still in front of them. Nothing leaves the page.
-    const rows = [...document.querySelectorAll("#docs .docrow")];
+    const rows = [...document.querySelectorAll("#docs .docitem")];
     const heads = [...document.querySelectorAll("#docs .grp")];
 
     // The list is grouped by how a record reached the team, which is the right
@@ -640,11 +656,14 @@
     const held = rs.filter((r) => r.held).length;
     const ask = rs.length - held;
     $("#c-reg-face").innerHTML = keeper ? faceHtml(keeper.name, keeper.portrait_url) : "";
-    $("#c-reg-label").textContent = keeper ? keeper.name : "From the registry";
-    $("#c-reg-intro").textContent =
-      `${rs.length} record${rs.length === 1 ? "" : "s"} in the archive bear on this person`
-      + (held ? ` · ${held} already in your case file` : "")
-      + (ask ? ` · ${ask} ${ask === 1 ? "has" : "have"} to be asked for by name` : "");
+    $("#c-reg-label").textContent = keeper ? keeper.name : "The registry";
+    $("#c-reg-role").textContent = keeper ? (keeper.subtitle || "the document registry") : "";
+    // The count reads down the column: the figure, then what it counts.
+    $("#c-reg-counts").innerHTML = [
+      ["", rs.length, `record${rs.length === 1 ? "" : "s"} bear on this person`],
+      ...(held ? [["", held, "already in your case file"]] : []),
+      ...(ask ? [["ask", ask, `to ask ${first ? esc(first) : "the registry"} for`]] : []),
+    ].map(([cls, n, what]) => `<div class="${cls}"><dt>${n}</dt><dd>${what}</dd></div>`).join("");
     // One line per record, folded. Twenty personas' worth of fifty-word
     // descriptions is a page nobody reads; the name and the code are what a
     // team scans, and the description is one click away.
