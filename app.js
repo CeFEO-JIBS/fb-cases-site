@@ -303,7 +303,13 @@
     });
   }
 
-  async function file() {
+  /**
+   * The case file. `at` names a record to land on: the list runs to seventy-odd
+   * rows across several folders, so arriving at the top and hunting for the one
+   * that just came in is the wrong experience. The row is scrolled to the middle
+   * and marked, and the mark fades rather than persisting into the next visit.
+   */
+  async function file(at) {
     const me = await ensureMe(); nav("file"); render("t-file");
     const ds = await documents(true);
     const stage = { brief: "Onboarding pack", roster: "The people you may interview", engagement_only: "The engagement", discovery: "Released to your team", deep: "From the registry" };
@@ -318,10 +324,18 @@
     const order = [...folders, ...["brief", "roster", "engagement_only", "discovery", "deep"].filter((k) => groups[k])];
     const labelOf = (k) => (k.startsWith("brief/") ? `${stage.brief} · ${k.slice(6)}` : stage[k] || k);
     $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
-      `<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
+      `<a class="docrow" id="row-${esc(d.code)}" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
       : me.edition.status === "open"
         ? `<div class="empty"><span class="tag">nothing yet</span><p>Your onboarding pack is not in place yet. Ask your instructor.</p></div>`
         : `<div class="empty"><span class="tag">not open yet</span><p>Your file opens when your instructor opens the course.</p></div>`;
+    if (at) {
+      const row = document.getElementById(`row-${at}`);
+      if (row) {
+        row.scrollIntoView({ block: "center", behavior: "smooth" });
+        row.classList.add("landed");
+        setTimeout(() => row.classList.remove("landed"), 2600);
+      }
+    }
     let deskList = [];
     try { deskList = (await api("/desks")).desks; } catch { /* the desks are optional */ }
     const registry = deskList.find((d) => d.desk_kind === "registry");
@@ -355,7 +369,7 @@
     await ensureMe(); nav("file"); render("t-doc");
     const ds = await documents(); const meta = ds.find((d) => d.code === code);
     if (!meta) { view.innerHTML = `<div class="empty"><span class="tag">not in your file</span><p>The registry has no such record released to your team.</p><p><a href="#/file">Back to the file</a></p></div>`; return; }
-    $("#d-meta").textContent = `${meta.code} · ${meta.holding_institution || ""}${meta.doc_year ? " · " + meta.doc_year : ""}`;
+    $("#d-meta").innerHTML = `<a class="backrow" href="#/file/${esc(code)}/at" title="Show this record in your case file">${esc(meta.code)}</a> · ${esc(meta.holding_institution || "")}${meta.doc_year ? " · " + meta.doc_year : ""}`;
     $("#d-title").innerHTML = bothNames(meta).map((t, i) => (i ? `<span class="alt">${esc(t)}</span>` : esc(t))).join("");
 
     // Opening the reading view is the open that counts: it records the disclosure key.
@@ -634,11 +648,34 @@
       for (const t of turns) addDeskTurn(box, desk.name, t);
     };
     draw(d.turns);
+    // The desks meter questions AND space them: min_seconds_between is 5s for the
+    // registry and 20s for the literature desk. So the state returned with a
+    // successful answer is `too_soon` -- the turn just recorded started the
+    // clock. The button was disabled on that and nothing ever re-enabled it,
+    // which is why a follow-up needed a page reload: reloading re-fetched the
+    // state after the wait had passed. Now the wait is a countdown that expires.
+    let waitTimer = null;
     const left = (state, asked) => {
       const cap = desk.questions_total || desk.turn_cap;
       const n = cap ? Math.max(0, cap - asked) : null;
-      $("#dk-left").textContent = n === null ? "" : n === 0 ? "no questions left" : `${n} question${n === 1 ? "" : "s"} left`;
-      $("#dk-go").disabled = n === 0 || (state && state.allowed === false);
+      const spent = n === 0;
+      const wait = state && state.allowed === false && state.reason === "too_soon"
+        ? Math.max(0, Number(state.wait_seconds) || 0) : 0;
+      clearInterval(waitTimer); waitTimer = null;
+      const show = (secs) => {
+        $("#dk-left").textContent = spent ? "no questions left"
+          : secs > 0 ? `ready in ${secs}s${n === null ? "" : ` · ${n} left`}`
+          : n === null ? "" : `${n} question${n === 1 ? "" : "s"} left`;
+        $("#dk-go").disabled = spent || secs > 0 || (state && state.allowed === false && state.reason !== "too_soon");
+      };
+      show(wait);
+      if (wait > 0 && !spent) {
+        let secs = wait;
+        waitTimer = setInterval(() => {
+          secs -= 1;
+          if (secs <= 0) { clearInterval(waitTimer); waitTimer = null; show(0); } else show(secs);
+        }, 1000);
+      }
     };
     let asked = d.turns.filter((t) => t.speaker === "interviewer").length;
     left(d.state, asked);
@@ -676,8 +713,10 @@
         // A failed answer costs nothing now, so the counter must not move.
         left(err.body && err.body.state, asked);
       } finally {
+        // left() is the only authority on whether the button is usable. The old
+        // guard here read `if (!#dk-go.disabled)` -- but b IS #dk-go and had just
+        // been disabled two lines above, so it could never fire.
         b.textContent = label;
-        if (!$("#dk-go").disabled) b.disabled = false;
       }
       box.scrollIntoView({ block: "end", behavior: "smooth" });
     });
@@ -711,7 +750,8 @@
       ? `<ul class="cites">${t.citations.map((c) => {
           if (c.source_key === "registry") {
             const code = c.item_id || "";
-            return `<li><span class="pos">▸</span><span><a href="#/file/${esc(code)}">${esc(c.title)}</a> <span class="prov">now in your case file${code ? ` · ${esc(code)}` : ""}</span></span></li>`;
+            // The title opens the record; the code shows where it landed in the file.
+            return `<li><span class="pos">▸</span><span><a href="#/file/${esc(code)}">${esc(c.title)}</a> <span class="prov">now in your case file${code ? ` · <a href="#/file/${esc(code)}/at">${esc(code)}</a>` : ""}</span></span></li>`;
           }
           return `<li><span class="pos">[${c.position}]</span><span>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.reference)}</a>` : esc(c.reference)}</span></li>`;
         }).join("")}</ul>`
@@ -723,14 +763,21 @@
   // ── router ──────────────────────────────────────────────────────────────
   async function route() {
     const h = location.hash.replace(/^#\/?/, "");
-    const [a, b] = h.split("/");
+    const [a, b, c] = h.split("/");
     if (!store.get()) return signin();
     if (a !== "room") { stopPoll(); recording(null); }
     stopGate();
     try {
       if (!a) return await landing();
       if (a === "people") return await people();
-      if (a === "file") return b ? await doc(decodeURIComponent(b)) : await file();
+      // #/file            the whole file
+      // #/file/CODE       that document
+      // #/file/CODE/at    the file, landed on that document's line
+      if (a === "file") {
+        if (!b) return await file();
+        const code = decodeURIComponent(b);
+        return c === "at" ? await file(code) : await doc(code);
+      }
       if (a === "interview" && b) return await confirm_(b);
       if (a === "room" && b) return await room(b);
       if (a === "transcripts") return b ? await transcript(b) : await transcripts();

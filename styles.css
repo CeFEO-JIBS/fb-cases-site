@@ -164,6 +164,12 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 /* The desk is working. Deliberately not a chat-bubble typing indicator: one
    quiet pulsing mark, the desk's name, and the elapsed seconds once a pause
    stops being ordinary. */
+/* A record you have just been sent, found in a file of seventy rows. Marked
+   with the live-state stamp, then let go — a highlight that persists into the
+   next visit is a bug, not a feature. */
+.docrow.landed{box-shadow:inset 3px 0 0 var(--stamp);background:var(--card);transition:background .5s ease,box-shadow .5s ease}
+.backrow{text-decoration:none;border-bottom:1px dotted var(--rule)}
+.backrow:hover{border-bottom-color:var(--stamp)}
 .turn.working{display:flex;align-items:center;gap:9px;font-family:var(--ui);font-size:13px;color:var(--muted)}
 .turn.working .dot{width:7px;height:7px;border-radius:50%;background:var(--stamp);animation:pulse 1.15s ease-in-out infinite;flex:none}
 .turn.working .secs{font-family:var(--mono);font-size:12px;opacity:.7}
