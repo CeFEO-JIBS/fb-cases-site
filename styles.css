@@ -123,7 +123,20 @@ footer .base{max-width:1080px;margin:14px auto 0;padding-top:10px;border-top:1px
 .rec .dot{width:8px;height:8px;border-radius:50%;background:var(--stamp);animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
 .two{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;align-items:start}
-@media (max-width:860px){.two{grid-template-columns:1fr}}
+/* ── Two columns on a phone ────────────────────────────────────────────────
+   The right-hand column is a person: the registrar beside the papers she hands
+   over, the desk beside the sources it reads. Stacked in document order she
+   ends up a whole document list below the team that wants to write to her, so
+   on a narrow screen the person comes first — and only the person.
+   `display:contents` lifts the aside's children into the same flow, which lets
+   the face rise to the top while the reading list stays under the thread where
+   it belongs. */
+@media (max-width:860px){
+  .two{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+  .two>aside.registry{order:-1}
+  .two>aside.side{display:contents}
+  .two>aside.side>.whocard{order:-1}
+}
 .prose{font-family:var(--read);font-size:17px;line-height:1.62;max-width:62ch}
 .prose p{margin:0 0 12px}
 textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-family:var(--read);font-size:16px;line-height:1.5;resize:vertical}
@@ -132,12 +145,21 @@ textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:
 .seg button{border:0;background:#fff;padding:6px 10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;color:var(--muted)}
 .seg button.on{background:var(--ledger);color:#fff}
 
+/* ── Finding one record in seventy ────────────────────────────────────────
+   The file grows all course. A team looking for a record it can already name
+   should not have to read six folders to reach it. */
+.findbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.findbar .label{flex:none}
+.findbar input{flex:1 1 210px;min-width:0;-webkit-appearance:none;appearance:none;
+               padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:14.5px}
+.findbar .fcount{flex:none;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
 .doclist{border:1px solid var(--rule);border-radius:2px;background:var(--card)}
 .doclist .grp{padding:8px 12px;border-bottom:1px solid var(--rule-soft);background:#F4F5F1}
-.docrow{display:grid;grid-template-columns:110px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px;border-bottom:1px solid var(--rule-soft);align-items:center;text-decoration:none}
+.docrow{display:grid;grid-template-columns:162px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px;border-bottom:1px solid var(--rule-soft);align-items:center;text-decoration:none}
 .docrow:last-child{border-bottom:0}
 .docrow:hover{background:#F7F8F4}
-.docrow .code{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.docrow .code{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
 .docrow .ttl{font-family:var(--read);font-size:15.5px}
 /* The record's other name, under its own: quieter, but there to be read. */
 .docrow .ttl-alt{font-family:var(--read);font-size:14px;font-style:italic;color:var(--muted);margin-top:1px}
@@ -145,16 +167,43 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 .docrow .prov{font-size:12px;color:var(--muted)}
 .docrow .st{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .docrow .st.new{color:var(--stamp)}
-@media (max-width:720px){.docrow{grid-template-columns:1fr}}
+/* A row that has lost its four columns should not become seven lines. The
+   code and what the team has done with it keep each other company on the top
+   line, the way they do in a ledger, and the names sit under them. */
+@media (max-width:720px){
+  .docrow{grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:baseline}
+  .docrow .code{grid-area:1/1}
+  .docrow .st{grid-area:1/2;text-align:right}
+  .docrow>span:nth-child(2){grid-area:2/1/3/3}
+  .docrow>span:nth-child(3){grid-area:3/1/4/3}
+}
 .registry .prose{font-size:15px}
-.doc{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:34px 40px;font-family:var(--read);font-size:17px;line-height:1.62;max-width:72ch;white-space:pre-wrap}
+.doc{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:34px 40px;overflow-wrap:break-word;font-family:var(--read);font-size:17px;line-height:1.62;max-width:72ch;white-space:pre-wrap}
 .pages{display:flex;flex-direction:column;gap:10px;margin:10px 0 18px}
 .pages canvas{max-width:100%;border:1px solid var(--rule);background:#fff}
 
 .room{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;align-items:start}
 .conv{min-width:0}
-@media (max-width:860px){.room{grid-template-columns:1fr}}
-@media (max-width:860px){.room{grid-template-columns:1fr}}
+/* ── The room on a phone ───────────────────────────────────────────────────
+   Stacked in document order the clock lands under the whole conversation,
+   which is the one thing a team cannot afford not to see while it is talking.
+   So the room is reordered too: who you are with, then the clock as a strip
+   that stays put as the thread grows — the ring dropped, the two numbers side
+   by side — and then the conversation. */
+@media (max-width:860px){
+  .room{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+  .room>aside.side{display:contents}
+  .room>aside.side>.whocard{order:-1}
+  .room>aside.side>.clock{order:-1;position:sticky;top:0;z-index:10;
+    display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;text-align:left;padding:10px 14px}
+  .room>aside.side>.clock>svg{display:none}
+  .room>aside.side>.clock>:nth-child(2){grid-area:1/1}
+  .room>aside.side>.clock>:nth-child(3){grid-area:2/1}
+  .room>aside.side>.clock>:nth-child(4){grid-area:1/2;margin-top:0!important}
+  .room>aside.side>.clock>:nth-child(5){grid-area:2/2}
+  .room>aside.side>.clock>:nth-child(6){grid-area:3/1/4/3;margin-top:6px}
+  .room>aside.side>.clock .v{font-size:19px}
+}
 .turns{margin-top:14px;border-top:1px solid var(--rule)}
 .turn{padding:16px 0;border-bottom:1px solid var(--rule-soft);font-family:var(--read);font-size:17px;line-height:1.58}
 .turn:last-child{border-bottom:0}
@@ -230,3 +279,44 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
 .textswitch{display:flex;align-items:center;justify-content:space-between;gap:12px;
             margin:30px 0 0;padding-top:14px;border-top:2px solid var(--ink)}
 .textswitch .label{margin:0}
+
+/* ── On a phone ────────────────────────────────────────────────────────────
+   Five destinations, a team name and a way out do not fit on one 390px line.
+   They wrap onto a second, and the bar stops being sticky: a header tall
+   enough for two rows of navigation would otherwise take a fifth of the
+   screen on every page a team reads. */
+@media (max-width:720px){
+  .hdr{position:static;height:auto;min-height:var(--hdr-h);flex-wrap:wrap;gap:0;row-gap:2px;padding:6px 14px 4px}
+  .hdr .mark{padding:4px 0}
+  .hdr nav{width:100%;flex-wrap:wrap;gap:0;row-gap:2px;margin:5px 0 0;padding-top:4px;
+           border-top:1px solid rgba(255,255,255,.16)}
+  .hdr nav a,.hdr nav button{padding:6px 9px}
+  .hdr nav a:first-child{padding-left:0}
+  .hdr .who{margin-left:auto;border-left:0;padding-left:10px}
+}
+@media (max-width:560px){
+  main{padding:22px 14px}
+  h1{font-size:25px}
+  h2{font-size:15.5px;margin:22px 0 8px}
+  .lede{font-size:17px;margin-bottom:18px}
+  .card{padding:16px 14px}
+  .strip .cell{padding:10px}
+  .strip .v{font-size:16px}
+  .prose,.prose.read{font-size:16px}
+  .turn{font-size:16px}
+  .doclist .grp{padding:8px 10px}
+  .docrow{padding:12px 10px}
+  .doc{padding:18px 16px;font-size:16px}
+  .textswitch{margin-top:22px}
+  .composebar select{flex:1 1 100%;max-width:none}
+  /* A roster of full-width 4:5 portraits is fifteen screens of scrolling. On a
+     phone a person takes the shape the interview room already gives them: the
+     face at thumbnail size, the facts and the buttons beside it. */
+  .people{grid-template-columns:1fr;gap:12px}
+  .person{display:grid;grid-template-columns:112px minmax(0,1fr)}
+  .person>.portrait{width:112px;aspect-ratio:auto;min-height:158px;border-bottom:0;border-right:1px solid var(--rule)}
+  .person .pbody{padding:10px 12px 12px}
+  .person .pstate{margin:8px 0 0}
+  .person .pacts{padding-top:10px}
+  footer{padding:18px 14px}
+}

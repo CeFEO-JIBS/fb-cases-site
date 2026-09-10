@@ -92,6 +92,12 @@
   <p class="lede">Everything your team holds. The onboarding pack is yours from the moment the course opens; the rest reaches you as you work. What is not listed here is not yours yet: if you believe a record exists, ask the registry for it by name.</p>
   <div class="two">
     <div>
+      <div class="findbar" id="doc-filter" hidden>
+        <label class="label" for="doc-q">Find a record</label>
+        <input id="doc-q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="a code, a title, a year, who holds it">
+        <span class="fcount" id="doc-count" aria-live="polite"></span>
+      </div>
       <div id="docs"></div>
     </div>
     <aside class="card registry" id="reg-aside">

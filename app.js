@@ -39,6 +39,9 @@
   const post = (path, body) => api(path, { method: "POST", body: JSON.stringify(body || {}) });
 
   // ── helpers ─────────────────────────────────────────────────────────────
+  // Swedish names carry å ä ö and a team types what its keyboard has. Folding
+  // both sides of a comparison to unaccented lower case keeps a search honest.
+  const fold = (s) => String(s ?? "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const initials = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   const prose = (t) => String(t ?? "").split(/\n{2,}/).map((b) => {
@@ -323,11 +326,47 @@
     const folders = Object.keys(groups).filter((k) => k.startsWith("brief/")).sort();
     const order = [...folders, ...["brief", "roster", "engagement_only", "discovery", "deep"].filter((k) => groups[k])];
     const labelOf = (k) => (k.startsWith("brief/") ? `${stage.brief} · ${k.slice(6)}` : stage[k] || k);
-    $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
-      `<a class="docrow" id="row-${esc(d.code)}" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
+    // What a row answers to when a team searches for it: its code, both of its
+    // names, the year, the class of record, who holds it, how it reached the
+    // team, and the folder it sits in — folded, so a search for "malmo" finds
+    // Malmö and one for "will" finds a testamente filed in English.
+    const findable = (d) => fold([d.code, ...bothNames(d), d.doc_year, d.record_class, d.holding_institution, via[d.granted_via], labelOf(keyOf(d))].filter(Boolean).join(" "));
+    $("#docs").innerHTML = ds.length ? `<div class="doclist">${order.map((k) => `<div class="grp label" data-label="${esc(labelOf(k))}" data-total="${groups[k].length}">${esc(labelOf(k))} · ${groups[k].length}</div>` + groups[k].sort((a, b) => (a.doc_year || 0) - (b.doc_year || 0)).map((d) =>
+      `<a class="docrow" id="row-${esc(d.code)}" href="#/file/${esc(d.code)}" data-find="${esc(findable(d))}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>`).join("")).join("")}</div>`
       : me.edition.status === "open"
         ? `<div class="empty"><span class="tag">nothing yet</span><p>Your onboarding pack is not in place yet. Ask your instructor.</p></div>`
         : `<div class="empty"><span class="tag">not open yet</span><p>Your file opens when your instructor opens the course.</p></div>`;
+    // The file runs past seventy rows in six folders by the end of a course, and
+    // the row a team wants is one it can already name. The filter narrows the
+    // list as they type, empties out the folders that stop answering, and says
+    // how much of the file is still in front of them. Nothing leaves the page.
+    const rows = [...document.querySelectorAll("#docs .docrow")];
+    const heads = [...document.querySelectorAll("#docs .grp")];
+    if (rows.length) {
+      $("#doc-filter").hidden = false;
+      const q = $("#doc-q");
+      const apply = () => {
+        const terms = fold(q.value).split(/\s+/).filter(Boolean);
+        let shown = 0;
+        for (const r of rows) {
+          const hit = terms.every((t) => r.dataset.find.includes(t));
+          r.hidden = !hit;
+          if (hit) shown++;
+        }
+        for (const h of heads) {
+          let n = 0;
+          for (let el = h.nextElementSibling; el && !el.classList.contains("grp"); el = el.nextElementSibling) if (!el.hidden) n++;
+          h.hidden = n === 0;
+          h.textContent = `${h.dataset.label} · ${terms.length ? `${n} of ${h.dataset.total}` : h.dataset.total}`;
+        }
+        $("#doc-count").textContent = terms.length
+          ? `${shown} of ${rows.length} record${rows.length === 1 ? "" : "s"}`
+          : `${rows.length} record${rows.length === 1 ? "" : "s"}`;
+      };
+      q.addEventListener("input", apply);
+      q.addEventListener("keydown", (e) => { if (e.key === "Escape") { q.value = ""; apply(); } });
+      apply();
+    }
     if (at) {
       const row = document.getElementById(`row-${at}`);
       if (row) {
