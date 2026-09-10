@@ -61,8 +61,16 @@
   // authored title stands for both, and identical names are shown once.
   const nameSv = (d) => (d.title_sv || "").trim() || d.title || "";
   const nameEn = (d) => (d.title_en || "").trim() || d.title || "";
+  // The name of a record, and there is one: the English one. The advisers work
+  // in English, and a record named twice on one line is a record you have to
+  // parse before you can look for it. The filed name is not lost — it is what
+  // is printed on the paper, it stays searchable, and it stays on the record's
+  // own page — but it is not the name of the thing.
+  const docName = (d) => nameEn(d);
+  // Both names, for searching only: a student who reads the name off the
+  // facsimile is typing Swedish, and that has to find the record.
   const bothNames = (d) => { const a = nameSv(d), b = nameEn(d); return a === b ? [a] : [a, b]; };
-  const titleHtml = (d) => bothNames(d).map((t, i) => `<div class="${i ? "ttl-alt" : "ttl"}">${esc(t)}</div>`).join("");
+  const titleHtml = (d) => `<div class="ttl">${esc(docName(d))}</div>`;
 
   // /me carries the two gates — whether the course is open and whether the
   // interviews are — and both move while a team is sitting in front of the
@@ -493,8 +501,8 @@
       try {
         const r = await post("/registry/request", { text: $("#reg-text").value });
         const say = {
-          granted: `<p>I have found it. <strong>${esc(bothNames(r).join(" / "))}</strong> is now in your file under ${esc(r.code)}.</p>`,
-          already: `<p>That one is already in your file: <strong>${esc(bothNames(r).join(" / "))}</strong>, ${esc(r.code)}.</p>`,
+          granted: `<p>I have found it. <strong>${esc(docName(r))}</strong> is now in your file under ${esc(r.code)}.</p>`,
+          already: `<p>That one is already in your file: <strong>${esc(docName(r))}</strong>, ${esc(r.code)}.</p>`,
           ambiguous: `<p>That could be more than one record. Give me a year, a party to it, or who would have kept it, and I will look again.</p>`,
           not_found: `<p>I have nothing under that description. If you believe the record exists, tell me who would have produced it and roughly when.</p>`,
         }[r.outcome] || `<p>${esc(r.outcome)}</p>`;
@@ -510,7 +518,8 @@
     const ds = await documents(); const meta = ds.find((d) => d.code === code);
     if (!meta) { view.innerHTML = `<div class="empty"><span class="tag">not in your file</span><p>The registry has no such record released to your team.</p><p><a href="#/file">Back to the file</a></p></div>`; return; }
     $("#d-meta").innerHTML = `<a class="backrow" href="#/file/${esc(code)}/at" title="Show this record in your case file">${esc(meta.code)}</a> · ${esc(meta.holding_institution || "")}${meta.doc_year ? " · " + meta.doc_year : ""}`;
-    $("#d-title").innerHTML = bothNames(meta).map((t, i) => (i ? `<span class="alt">${esc(t)}</span>` : esc(t))).join("");
+    $("#d-title").innerHTML = esc(docName(meta))
+      + (nameSv(meta) !== docName(meta) ? `<span class="alt">Filed as ${esc(nameSv(meta))}</span>` : "");
 
     // Opening the reading view is the open that counts: it records the disclosure key.
     let signed = null;
@@ -675,7 +684,7 @@
       $("#ex-open").hidden = !!holding;
       if (holding) {
         chip.innerHTML = `<span class="excode">${esc(holding.code)}</span>
-          <span class="exttl">${esc(bothNames(holding)[0])}</span>
+          <span class="exttl">${esc(docName(holding))}</span>
           <button type="button" class="exdrop" id="ex-drop" title="Take it back">×</button>`;
         $("#ex-drop").addEventListener("click", () => { holding = null; drawChip(); });
       }
@@ -689,7 +698,7 @@
       $("#ex-list").innerHTML = hits.length
         ? hits.map((d) => `<button type="button" class="exhit" data-code="${esc(d.code)}">
             <span class="excode">${esc(d.code)}</span>
-            <span class="exttl">${esc(bothNames(d)[0])}${d.doc_year ? ` · ${d.doc_year}` : ""}</span></button>`).join("")
+            <span class="exttl">${esc(docName(d))}${d.doc_year ? ` · ${d.doc_year}` : ""}</span></button>`).join("")
         : `<p class="prov">Nothing in your file answers that. You can only show a record you hold.</p>`;
     };
     $("#ex-open").addEventListener("click", () => {
@@ -715,7 +724,7 @@
       addTurn(box, "you", text); q.value = ""; cnt.textContent = "0";
       const silence = Math.min(600, Math.round((Date.now() - lastAnswerAt) / 1000));
       const shown = holding;
-      if (shown) { addTurn(box, "sys", `You put ${shown.code} — ${bothNames(shown)[0]} — in front of them.`); holding = null; drawChip(); }
+      if (shown) { addTurn(box, "sys", `You put ${shown.code} — ${docName(shown)} — in front of them.`); holding = null; drawChip(); }
       try {
         const r = await post(`/sessions/${id}/ask`, { question: text, silence_seconds: silence, document_code: shown ? shown.code : undefined });
         if (r.kind === "answer") addTurn(box, p.name, r.answer);
@@ -1107,8 +1116,13 @@
       ? `<ul class="cites">${t.citations.map((c) => {
           if (c.source_key === "registry") {
             const code = c.item_id || "";
-            // The title opens the record; the code shows where it landed in the file.
-            return `<li><span class="pos">▸</span><span><a href="#/file/${esc(code)}">${esc(c.title)}</a> <span class="prov">now in your case file${code ? ` · <a href="#/file/${esc(code)}/at">${esc(code)}</a>` : ""}</span></span></li>`;
+            // The title opens the record; the code shows where it landed in the
+            // file. With no code there is no record to open, so the title is
+            // not a link: `#/file/` routes to the whole case file, which looks
+            // like the link working and is how a citation that had lost its
+            // code went unnoticed until someone reloaded the page.
+            const ttl = code ? `<a href="#/file/${esc(code)}">${esc(c.title)}</a>` : `<strong>${esc(c.title)}</strong>`;
+            return `<li><span class="pos">▸</span><span>${ttl} <span class="prov">now in your case file${code ? ` · <a href="#/file/${esc(code)}/at">${esc(code)}</a>` : ""}</span></span></li>`;
           }
           return `<li><span class="pos">[${c.position}]</span><span>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.reference)}</a>` : esc(c.reference)}</span></li>`;
         }).join("")}</ul>`
