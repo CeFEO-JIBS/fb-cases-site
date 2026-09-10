@@ -44,12 +44,19 @@
   const fold = (s) => String(s ?? "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const initials = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-  const prose = (t) => String(t ?? "").split(/\n{2,}/).map((b) => {
+  // An HTML textarea submits its value with CRLF line breaks — the spec says
+  // so — which means every paragraph break in text typed into the console
+  // arrives as \r\n\r\n. A splitter looking for two consecutive \n then finds
+  // none, and a five-thousand-word history renders as one paragraph with its
+  // ## headings sitting inline as literal text. So the line endings are
+  // normalised before anything looks at them.
+  const lines = (t) => String(t ?? "").replace(/\r\n?/g, "\n");
+  const prose = (t) => lines(t).split(/\n{2,}/).map((b) => {
     const x = b.trim();
     if (!x) return "";
     return /^##\s+/.test(x) ? `<h2>${esc(x.replace(/^##\s+/, ""))}</h2>` : `<p>${esc(x).replace(/\n/g, "<br>")}</p>`;
   }).join("");
-  const paras = (t) => String(t ?? "").split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
+  const paras = (t) => lines(t).split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
   function render(id) { const t = document.getElementById(id); view.replaceChildren(t.content.cloneNode(true)); }
   function nav(key) {
     $("#nav").hidden = false;
