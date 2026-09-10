@@ -5,7 +5,7 @@
   const C = window.FB;
   const $ = (s, r = document) => r.querySelector(s);
   const view = $("#view");
-  const S = { me: null, personas: null, docs: null, poll: null };
+  const S = { me: null, personas: null, interviews: null, docs: null, poll: null };
 
   // ── auth ────────────────────────────────────────────────────────────────
   const store = {
@@ -92,7 +92,23 @@
       if (!shut(me)) { stopGate(); redraw(); }
     }, 10000);
   }
-  async function personas(force) { if (force || !S.personas) S.personas = (await api("/personas")).personas; return S.personas; }
+  // The roster and, with it, whatever the engine says about this team's
+  // interviews: which way the course is choosing, and how many conversations
+  // are left when the team is the one choosing. Both arrive from the same
+  // response, so the cards and the counter can never be a request apart.
+  async function personas(force) {
+    if (force || !S.personas) {
+      const r = await api("/personas");
+      S.personas = r.personas; S.interviews = r.interviews || null;
+    }
+    return S.personas;
+  }
+  /** What the engine says about the team's own budget. Never computed here. */
+  function budgetState() {
+    const iv = S.interviews;
+    if (!iv || iv.selection !== "open") return null;
+    return { budget: iv.budget, held: iv.held || 0, pending: iv.pending || 0, left: iv.left == null ? null : iv.left };
+  }
   async function documents(force) { if (force || !S.docs) S.docs = (await api("/documents")).documents; return S.docs; }
   function stopPoll() { if (S.poll) { clearInterval(S.poll); S.poll = null; } }
 
@@ -226,8 +242,10 @@
     ].filter(Boolean);
   }
 
-  function personCard(p, interviewsOpen) {
-    const shut = p.state === "not_started" && !interviewsOpen;
+  function personCard(p, interviewsOpen, spent) {
+    // Two different closed doors, and a team is owed the difference: the
+    // seminar has not begun, or the team has spent its choices.
+    const shut = p.state === "not_started" && (!interviewsOpen || spent);
     const cls = p.state === "in_progress" ? "live" : p.state === "completed" ? "spent" : shut ? "shut" : "";
     const face = p.portrait_url
       ? `<img class="portrait" src="${esc(p.portrait_url)}" alt="${esc(p.name)}" loading="lazy">`
@@ -238,14 +256,14 @@
       p.generation ? (/^\d+$/.test(String(p.generation)) ? `generation ${p.generation}` : String(p.generation)) : null,
       p.branch ? (/^(branch|gren)\b/i.test(String(p.branch)) ? String(p.branch) : `branch ${p.branch}`) : null,
     ].filter(Boolean);
-    const st = shut ? "not open yet"
+    const st = shut ? (interviewsOpen ? "no conversations left" : "not open yet")
       : { not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held" }[p.state] || p.state;
     const mins = p.budget && p.budget.virtual_minutes ? `${p.budget.virtual_minutes} minutes` : "";
     const href = p.state === "in_progress" ? `#/room/${p.session_id}`
       : p.state === "completed" ? `#/transcripts/${p.session_id}`
       : `#/interview/${p.code}`;
     const action = shut
-      ? `<span class="pbtn off">Not open yet</span>`
+      ? `<span class="pbtn off">${interviewsOpen ? "None left" : "Not open yet"}</span>`
       : `<a class="pbtn" href="${href}">${p.state === "in_progress" ? "Return to the room" : p.state === "completed" ? "Read the transcript" : "Begin the interview"}</a>`;
     // Direct access: the CV of someone you may interview is yours, so the button
     // fetches the file rather than sending you to a desk to ask for it.
@@ -294,10 +312,33 @@
     if (gate) $("#gate").innerHTML = `<span class="tag">${esc(gate.tag)}</span><p>${esc(gate.text)}</p>`;
     watchGate((m) => !!interviewGate(m), people);
     const ps = await personas(true);
-    const held = ps.filter((p) => p.state === "completed").length;
-    $("#n-people").textContent = ps.length;
-    $("#n-held").textContent = held;
-    $("#n-left").textContent = ps.length - held;
+    const bs = budgetState();
+    // Curated: the set is the exercise, so the strip counts it. Open: the
+    // team's own budget is the thing that matters, and every number in it
+    // comes from the engine — including what counts as held, which is a
+    // question asked and not a session closed.
+    if (bs) {
+      const spending = bs.held + bs.pending;
+      $("#case-lede").innerHTML = `Everyone the family has agreed to make available. Your team chooses <strong>${bs.budget}</strong> of them`
+        + ` — one conversation each, and none of them reopens, so choose before you knock. Take notes; the transcript arrives only when the conversation ends.`;
+      $("#l-people").textContent = "people you may choose from";
+      $("#l-held").textContent = "conversations used";
+      $("#l-left").textContent = "choices left";
+      $("#n-people").textContent = ps.length;
+      $("#n-held").textContent = `${spending} of ${bs.budget}`;
+      $("#n-left").textContent = bs.left == null ? "–" : bs.left;
+      const note = $("#budget");
+      note.innerHTML = bs.left === 0
+        ? `Your ${bs.budget} conversations are spent. The people below stay in your file — their CVs, where they stand in the family — but no further room will open.`
+        : bs.pending
+          ? `${bs.left} left. A room you have opened counts while it is open, even before you ask anything, so ${bs.pending === 1 ? "the one standing open is" : `the ${bs.pending} standing open are`} included. Leave one without asking and the choice comes back.`
+          : `${bs.left} of ${bs.budget} left. A choice is spent when you ask your first question — opening a room to read it and backing out costs nothing.`;
+    } else {
+      const held = ps.filter((p) => p.state === "completed").length;
+      $("#n-people").textContent = ps.length;
+      $("#n-held").textContent = held;
+      $("#n-left").textContent = ps.length - held;
+    }
 
     // The filter, built from the people who are actually there: one chip per
     // generation the case knows, and one for everybody outside the family tree
@@ -319,7 +360,7 @@
     }
 
     $("#roster").innerHTML = ps.length
-      ? ps.map((p) => personCard(p, open)).join("")
+      ? ps.map((p) => personCard(p, open, !!bs && bs.left === 0)).join("")
       : `<div class="empty"><span class="tag">no one available</span><p>No conversations are open in this edition yet.</p></div>`;
     $("#roster").addEventListener("click", (e) => {
       const b = e.target.closest(".cv-get"); if (!b) return;
@@ -539,6 +580,15 @@
       : `<div class="portrait none" aria-hidden="true">${esc(initials(p.name))}</div>`;
     $("#c-facts").textContent = personFacts(p).join(" · ");
     $("#c-virtual").textContent = p.budget.virtual_minutes ?? "–"; $("#c-wall").textContent = p.budget.wall_minutes ?? "–";
+    // When the team is the one choosing, this button spends a choice. Say so
+    // here, on the last page before it, with the engine's own numbers.
+    const bs = budgetState();
+    if (bs) {
+      $("#c-budget").innerHTML = bs.left === 0
+        ? `Your team has used all ${bs.budget} of its conversations. This room will not open.`
+        : `This is one of your team's ${bs.budget} conversations. ${bs.left} ${bs.left === 1 ? "is" : "are"} left, and this one is counted from the moment the room opens — leave without asking anything and it comes back.`;
+      if (bs.left === 0) $("#c-go").disabled = true;
+    }
     $("#c-go").addEventListener("click", async () => {
       const b = $("#c-go"); b.disabled = true;
       try {

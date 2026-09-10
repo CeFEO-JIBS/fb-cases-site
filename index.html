@@ -75,13 +75,14 @@
 <template id="t-case">
   <p class="label" id="edition"></p>
   <h1>Interviews</h1>
-  <p class="lede">Everyone the family has agreed you may speak with. You have one conversation with each, and it does not reopen — so read the room before you choose. Take notes; the transcript arrives only when the conversation ends.</p>
+  <p class="lede" id="case-lede">Everyone the family has agreed you may speak with. You have one conversation with each, and it does not reopen — so read the room before you choose. Take notes; the transcript arrives only when the conversation ends.</p>
   <div id="gate" class="empty" hidden></div>
   <div class="strip">
-    <div class="cell"><div class="label">people</div><div class="v" id="n-people">–</div></div>
-    <div class="cell"><div class="label">conversations held</div><div class="v" id="n-held">–</div></div>
-    <div class="cell"><div class="label">still to speak with</div><div class="v" id="n-left">–</div></div>
+    <div class="cell"><div class="label" id="l-people">people</div><div class="v" id="n-people">–</div></div>
+    <div class="cell"><div class="label" id="l-held">conversations held</div><div class="v" id="n-held">–</div></div>
+    <div class="cell"><div class="label" id="l-left">still to speak with</div><div class="v" id="n-left">–</div></div>
   </div>
+  <p class="warn" id="budget"></p>
   <div id="gen-filter" class="genbar" hidden></div>
   <div class="people" id="roster"></div>
 </template>
@@ -144,6 +145,7 @@
     <p>You are about to open your team's one conversation with this person. You will have <strong id="c-virtual"></strong> minutes of their time, inside a <strong id="c-wall"></strong>-minute window. Their time is spent by talking, yours by the clock. When either runs out, the conversation ends and does not reopen.</p>
     <p><strong>The window starts with your first question, not with this button.</strong> Open the room, read it, agree who asks what — none of that is charged. The clock begins the moment you send.</p>
     <p>There is no live transcript: take notes.</p>
+    <p class="warn" id="c-budget"></p>
     <div class="toolbar"><button class="btn" id="c-go" type="button">Begin the conversation</button><a class="btn quiet" href="#/people">Not yet</a></div>
     <div class="err" id="c-err"></div>
   </div>
