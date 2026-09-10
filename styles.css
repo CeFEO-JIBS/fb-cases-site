@@ -137,6 +137,17 @@ footer .base{max-width:1080px;margin:14px auto 0;padding-top:10px;border-top:1px
   .two>aside.side{display:contents}
   .two>aside.side>.whocard{order:-1}
 }
+/* A desk's own page goes one step further: the label and the brief that
+   describe the person sit outside the two columns, so on a phone she was
+   introduced after her own job description. Dissolve the grid into the page's
+   own flow — `main` becomes the column — and she leads it. */
+@media (max-width:860px){
+  main:has(.two.desk){display:flex;flex-direction:column;align-items:stretch}
+  .two.desk{display:contents}
+  .two.desk>aside.side>.whocard{order:-1;margin-bottom:18px}
+  .two.desk>div{order:1;min-width:0}
+  .two.desk>aside.side>.card:not(.whocard){order:2;margin-top:18px}
+}
 .prose{font-family:var(--read);font-size:17px;line-height:1.62;max-width:62ch}
 .prose p{margin:0 0 12px}
 textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-family:var(--read);font-size:16px;line-height:1.5;resize:vertical}
