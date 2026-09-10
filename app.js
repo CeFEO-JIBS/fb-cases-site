@@ -816,7 +816,13 @@
   async function deskPage(code, skipIntro, threadId) {
     await ensureMe(); nav("desk");
     let d;
-    const at = threadId ? `?thread=${encodeURIComponent(threadId)}` : "";
+    // `new` is the blank page: no request on screen, the composer ready. It
+    // has to be its own address. Without it "open a new request" pointed at
+    // #/desk/CODE — the URL a group was already on once it had finished its
+    // last request, since that is where the newest thread is read from — so
+    // the link fired no navigation and the button did nothing, on both desks.
+    let fresh = threadId === "new";
+    const at = fresh ? "?thread=new" : threadId ? `?thread=${encodeURIComponent(threadId)}` : "";
     try { d = await api(`/desks/${encodeURIComponent(code)}${at}`); }
     catch (err) { render("t-desk"); view.innerHTML = `<div class="empty"><span class="tag">no such desk</span><p>${esc(err.message)}</p><p><a href="#/desk">The desks</a></p></div>`; return; }
     // Nothing asked yet, and the course is open: meet the desk first.
@@ -851,7 +857,7 @@
       watchGate((m) => !!courseGate(m), () => deskPage(code));
     }
 
-    // ── the group's conversations with this desk ──────────────────────────
+    // ── the group's requests to this desk ─────────────────────────────────
     // A desk is not an interview. The engine has always allowed a group many
     // numbered threads here, one open at a time, and nothing ever offered
     // them: the single thread simply grew until the page was unreadable and,
@@ -862,7 +868,7 @@
     const here = d.thread;                      // the thread on screen
     const reading = !!here && here.state !== "open";
     const shown = (t) => (t.opening || "").replace(/\s+/g, " ").slice(0, 60);
-    if (threads.length > 1 || reading || (open && threads.length && open.questions > 0)) {
+    if (threads.length > 1 || reading || fresh || (open && threads.length && open.questions > 0)) {
       $("#dk-threads").hidden = false;
       $("#dk-threadlist").innerHTML = threads.map((t) => {
         const on = here && t.id === here.id;
@@ -872,7 +878,7 @@
         return `<a class="thchip${on ? " on" : ""}" href="#/desk/${esc(code)}/t/${t.id}"
                   title="${esc(shown(t) || "nothing asked")}">${esc(what)}${
           t.opening ? `<span class="th-q">${esc(shown(t))}</span>` : ""}</a>`;
-      }).join("") + (open ? "" : `<a class="thchip new" href="#/desk/${esc(code)}">Start a new one</a>`);
+      }).join("") + (open || fresh ? "" : `<a class="thchip new" href="#/desk/${esc(code)}/new">Open a new request</a>`);
     }
 
     const box = $("#dk-thread");
@@ -883,37 +889,38 @@
     };
     draw(d.turns);
 
-    // What you can do with the thread you are looking at. A finished one is
+    // What you can do with the request you are looking at. A finished one is
     // read-only: it can be put away, and the way back to work is a new one.
     const headActs = () => {
       const acts = [];
       if (reading) {
-        acts.push(`<a class="pbtn" href="#/desk/${esc(code)}">${open ? "Back to the open one" : "Start a new one"}</a>`);
-        acts.push(`<button type="button" class="pbtn quiet" id="dk-hide">Put this one away</button>`);
+        acts.push(`<a class="pbtn" href="#/desk/${esc(code)}${open ? "" : "/new"}">${open ? "Back to the open one" : "Open a new request"}</a>`);
+        acts.push(`<button type="button" class="pbtn quiet" id="dk-hide" title="Takes it off this list. It stays in the record and your instructor still sees it.">Put this away</button>`);
       } else if (here && here.questions > 0) {
-        acts.push(`<button type="button" class="pbtn quiet" id="dk-finish">Finish this conversation</button>`);
+        acts.push(`<button type="button" class="pbtn quiet" id="dk-finish" title="Ends this request. You can still read it, and your next question opens a new one.">Close this request</button>`);
       }
       if (d.turns.length > 2) acts.push(`<button type="button" class="pbtn quiet" id="dk-all">Expand all</button>`);
       $("#dk-headacts").innerHTML = acts.join("");
+      $("#dk-head").hidden = !here;
       if (here) {
-        $("#dk-head").hidden = false;
         const when = (here.closed_at || here.opened_at || "").slice(0, 10);
         $("#dk-headline").textContent = reading
-          ? `Conversation ${here.seq} · finished ${when} · ${here.questions} question${here.questions === 1 ? "" : "s"}`
+          ? `Request ${here.seq} · closed ${when} · ${here.questions} question${here.questions === 1 ? "" : "s"}`
           : here.questions
-            ? `This conversation · ${here.questions} question${here.questions === 1 ? "" : "s"}`
-            : "A new conversation";
+            ? `This request · ${here.questions} question${here.questions === 1 ? "" : "s"}`
+            : "A new request";
       }
       const hide = $("#dk-hide"); const fin = $("#dk-finish"); const all = $("#dk-all");
       if (hide) hide.addEventListener("click", async () => {
+        if (!confirm("Put this request away? It leaves this list. Nothing is deleted — it stays in the record.")) return;
         hide.disabled = true;
         try { await post(`/desks/${encodeURIComponent(code)}/threads/${here.id}/hide`, { hidden: true }); location.hash = `#/desk/${code}`; await deskPage(code, true); }
         catch (err) { $("#dk-err").textContent = err.message; hide.disabled = false; }
       });
       if (fin) fin.addEventListener("click", async () => {
-        if (!confirm("Finish this conversation? You can still read it, and your next question starts a new one.")) return;
+        if (!confirm("Close this request? You can still read it, and your next question opens a new one.")) return;
         fin.disabled = true;
-        try { await post(`/desks/${encodeURIComponent(code)}/close`); await deskPage(code, true); }
+        try { await post(`/desks/${encodeURIComponent(code)}/close`); location.hash = `#/desk/${code}/new`; await deskPage(code, true, "new"); }
         catch (err) { $("#dk-err").textContent = err.message; fin.disabled = false; }
       });
       if (all) all.addEventListener("click", () => {
@@ -957,11 +964,11 @@
         ? Math.max(0, Number(state.wait_seconds) || 0) : 0;
       clearInterval(waitTimer); waitTimer = null;
       const parts = [];
-      if (here !== null) parts.push(`${here} left in this conversation`);
+      if (here !== null) parts.push(`${here} left in this request`);
       if (course !== null) parts.push(`${course} left in the course`);
       const show = (secs) => {
         $("#dk-left").textContent = done ? "no questions left in the course"
-          : full ? "this conversation is full"
+          : full ? "this request is full"
           : secs > 0 ? `ready in ${secs}s${parts.length ? ` · ${parts.join(" · ")}` : ""}`
           : parts.join(" · ");
         $("#dk-go").disabled = done || full || secs > 0
@@ -980,7 +987,7 @@
     };
     $("#dk-onward").addEventListener("click", async () => {
       const b = $("#dk-onward"); b.disabled = true;
-      try { await post(`/desks/${encodeURIComponent(code)}/close`); await deskPage(code, true); }
+      try { await post(`/desks/${encodeURIComponent(code)}/close`); location.hash = `#/desk/${code}/new`; await deskPage(code, true, "new"); }
       catch (err) { $("#dk-err").textContent = err.message; b.disabled = false; }
     });
     left(d.state);
@@ -1012,6 +1019,10 @@
         addDeskTurn(box, desk.name, { speaker: "persona", text: r.text, citations: r.citations });
         if (r.granted) S.docs = null;
         desk.asked += 1; left(r.state);
+        // The blank page has become a real request. Correct the address
+        // without re-rendering, so a reload reads the request rather than
+        // offering another empty one.
+        if (fresh) { fresh = false; history.replaceState(null, "", `#/desk/${code}`); }
       } catch (err) {
         waiting.stop();
         const m = (err.body && err.body.message) || err.message;
@@ -1049,10 +1060,12 @@
   }
 
   /**
-   * A desk thread as exchanges rather than a flat run of turns. A question and
+   * A desk request as exchanges rather than a flat run of turns. A question and
    * the answer to it belong together, and a course's worth of them does not fit
    * on a screen: each exchange collapses to the question it started with, and
-   * the last two stand open, which is where a group is actually working.
+   * they all start folded — a request you are reading back is an index of what
+   * you asked, not a wall of prose. What is live is never in here: a question
+   * asked now and the answer to it are appended to the page open.
    *
    * A question with no answer under it is shown as that. Four of them exist in
    * the live data, from the outage where record_turn refused the answer after
@@ -1066,11 +1079,9 @@
       else if (pairs.length && !pairs.at(-1).a) pairs.at(-1).a = t;
       else pairs.push({ q: null, a: t });
     }
-    pairs.forEach((p, i) => {
-      const last = i >= pairs.length - 2;
+    pairs.forEach((p) => {
       const d = document.createElement("details");
       d.className = "xch";
-      d.open = last;
       const q = (p.q ? p.q.text : "").replace(/\s+/g, " ");
       d.innerHTML = `<summary><span class="sp">${esc(p.q ? "You" : name)}</span>
           <span class="xq">${esc(q || "(no question recorded)")}</span>
@@ -1127,11 +1138,13 @@
       if (a === "interview" && b) return await confirm_(b);
       if (a === "room" && b) return await room(b);
       if (a === "transcripts") return b ? await transcript(b) : await transcripts();
-      // #/desk/CODE reads the conversation the group is working in;
-      // #/desk/CODE/t/<id> reads one it has finished.
+      // #/desk/CODE reads the request the group is working in;
+      // #/desk/CODE/t/<id> reads one it has closed;
+      // #/desk/CODE/new is the blank one, waiting for the first question.
       if (a === "desk") {
         if (!b) return await desks();
         const dk = decodeURIComponent(b);
+        if (c === "new") return await deskPage(dk, true, "new");
         return c === "t" && h.split("/")[3] ? await deskPage(dk, true, h.split("/")[3]) : await deskPage(dk);
       }
       location.hash = "#/";

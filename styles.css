@@ -267,6 +267,10 @@ select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;backgroun
 .threadhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
             padding-bottom:8px;border-bottom:1px solid var(--rule)}
 .threadhead .label{margin:0}
+/* The head already draws the rule that opens the thread. .turns draws its own
+   top border, so with a head above it there were two lines with a gap between
+   them. One line, and it belongs to the head. */
+.threadhead:not([hidden]) + .turns{border-top:0;margin-top:0}
 .threadacts{display:flex;gap:6px;flex-wrap:wrap}
 
 /* An exchange: the question, and the answer to it, as one thing that folds. */
