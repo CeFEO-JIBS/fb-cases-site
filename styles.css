@@ -394,7 +394,7 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
    goes up with it so a line is still read rather than scanned. Change --col
    in one place and label, headline, standfirst, film, history and the two
    closing sections keep their common edge. */
-:root{--col:820px}
+:root{--col:820px;--hist:21px}
 /* Centred, not ranged left: the column is the page's own measure, so it sits
    in the middle of it rather than against the left edge with the width of a
    second column empty beside it. The two notices are on the list because a
@@ -405,8 +405,11 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
    runs to ninety-four characters a line, which is a paragraph you scan and
    lose your place in; at 21px the same column holds about eighty, and the
    page reads like a case rather than a form. */
-.prose.read{font-family:var(--read);font-size:21px;line-height:1.6}
-.prose.read h2{font-family:var(--ui);font-size:15px;margin:30px 0 8px}
+.prose.read{font-family:var(--read);font-size:var(--hist);line-height:1.6}
+/* The heading is set at the size of the text under it — one measure, one
+   size, and the weight and the grotesque do the separating. Both read from
+   --hist so they cannot drift apart at a breakpoint. */
+.prose.read h2{font-family:var(--ui);font-size:var(--hist);margin:32px 0 10px}
 .prose.read p{margin:0 0 16px}
 /* The standfirst stays above the history in the hierarchy, so it moves up
    with it, and the case title above them both. */
@@ -423,7 +426,8 @@ section.pack p,section.start p{font-size:16px;line-height:1.5}
 .film .cap{font-size:13px;color:var(--muted);margin-top:6px}
 .film .ttl{font-weight:600;margin-bottom:6px}
 section.pack,section.start{border-top:1px solid var(--rule);margin-top:28px;padding-top:18px}
-section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
+/* Same rule as the history above: the heading sits at the size of its text. */
+section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 
 /* ── A document ───────────────────────────────────────────────────────────
    The facsimile is the record; the transcription is a convenience under it. */
@@ -450,15 +454,14 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
 @media (max-width:560px){
   main{padding:22px 14px}
   h1,#ld-headline{font-size:25px}
-  :root{--col:100%}
-  .prose.read{font-size:19px}
+  :root{--col:100%;--hist:16px}
   #ld-standfirst{font-size:20px}
   h2{font-size:15.5px;margin:22px 0 8px}
   .lede{font-size:17px;margin-bottom:18px}
   .card{padding:16px 14px}
   .strip .cell{padding:10px}
   .strip .v{font-size:16px}
-  .prose,.prose.read{font-size:16px}
+  .prose{font-size:16px}
   .turn{font-size:16px}
   .doclist .grp{padding:8px 10px}
   .docrow{padding:12px 10px}
