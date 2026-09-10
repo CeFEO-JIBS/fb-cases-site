@@ -643,13 +643,14 @@
     $("#di-go").addEventListener("click", () => deskPage(code, true));
   }
 
-  async function deskPage(code, skipIntro) {
+  async function deskPage(code, skipIntro, threadId) {
     await ensureMe(); nav("desk");
     let d;
-    try { d = await api(`/desks/${encodeURIComponent(code)}`); }
+    const at = threadId ? `?thread=${encodeURIComponent(threadId)}` : "";
+    try { d = await api(`/desks/${encodeURIComponent(code)}${at}`); }
     catch (err) { render("t-desk"); view.innerHTML = `<div class="empty"><span class="tag">no such desk</span><p>${esc(err.message)}</p><p><a href="#/desk">The desks</a></p></div>`; return; }
     // Nothing asked yet, and the course is open: meet the desk first.
-    if (!skipIntro && !d.turns.length && !courseGate(S.me)) return deskIntro(d, code);
+    if (!skipIntro && !threadId && !d.turns.length && !courseGate(S.me)) return deskIntro(d, code);
     render("t-desk");
     const desk = d.desk;
     $("#dk-label").textContent = desk.subtitle || "The literature";
@@ -680,13 +681,84 @@
       watchGate((m) => !!courseGate(m), () => deskPage(code));
     }
 
+    // ── the group's conversations with this desk ──────────────────────────
+    // A desk is not an interview. The engine has always allowed a group many
+    // numbered threads here, one open at a time, and nothing ever offered
+    // them: the single thread simply grew until the page was unreadable and,
+    // for a desk with a per-thread cap, until the button went dead with no way
+    // to start again. All of that was reachable already.
+    const threads = d.threads || [];
+    const open = threads.find((t) => t.state === "open") || null;
+    const here = d.thread;                      // the thread on screen
+    const reading = !!here && here.state !== "open";
+    const shown = (t) => (t.opening || "").replace(/\s+/g, " ").slice(0, 60);
+    if (threads.length > 1 || reading || (open && threads.length && open.questions > 0)) {
+      $("#dk-threads").hidden = false;
+      $("#dk-threadlist").innerHTML = threads.map((t) => {
+        const on = here && t.id === here.id;
+        const what = t.state === "open"
+          ? `Open · ${t.questions} question${t.questions === 1 ? "" : "s"}`
+          : `${t.seq} · ${t.questions} question${t.questions === 1 ? "" : "s"}`;
+        return `<a class="thchip${on ? " on" : ""}" href="#/desk/${esc(code)}/t/${t.id}"
+                  title="${esc(shown(t) || "nothing asked")}">${esc(what)}${
+          t.opening ? `<span class="th-q">${esc(shown(t))}</span>` : ""}</a>`;
+      }).join("") + (open ? "" : `<a class="thchip new" href="#/desk/${esc(code)}">Start a new one</a>`);
+    }
+
     const box = $("#dk-thread");
     const draw = (turns) => {
       box.innerHTML = "";
       if (!turns.length) box.innerHTML = `<div class="empty"><span class="tag">nothing asked yet</span><p>Ask your first question. The desk answers in a few sentences and tells you what it read.</p></div>`;
-      for (const t of turns) addDeskTurn(box, desk.name, t);
+      else drawExchanges(box, desk.name, turns);
     };
     draw(d.turns);
+
+    // What you can do with the thread you are looking at. A finished one is
+    // read-only: it can be put away, and the way back to work is a new one.
+    const headActs = () => {
+      const acts = [];
+      if (reading) {
+        acts.push(`<a class="pbtn" href="#/desk/${esc(code)}">${open ? "Back to the open one" : "Start a new one"}</a>`);
+        acts.push(`<button type="button" class="pbtn quiet" id="dk-hide">Put this one away</button>`);
+      } else if (here && here.questions > 0) {
+        acts.push(`<button type="button" class="pbtn quiet" id="dk-finish">Finish this conversation</button>`);
+      }
+      if (d.turns.length > 2) acts.push(`<button type="button" class="pbtn quiet" id="dk-all">Expand all</button>`);
+      $("#dk-headacts").innerHTML = acts.join("");
+      if (here) {
+        $("#dk-head").hidden = false;
+        const when = (here.closed_at || here.opened_at || "").slice(0, 10);
+        $("#dk-headline").textContent = reading
+          ? `Conversation ${here.seq} · finished ${when} · ${here.questions} question${here.questions === 1 ? "" : "s"}`
+          : here.questions
+            ? `This conversation · ${here.questions} question${here.questions === 1 ? "" : "s"}`
+            : "A new conversation";
+      }
+      const hide = $("#dk-hide"); const fin = $("#dk-finish"); const all = $("#dk-all");
+      if (hide) hide.addEventListener("click", async () => {
+        hide.disabled = true;
+        try { await post(`/desks/${encodeURIComponent(code)}/threads/${here.id}/hide`, { hidden: true }); location.hash = `#/desk/${code}`; await deskPage(code, true); }
+        catch (err) { $("#dk-err").textContent = err.message; hide.disabled = false; }
+      });
+      if (fin) fin.addEventListener("click", async () => {
+        if (!confirm("Finish this conversation? You can still read it, and your next question starts a new one.")) return;
+        fin.disabled = true;
+        try { await post(`/desks/${encodeURIComponent(code)}/close`); await deskPage(code, true); }
+        catch (err) { $("#dk-err").textContent = err.message; fin.disabled = false; }
+      });
+      if (all) all.addEventListener("click", () => {
+        const shut = [...box.querySelectorAll("details")].filter((x) => !x.open);
+        const openThem = shut.length > 0;
+        box.querySelectorAll("details").forEach((x) => { x.open = openThem; });
+        all.textContent = openThem ? "Collapse all" : "Expand all";
+      });
+    };
+    headActs();
+
+    // A conversation you have finished is a record, not a place to work. The
+    // rest of the page still draws — the keeper, the sources, the counters —
+    // because a group reading an old thread still wants to know where it is.
+    if (reading) $("#dk-form").hidden = true;
     // The desks meter questions AND space them: min_seconds_between is 5s for the
     // registry and 20s for the literature desk. So the state returned with a
     // successful answer is `too_soon` -- the turn just recorded started the
@@ -694,21 +766,41 @@
     // which is why a follow-up needed a page reload: reloading re-fetched the
     // state after the wait had passed. Now the wait is a countdown that expires.
     let waitTimer = null;
-    const left = (state, asked) => {
-      const cap = desk.questions_total || desk.turn_cap;
-      const n = cap ? Math.max(0, cap - asked) : null;
-      const spent = n === 0;
+    // Two caps, and they are not the same cap. `turn_cap` is per conversation
+    // and the engine counts it in TURNS — a question and its answer are two —
+    // so a cap of eight is four questions, not eight. `questions_total` is per
+    // course and counted over every conversation the group has had here. The
+    // old counter showed questions_total minus this thread's questions, which
+    // was neither figure, and when a conversation filled up it disabled the
+    // button and said "no questions left" — of a desk with a hundred and more
+    // to give. Full means finish this one and start another.
+    const perCourse = desk.questions_total || null;
+    const courseLeft = () => (perCourse === null ? null : Math.max(0, perCourse - desk.asked));
+    const threadFull = (state) => !!state && state.allowed === false && state.reason === "turn_cap_reached";
+    const left = (state) => {
+      const cap = state && state.turn_cap;
+      const here = cap ? Math.max(0, Math.floor((cap - (state.turn ?? 0)) / 2)) : null;
+      const course = courseLeft();
+      const done = course === 0;
+      const full = threadFull(state) || here === 0;
       const wait = state && state.allowed === false && state.reason === "too_soon"
         ? Math.max(0, Number(state.wait_seconds) || 0) : 0;
       clearInterval(waitTimer); waitTimer = null;
+      const parts = [];
+      if (here !== null) parts.push(`${here} left in this conversation`);
+      if (course !== null) parts.push(`${course} left in the course`);
       const show = (secs) => {
-        $("#dk-left").textContent = spent ? "no questions left"
-          : secs > 0 ? `ready in ${secs}s${n === null ? "" : ` · ${n} left`}`
-          : n === null ? "" : `${n} question${n === 1 ? "" : "s"} left`;
-        $("#dk-go").disabled = spent || secs > 0 || (state && state.allowed === false && state.reason !== "too_soon");
+        $("#dk-left").textContent = done ? "no questions left in the course"
+          : full ? "this conversation is full"
+          : secs > 0 ? `ready in ${secs}s${parts.length ? ` · ${parts.join(" · ")}` : ""}`
+          : parts.join(" · ");
+        $("#dk-go").disabled = done || full || secs > 0
+          || (!!state && state.allowed === false && state.reason !== "too_soon");
       };
       show(wait);
-      if (wait > 0 && !spent) {
+      // A full conversation is not a dead end: offer the way on, in place.
+      $("#dk-full").hidden = !(full && !done);
+      if (wait > 0 && !full && !done) {
         let secs = wait;
         waitTimer = setInterval(() => {
           secs -= 1;
@@ -716,14 +808,18 @@
         }, 1000);
       }
     };
-    let asked = d.turns.filter((t) => t.speaker === "interviewer").length;
-    left(d.state, asked);
-    const deskCap = desk.questions_total || desk.turn_cap;
+    $("#dk-onward").addEventListener("click", async () => {
+      const b = $("#dk-onward"); b.disabled = true;
+      try { await post(`/desks/${encodeURIComponent(code)}/close`); await deskPage(code, true); }
+      catch (err) { $("#dk-err").textContent = err.message; b.disabled = false; }
+    });
+    left(d.state);
+    const deskCap = perCourse;
     $("#dk-who").innerHTML = whoCard({
       name: desk.name, portrait_url: desk.portrait_url,
       role: desk.subtitle || (registry ? "the document registry" : "the literature desk"),
       facts: registry ? "the case archive" : `${desk.sources.length} source${desk.sources.length === 1 ? "" : "s"}`,
-      state: deskCap ? `${Math.max(0, deskCap - asked)} of ${deskCap} questions left` : "",
+      state: deskCap ? `${Math.max(0, deskCap - desk.asked)} of ${deskCap} questions left in the course` : "",
     });
 
     $("#dk-form").addEventListener("submit", async (e) => {
@@ -744,13 +840,13 @@
         waiting.stop(); $("#dk-q").value = "";
         addDeskTurn(box, desk.name, { speaker: "persona", text: r.text, citations: r.citations });
         if (r.granted) S.docs = null;
-        asked += 1; left(r.state, asked);
+        desk.asked += 1; left(r.state);
       } catch (err) {
         waiting.stop();
         const m = (err.body && err.body.message) || err.message;
         $("#dk-err").textContent = m;
         // A failed answer costs nothing now, so the counter must not move.
-        left(err.body && err.body.state, asked);
+        left(err.body && err.body.state);
       } finally {
         // left() is the only authority on whether the button is usable. The old
         // guard here read `if (!#dk-go.disabled)` -- but b IS #dk-go and had just
@@ -779,6 +875,46 @@
       d.querySelector(".secs").textContent = s < 3 ? "" : ` · ${s}s`;
     }, 1000);
     return { stop() { clearInterval(tick); d.remove(); } };
+  }
+
+  /**
+   * A desk thread as exchanges rather than a flat run of turns. A question and
+   * the answer to it belong together, and a course's worth of them does not fit
+   * on a screen: each exchange collapses to the question it started with, and
+   * the last two stand open, which is where a group is actually working.
+   *
+   * A question with no answer under it is shown as that. Four of them exist in
+   * the live data, from the outage where record_turn refused the answer after
+   * allowing the question, and a page that silently repeats the question three
+   * times reads as a fault in the desk rather than a gap in the record.
+   */
+  function drawExchanges(box, name, turns) {
+    const pairs = [];
+    for (const t of turns) {
+      if (t.speaker === "interviewer") pairs.push({ q: t, a: null });
+      else if (pairs.length && !pairs.at(-1).a) pairs.at(-1).a = t;
+      else pairs.push({ q: null, a: t });
+    }
+    pairs.forEach((p, i) => {
+      const last = i >= pairs.length - 2;
+      const d = document.createElement("details");
+      d.className = "xch";
+      d.open = last;
+      const q = (p.q ? p.q.text : "").replace(/\s+/g, " ");
+      d.innerHTML = `<summary><span class="sp">${esc(p.q ? "You" : name)}</span>
+          <span class="xq">${esc(q || "(no question recorded)")}</span>
+          <span class="xst">${p.a ? "" : "not answered"}</span></summary>`;
+      // The summary IS the question — truncated while folded, whole while open
+      // — so the body carries the answer and nothing else. Rendering the
+      // question again under it read as the desk being asked twice.
+      const body = document.createElement("div");
+      body.className = "xbody";
+      if (p.a) addDeskTurn(body, name, p.a);
+      else body.insertAdjacentHTML("beforeend",
+        `<div class="turn sys">The desk never answered this one. It cost your team nothing.</div>`);
+      d.appendChild(body);
+      box.appendChild(d);
+    });
   }
 
   function addDeskTurn(box, name, t) {
@@ -820,7 +956,13 @@
       if (a === "interview" && b) return await confirm_(b);
       if (a === "room" && b) return await room(b);
       if (a === "transcripts") return b ? await transcript(b) : await transcripts();
-      if (a === "desk") return b ? await deskPage(decodeURIComponent(b)) : await desks();
+      // #/desk/CODE reads the conversation the group is working in;
+      // #/desk/CODE/t/<id> reads one it has finished.
+      if (a === "desk") {
+        if (!b) return await desks();
+        const dk = decodeURIComponent(b);
+        return c === "t" && h.split("/")[3] ? await deskPage(dk, true, h.split("/")[3]) : await deskPage(dk);
+      }
       location.hash = "#/";
     } catch (err) {
       if (err.code === "sign_in_required") return signin();

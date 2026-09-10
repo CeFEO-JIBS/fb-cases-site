@@ -224,11 +224,22 @@
   <p class="lede" id="dk-brief"></p>
   <div class="two desk">
     <div>
+      <div class="threadbar" id="dk-threads" hidden>
+        <p class="label">Your conversations</p>
+        <div class="threadrow" id="dk-threadlist"></div>
+      </div>
+      <div class="threadhead" id="dk-head" hidden>
+        <p class="label" id="dk-headline"></p>
+        <div class="threadacts" id="dk-headacts"></div>
+      </div>
       <div id="dk-thread" class="turns"></div>
       <div id="dk-gate" class="empty" hidden></div>
       <form id="dk-form" class="compose">
         <div class="field"><textarea id="dk-q" rows="3" placeholder="Ask about the literature, not about the family" required minlength="5"></textarea></div>
         <div class="composebar"><button class="btn" type="submit" id="dk-go">Ask the desk</button><span class="prov" id="dk-left"></span></div>
+        <div class="notice" id="dk-full" hidden><strong>This conversation is full.</strong>
+          Finish it and start a new one — you keep everything you have been told, and it stays readable.
+          <p><button type="button" class="btn quiet" id="dk-onward">Start a new conversation</button></p></div>
         <p class="err" id="dk-err"></p>
       </form>
     </div>

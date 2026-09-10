@@ -249,6 +249,43 @@ select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;backgroun
 .notice strong{font-weight:600}
 .docrow .via{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted)}
 
+/* ── A desk's conversations ────────────────────────────────────────────────
+   A desk is a reference tool a group returns to all course, so it has several
+   conversations rather than one that grows forever. The strip is the group's
+   own index of them: what each one asked first, and which is open. */
+.threadbar{margin:0 0 14px}
+.threadbar .label{margin:0 0 6px}
+.threadrow{display:flex;flex-wrap:wrap;gap:6px}
+.thchip{display:block;max-width:260px;text-decoration:none;background:var(--card);
+        border:1px solid var(--rule);border-radius:2px;padding:6px 10px;
+        font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.thchip:hover{border-color:var(--ledger)}
+.thchip.on{border-color:var(--ink);color:var(--ink)}
+.thchip.new{border-style:dashed;color:var(--ledger)}
+/* The question a conversation opened with, in the reading face: it is the only
+   thing that tells one apart from another at a glance. */
+.thchip .th-q{display:block;font-family:var(--read);font-size:13px;letter-spacing:0;
+              text-transform:none;color:var(--ink);margin-top:3px;
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.threadhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+            padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.threadhead .label{margin:0}
+.threadacts{display:flex;gap:6px;flex-wrap:wrap}
+
+/* An exchange: the question, and the answer to it, as one thing that folds. */
+.xch{border-bottom:1px solid var(--rule-soft)}
+.xch:last-child{border-bottom:0}
+.xch>summary{display:flex;align-items:baseline;gap:10px;padding:12px 0;cursor:pointer;list-style:none}
+.xch>summary::-webkit-details-marker{display:none}
+.xch>summary::before{content:"▸";font-family:var(--mono);font-size:11px;color:var(--muted);flex:none}
+.xch[open]>summary::before{content:"▾"}
+.xch>summary .sp{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--stamp);flex:none}
+.xch>summary .xq{font-family:var(--read);font-size:15.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xch[open]>summary .xq{white-space:normal;overflow:visible}
+.xch>summary .xst{margin-left:auto;flex:none;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--stamp)}
+.xch .xbody{padding-bottom:6px}
+.xch .xbody .turn{border-bottom:0;padding-top:0}
+
 /* the research desks */
 .desk-card{display:block;background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:16px 18px;margin:0 0 10px;text-decoration:none;color:inherit}
 .desk-card:hover{border-color:var(--ledger)}
