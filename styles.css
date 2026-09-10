@@ -305,6 +305,31 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .compose .err:empty{display:none}
 .compose .err{margin:10px 0 0}
 
+/* ── Putting a record in front of someone ─────────────────────────────────
+   The record rides with the question: found by name, held above what you are
+   writing, taken back with one press. */
+.exhibit{margin:0 0 12px}
+.exrow{display:flex;align-items:baseline;gap:9px;background:var(--card);
+       border:1px solid var(--rule);border-left:3px solid var(--stamp);border-radius:2px;padding:7px 10px}
+.exrow .excode{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);flex:none}
+.exrow .exttl{font-family:var(--read);font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exdrop{margin-left:auto;flex:none;border:0;background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--muted);padding:0 2px}
+.exdrop:hover{color:var(--stamp)}
+.expick{margin-top:8px;padding:12px 14px}
+.expick input{width:100%;margin-top:5px;-webkit-appearance:none;appearance:none;
+              padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:14.5px}
+.exlist{margin-top:8px;max-height:230px;overflow-y:auto}
+.exhit{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;cursor:pointer;
+       border:0;border-bottom:1px solid var(--rule-soft);background:none;padding:8px 2px}
+.exhit:last-child{border-bottom:0}
+.exhit:hover{background:#F4F5F1}
+.exhit .excode{font-family:var(--mono);font-size:10.5px;color:var(--muted);flex:none;min-width:108px}
+.exhit .exttl{font-family:var(--read);font-size:15px;min-width:0}
+/* The window has not started yet, said where the team is about to start it. */
+.warn{font-size:13px;line-height:1.45;color:var(--muted);border-left:2px solid var(--rule);
+      padding-left:10px;margin:12px 0 0}
+.warn:empty{display:none}
+
 /* the landing page */
 .prose.read{font-family:var(--read);font-size:17.5px;line-height:1.6;max-width:66ch}
 .prose.read h2{font-family:var(--ui);font-size:15px;margin:26px 0 6px}

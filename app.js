@@ -187,6 +187,27 @@
    * portrait, the name, the facts that place them, what they are, and the
    * state of this conversation. An interview and both desks share it.
    */
+  /**
+   * Enter sends. A textarea takes Enter as a newline, which is right for
+   * writing and wrong for asking — a team types a question and reaches for the
+   * mouse. So the two are swapped: Enter sends, Shift+Enter (and Ctrl/Cmd
+   * +Enter) breaks the line for anyone who wants a paragraph. Composing in
+   * another script goes through an IME whose own Enter confirms a candidate,
+   * so a keystroke mid-composition is left alone.
+   */
+  function sendOnEnter(el, formSel) {
+    let composing = false;
+    el.addEventListener("compositionstart", () => { composing = true; });
+    el.addEventListener("compositionend", () => { composing = false; });
+    el.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (composing || e.isComposing) return;
+      const form = document.querySelector(formSel); if (!form) return;
+      e.preventDefault();
+      form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit", { cancelable: true }));
+    });
+  }
+
   function whoCard(a) {
     return `${faceHtml(a.name, a.portrait_url)}
       <div class="whobody">
@@ -541,11 +562,21 @@
       $("#send").disabled = true; $("#question").disabled = true; $("#cap").textContent = "–"; return;
     }
     const vl = st.virtual_left, vt = st.virtual_total, wl = st.wall_left_min;
+    // The window is an appointment and it starts with the first question, so
+    // until then there is no wall_left_min to report. That is not a missing
+    // figure to be dashed out — it is a full window, and the ring says so.
+    const notStarted = wl == null && !!wallTotal;
     $("#k-virt").textContent = vl == null ? "–" : `${Math.max(0, vl).toFixed(0)} min`;
-    $("#k-wall").textContent = wl == null ? "–" : `${wl} min`;
-    ring("#ring-virt", vt ? Math.min(vl, vt) / vt : 0); ring("#ring-wall", wallTotal && wl != null ? wl / wallTotal : 0);
+    $("#k-wall").textContent = notStarted ? `${wallTotal} min` : wl == null ? "–" : `${wl} min`;
+    ring("#ring-virt", vt ? Math.min(vl, vt) / vt : 0);
+    ring("#ring-wall", notStarted ? 1 : wallTotal && wl != null ? wl / wallTotal : 0);
+    const warn = $("#r-warn");
+    if (warn) warn.textContent = notStarted
+      ? `Your ${wallTotal}-minute window has not started. It begins when you send your first question — reading and preparing cost you nothing.`
+      : "";
     $("#cap").textContent = st.input_char_cap ?? "–";
-    if (st.in_grace) note.textContent = `${name} is glancing at the clock.`;
+    if (notStarted) note.textContent = "The window starts with your first question.";
+    else if (st.in_grace) note.textContent = `${name} is glancing at the clock.`;
     else if (vl != null && vl <= 10) note.textContent = `You have about ${Math.max(1, Math.round(vl))} minutes of ${name}'s time left.`;
     else if (wl != null && wl <= 10) note.textContent = `Your window closes in ${wl} minutes. This deadline is real.`;
     else note.textContent = "";
@@ -575,16 +606,57 @@
     addTurn(box, "sys", "The conversation is running. There is no live transcript: take notes. It arrives when the conversation ends.");
     const wallTotal = p.budget.wall_minutes || null;
     showState(st.state, p.name, wallTotal);
-    const ds = await documents(); const sel = $("#exhibit");
-    for (const d of ds) { const o = document.createElement("option"); o.value = d.code; o.textContent = `${d.code} · ${bothNames(d).join(" / ")}`.slice(0, 110); sel.appendChild(o); }
-    sel.addEventListener("change", async () => {
-      const code = sel.value; if (!code) return; sel.disabled = true;
-      try { await post(`/sessions/${id}/exhibit`, { document_code: code }); addTurn(box, "you", `(You share ${code} on screen.)`); }
-      catch (err) { $("#r-err").textContent = err.message; }
-      finally { sel.value = ""; sel.disabled = false; }
+    // ── putting a record in front of them ────────────────────────────────
+    // This was a native <select> holding the team's whole case file, labels
+    // truncated at 110 characters, firing on `change` — so choosing was
+    // committing, on a phone through the system picker, with no way to see
+    // what you had chosen or to change your mind. Worse, it was its own act:
+    // a line appeared in the thread and the question you actually wanted to
+    // ask about the record went separately.
+    //
+    // A record now rides WITH the question, the way it does across a real
+    // table: you find it by name, it sits above what you are writing as
+    // something you can still take back, and it goes out when you send.
+    const ds = await documents();
+    let holding = null;                                  // the attached record
+    const chip = $("#ex-chip"), pick = $("#ex-pick"), exq = $("#ex-q");
+    const drawChip = () => {
+      chip.hidden = !holding;
+      $("#ex-open").hidden = !!holding;
+      if (holding) {
+        chip.innerHTML = `<span class="excode">${esc(holding.code)}</span>
+          <span class="exttl">${esc(bothNames(holding)[0])}</span>
+          <button type="button" class="exdrop" id="ex-drop" title="Take it back">×</button>`;
+        $("#ex-drop").addEventListener("click", () => { holding = null; drawChip(); });
+      }
+    };
+    const drawList = () => {
+      const terms = fold(exq.value).split(/\s+/).filter(Boolean);
+      const hits = ds.filter((d) => {
+        const hay = fold([d.code, ...bothNames(d), d.doc_year, d.holding_institution].filter(Boolean).join(" "));
+        return terms.every((t) => hay.includes(t));
+      }).slice(0, 12);
+      $("#ex-list").innerHTML = hits.length
+        ? hits.map((d) => `<button type="button" class="exhit" data-code="${esc(d.code)}">
+            <span class="excode">${esc(d.code)}</span>
+            <span class="exttl">${esc(bothNames(d)[0])}${d.doc_year ? ` · ${d.doc_year}` : ""}</span></button>`).join("")
+        : `<p class="prov">Nothing in your file answers that. You can only show a record you hold.</p>`;
+    };
+    $("#ex-open").addEventListener("click", () => {
+      pick.hidden = !pick.hidden;
+      if (!pick.hidden) { exq.value = ""; drawList(); exq.focus(); }
     });
+    exq.addEventListener("input", drawList);
+    exq.addEventListener("keydown", (e) => { if (e.key === "Escape") { pick.hidden = true; } });
+    $("#ex-list").addEventListener("click", (e) => {
+      const b = e.target.closest(".exhit"); if (!b) return;
+      holding = ds.find((d) => d.code === b.dataset.code) || null;
+      pick.hidden = true; drawChip(); $("#question").focus();
+    });
+
     const q = $("#question"), cnt = $("#count");
     q.addEventListener("input", () => { cnt.textContent = q.value.length; const cap = Number($("#cap").textContent); cnt.parentElement.classList.toggle("over", cap && q.value.length > cap); });
+    sendOnEnter(q, "#ask");
     let lastAnswerAt = Date.now();
     $("#ask").addEventListener("submit", async (e) => {
       e.preventDefault(); const text = q.value.trim(); if (!text) return;
@@ -592,8 +664,10 @@
       const b = $("#send"); b.disabled = true; $("#r-err").textContent = "";
       addTurn(box, "you", text); q.value = ""; cnt.textContent = "0";
       const silence = Math.min(600, Math.round((Date.now() - lastAnswerAt) / 1000));
+      const shown = holding;
+      if (shown) { addTurn(box, "sys", `You put ${shown.code} — ${bothNames(shown)[0]} — in front of them.`); holding = null; drawChip(); }
       try {
-        const r = await post(`/sessions/${id}/ask`, { question: text, silence_seconds: silence });
+        const r = await post(`/sessions/${id}/ask`, { question: text, silence_seconds: silence, document_code: shown ? shown.code : undefined });
         if (r.kind === "answer") addTurn(box, p.name, r.answer);
         else addTurn(box, "sys", r.message);
         showState(r.state, p.name, wallTotal); lastAnswerAt = Date.now();
@@ -868,6 +942,7 @@
       state: deskCap ? `${Math.max(0, deskCap - desk.asked)} of ${deskCap} questions left in the course` : "",
     });
 
+    sendOnEnter($("#dk-q"), "#dk-form");
     $("#dk-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const b = $("#dk-go"), q = $("#dk-q").value.trim();
