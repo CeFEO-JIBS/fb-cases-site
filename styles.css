@@ -399,26 +399,41 @@ section.pack h2,section.start h2{font-size:15px;margin:0 0 8px}
    The registrar's portrait is a graphic device: it says the papers were put
    together by someone, for this person. It is not a conversation. */
 .recbox{margin-top:22px;border:1px solid var(--rule);border-radius:2px;background:var(--card);padding:16px 18px}
-.rechead{display:flex;gap:14px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--rule)}
-.regface{flex:none}
+.rechead{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;
+         padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.recwho{min-width:0}
+.regface{flex:none;order:2}
 .regface .portrait{width:56px;height:70px;object-fit:cover;object-position:50% 18%;border:1px solid var(--rule);border-radius:2px;display:block}
 .regface .portrait.none{display:flex;align-items:center;justify-content:center;background:var(--rule-soft);color:var(--muted);font-family:var(--mono);font-size:13px}
 .rechead .label{margin:0 0 3px}
 .recintro{margin:0;font-family:var(--read);font-size:15px;line-height:1.45;color:var(--ink);max-width:64ch}
 .reclist{list-style:none;margin:0;padding:0}
-.reclist li{padding:13px 0;border-bottom:1px solid var(--rule-soft)}
+.reclist li{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;
+            padding:11px 0;border-bottom:1px solid var(--rule-soft)}
 .reclist li:last-child{border-bottom:0}
-.reclist .rttl{font-family:var(--read);font-size:16px;line-height:1.35;color:var(--ink)}
-.reclist a.rttl{text-decoration:none;border-bottom:1px solid var(--rule)}
-.reclist a.rttl:hover{border-bottom-color:var(--ink)}
+/* One folded line per record: the name and the reference are what a team
+   scans, the description is a click away. */
+.recrow{min-width:0;flex:1 1 auto}
+.recrow>summary{list-style:none;cursor:pointer;display:block;padding-left:16px;position:relative}
+.recrow>summary::-webkit-details-marker{display:none}
+.recrow>summary::before{content:"▸";position:absolute;left:0;top:1px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.recrow[open]>summary::before{content:"▾"}
+.reclist .rttl{display:block;font-family:var(--read);font-size:16px;line-height:1.35;color:var(--ink)}
 .reclist .rmeta{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ledger);margin-top:3px}
-.reclist .rmeta .ask{color:var(--stamp)}
-.reclist .rblurb{margin:6px 0 0;font-family:var(--read);font-size:14.5px;line-height:1.5;color:var(--muted);max-width:72ch}
+.reclist .rblurb{margin:8px 0 2px 16px;font-family:var(--read);font-size:14.5px;line-height:1.5;color:var(--muted);max-width:70ch}
+.rmark{flex:none;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+       color:var(--ledger);text-decoration:none;border:1px solid var(--rule);border-radius:2px;padding:5px 9px;white-space:nowrap}
+a.rmark:hover{border-color:var(--ink);color:var(--ink)}
+.rmark.ask{color:var(--stamp);border-color:var(--stamp)}
+a.rmark.ask:hover{background:var(--stamp);color:#fff}
 @media (max-width:560px){
   .recbox{padding:13px 14px}
   .regface .portrait{width:44px;height:55px}
   .recintro{font-size:14.5px}
   .reclist .rttl{font-size:15px}
+  /* The action drops under the line rather than squeezing the name. */
+  .reclist li{flex-wrap:wrap}
+  .rmark{margin-left:16px}
 }
 
 /* The footer saying the browser is a deployment behind. Quiet, but not so

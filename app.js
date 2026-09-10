@@ -631,9 +631,12 @@
     try { rs = (await api(`/personas/${encodeURIComponent(code)}/records`)).records || []; } catch { return; }
     if (!rs.length) return;
     const box = $("#c-records"); if (!box) return;
-    // Whoever keeps the archive in this case, by name and by face.
+    // Whoever keeps the archive in this case, by name and by face. Read from
+    // the desk rather than named here: this site runs whatever case it is
+    // pointed at, and the registrar has a different name in each one.
     let keeper = null;
     try { keeper = (await api("/desks")).desks.find((d) => d.desk_kind === "registry") || null; } catch { /* the box stands without a face */ }
+    const first = keeper ? keeper.name.split(" ")[0] : null;
     const held = rs.filter((r) => r.held).length;
     const ask = rs.length - held;
     $("#c-reg-face").innerHTML = keeper ? faceHtml(keeper.name, keeper.portrait_url) : "";
@@ -642,16 +645,32 @@
       `${rs.length} record${rs.length === 1 ? "" : "s"} in the archive bear on this person`
       + (held ? ` · ${held} already in your case file` : "")
       + (ask ? ` · ${ask} ${ask === 1 ? "has" : "have"} to be asked for by name` : "");
+    // One line per record, folded. Twenty personas' worth of fifty-word
+    // descriptions is a page nobody reads; the name and the code are what a
+    // team scans, and the description is one click away.
     $("#c-reclist").innerHTML = rs.map((r) => {
       const name = esc(docName(r));
-      const ttl = r.held ? `<a class="rttl" href="#/file/${esc(r.code)}">${name}</a>` : `<span class="rttl">${name}</span>`;
       const bits = [esc(r.code), r.doc_year ? esc(r.doc_year) : null,
         r.record_class ? esc(String(r.record_class).replace(/_/g, " ")) : null,
         r.holding_institution ? esc(r.holding_institution) : null].filter(Boolean).join(" · ");
-      const mark = r.held ? "in your file" : `<span class="ask">ask the registry for it</span>`;
-      return `<li>${ttl}<span class="rmeta">${bits} · ${mark}</span>${
-        r.blurb ? `<p class="rblurb">${esc(r.blurb)}</p>` : ""}</li>`;
+      // Held: read it. Not held: ask the registrar for it, by name, and the
+      // link carries the name so the request is already typed.
+      const mark = r.held
+        ? `<a class="rmark" href="#/file/${esc(r.code)}">read it</a>`
+        : keeper
+          ? `<a class="rmark ask" href="#/desk/${esc(keeper.code)}/new" data-ask="${esc(docName(r))}">ask ${esc(first)} for it</a>`
+          : `<span class="rmark ask">ask the registry for it</span>`;
+      return `<li><details class="recrow"><summary><span class="rttl">${name}</span>
+          <span class="rmeta">${bits}</span></summary>${
+        r.blurb ? `<p class="rblurb">${esc(r.blurb)}</p>` : ""}</details>${mark}</li>`;
     }).join("");
+    // Asking for a record is a request to the desk with the record's name in
+    // it. Stash the name so the desk's composer opens with it already there —
+    // a team still sends it, and can still change it.
+    $("#c-reclist").addEventListener("click", (e) => {
+      const a = e.target.closest("a.rmark[data-ask]"); if (!a) return;
+      try { sessionStorage.setItem("fb.ask", a.dataset.ask); } catch {}
+    });
     box.hidden = false;
   }
 
@@ -1054,6 +1073,13 @@
       state: deskCap ? `${Math.max(0, deskCap - desk.asked)} of ${deskCap} questions left in the course` : "",
     });
 
+    // A request begun on the page before a conversation: the record's name is
+    // already typed, and the team sends it or changes it.
+    try {
+      const pre = sessionStorage.getItem("fb.ask");
+      if (pre && registry && !$("#dk-q").value) { $("#dk-q").value = pre; $("#dk-q").focus(); }
+      sessionStorage.removeItem("fb.ask");
+    } catch {}
     sendOnEnter($("#dk-q"), "#dk-form");
     $("#dk-form").addEventListener("submit", async (e) => {
       e.preventDefault();
