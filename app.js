@@ -111,11 +111,18 @@
     }
     return S.personas;
   }
-  /** What the engine says about the team's own budget. Never computed here. */
+  /**
+   * What the engine says about the team's own budget. Never computed here.
+   *
+   * Since migration 024 the budget belongs to the course rather than to the
+   * selection mode: a curated course can cap the interviews too — the list,
+   * eight of it — so the presence of a budget is what matters, not the mode.
+   */
   function budgetState() {
     const iv = S.interviews;
-    if (!iv || iv.selection !== "open") return null;
-    return { budget: iv.budget, held: iv.held || 0, pending: iv.pending || 0, left: iv.left == null ? null : iv.left };
+    if (!iv || iv.budget == null) return null;
+    return { budget: iv.budget, held: iv.held || 0, pending: iv.pending || 0,
+             left: iv.left == null ? null : iv.left, choosing: iv.selection === "open" };
   }
   async function documents(force) { if (force || !S.docs) S.docs = (await api("/documents")).documents; return S.docs; }
   function stopPoll() { if (S.poll) { clearInterval(S.poll); S.poll = null; } }
@@ -327,20 +334,26 @@
     // question asked and not a session closed.
     if (bs) {
       const spending = bs.held + bs.pending;
-      $("#case-lede").innerHTML = `Everyone the family has agreed to make available. Your team chooses <strong>${bs.budget}</strong> of them`
-        + ` — one conversation each, and none of them reopens, so choose before you knock. Take notes; the transcript arrives only when the conversation ends.`;
-      $("#l-people").textContent = "people you may choose from";
-      $("#l-held").textContent = "conversations used";
-      $("#l-left").textContent = "choices left";
+      $("#case-lede").innerHTML = bs.choosing
+        ? `Everyone the family has agreed to make available. Your team chooses <strong>${bs.budget}</strong> of them`
+          + ` — one conversation each, and none of them reopens, so choose before you knock. Take notes; the transcript arrives only when the conversation ends.`
+        : `Everyone the family has agreed you may speak with. Your team may hold <strong>${bs.budget}</strong> of these conversations`
+          + ` — one with each person, and none of them reopens, so choose before you knock. Take notes; the transcript arrives only when the conversation ends.`;
+      $("#l-people").textContent = bs.choosing ? "people you may choose from" : "people";
+      $("#l-held").textContent = "conversations held";
+      $("#l-left").textContent = "still to speak with";
       $("#n-people").textContent = ps.length;
-      $("#n-held").textContent = `${spending} of ${bs.budget}`;
-      $("#n-left").textContent = bs.left == null ? "–" : bs.left;
+      $("#n-held").textContent = spending;
+      // The figure a team actually needs: how many are left of how many they
+      // get. Both come from the engine.
+      $("#n-left").textContent = bs.left == null ? "–" : `${bs.left}/${bs.budget}`;
       const note = $("#budget");
+      const thing = bs.choosing ? "choice" : "conversation";
       note.innerHTML = bs.left === 0
         ? `Your ${bs.budget} conversations are spent. The people below stay in your file — their CVs, where they stand in the family — but no further room will open.`
         : bs.pending
-          ? `${bs.left} left. A room you have opened counts while it is open, even before you ask anything, so ${bs.pending === 1 ? "the one standing open is" : `the ${bs.pending} standing open are`} included. Leave one without asking and the choice comes back.`
-          : `${bs.left} of ${bs.budget} left. A choice is spent when you ask your first question — opening a room to read it and backing out costs nothing.`;
+          ? `${bs.left} left. A room you have opened counts while it is open, even before you ask anything, so ${bs.pending === 1 ? "the one standing open is" : `the ${bs.pending} standing open are`} included. Leave one without asking and the ${thing} comes back.`
+          : `${bs.left} of ${bs.budget} left. A ${thing} is spent when you ask your first question — opening a room to read it and backing out costs nothing.`;
     } else {
       const held = ps.filter((p) => p.state === "completed").length;
       $("#n-people").textContent = ps.length;
