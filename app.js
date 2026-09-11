@@ -934,13 +934,21 @@
       try {
         let live = null;
         let r;
+        // Measured on the box: the first word of an answer arrives about three
+        // and a half seconds after the question, because the person is
+        // thinking before she speaks. Those seconds are covered rather than
+        // hidden — the same row the desks use, with its seconds counter, so a
+        // slow answer and a dead service are never the same blank pause — and
+        // it is removed the instant the first fragment lands.
+        const thinking = working(box, `${p.name} is thinking`);
         try {
           r = await askStreamed(`/sessions/${id}/ask/stream`, payload, (chunk) => {
-            if (!live) { live = addTurn(box, p.name, ""); live.turn.classList.add("speaking"); }
+            if (!live) { thinking.stop(); live = addTurn(box, p.name, ""); live.turn.classList.add("speaking"); }
             live.body.textContent += chunk;
             live.turn.scrollIntoView({ block: "nearest" });
           });
         } catch (streamErr) {
+          thinking.stop();
           if (streamErr.code === "sign_in_required") throw streamErr;
           // Nothing was shown yet: fall back rather than fail. Something was
           // shown: the turn was spoken and asking again would double it.
@@ -948,6 +956,7 @@
           console.warn("[room] stream unavailable, falling back", streamErr);
           r = await post(`/sessions/${id}/ask`, payload);
         }
+        thinking.stop();
         if (live) live.turn.classList.remove("speaking");
         if (r.kind === "answer") {
           if (live) live.body.textContent = r.answer; else addTurn(box, p.name, r.answer);
