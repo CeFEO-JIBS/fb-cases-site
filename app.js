@@ -1279,7 +1279,32 @@
       // for the first few of them.
       const waiting = working(box, registry ? `${desk.name} is searching the archive` : `${desk.name} is reading`);
       try {
-        const r = await post(`/desks/${encodeURIComponent(code)}/ask`, { question: q });
+        // Streamed, like the interview room: the desk's answer appears as it is
+        // written. The registry desk is the one that most needs it — a search
+        // followed by eight seconds of nothing looks exactly like a service
+        // that has died — and the citations only arrive with `done`, since
+        // what was handed over is not known until the answer is finished.
+        let live = null;
+        let r;
+        try {
+          r = await askStreamed(`/desks/${encodeURIComponent(code)}/ask/stream`, { question: q }, (chunk) => {
+            if (!live) {
+              waiting.stop();
+              live = addTurn(box, desk.name, "");
+              live.turn.classList.add("speaking");
+            }
+            live.body.textContent += chunk;
+            live.turn.scrollIntoView({ block: "nearest" });
+          });
+        } catch (streamErr) {
+          if (streamErr.code === "sign_in_required" || live) throw streamErr;
+          console.warn("[desk] stream unavailable, falling back", streamErr);
+          r = await post(`/desks/${encodeURIComponent(code)}/ask`, { question: q });
+        }
+        // The streamed text was a view. The turn is rebuilt from `done` so the
+        // citations, the links into the case file and the paragraph breaks are
+        // the same ones a reload would render.
+        if (live) live.turn.remove();
         waiting.stop(); $("#dk-q").value = "";
         addDeskTurn(box, desk.name, { speaker: "persona", text: r.text, citations: r.citations });
         if (r.granted) S.docs = null;
