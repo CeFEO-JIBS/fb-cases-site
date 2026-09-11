@@ -34,7 +34,12 @@
 
 <footer>
   <div class="cols">
-    <div>Centre for Family Entrepreneurship and Ownership, Jönköping International Business School.</div>
+    <div>Centre for Family Entrepreneurship and Ownership, Jönköping International Business School.
+      <!-- Inline rather than a class: styles.css is cached under ?v=1.0, so a
+           returning browser would take this new markup with the old stylesheet
+           and the line would run on inline. The HTML carries its own spacing
+           and needs no version bump. -->
+      <div style="margin-top:6px">&copy; Massimo Ba&ugrave;</div></div>
     <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
     <div id="foot-edition"></div>
   </div>
