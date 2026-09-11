@@ -264,6 +264,13 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 .turn:last-child{border-bottom:0}
 .turn .sp{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ledger);margin-bottom:4px}
 .turn.q{font-weight:300}.turn.q .sp{color:var(--stamp)}
+/* A turn that is still being spoken. The caret is the only thing on this site
+   that moves, and it earns it: it is the difference between a person thinking
+   and a page that has stopped working. */
+.turn.speaking>div:last-child::after{content:"";display:inline-block;width:.5em;height:1.05em;
+  margin-left:2px;vertical-align:-.18em;background:var(--stamp);animation:caret 1.05s step-end infinite}
+@keyframes caret{0%,45%{opacity:1}46%,100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.turn.speaking>div:last-child::after{animation:none;opacity:.6}}
 .turn.sys{font-family:var(--ui);font-size:13px;color:var(--muted)}
 /* The desk is working. Deliberately not a chat-bubble typing indicator: one
    quiet pulsing mark, the desk's name, and the elapsed seconds once a pause

@@ -781,7 +781,66 @@
   }
   function addTurn(box, speaker, text) {
     const d = document.createElement("div"); d.className = `turn ${speaker === "you" ? "q" : speaker === "sys" ? "sys" : ""}`;
-    d.innerHTML = `<div class="sp">${esc(speaker)}</div><div>${esc(text)}</div>`; box.appendChild(d); d.scrollIntoView({ block: "nearest" });
+    d.innerHTML = `<div class="sp">${esc(speaker)}</div><div></div>`;
+    const body = d.lastElementChild;
+    body.textContent = String(text ?? "");
+    box.appendChild(d); d.scrollIntoView({ block: "nearest" });
+    // Returned so an answer that arrives in pieces can grow in the turn it
+    // already occupies, rather than appearing as a dozen turns.
+    return { turn: d, body };
+  }
+
+  /**
+   * Ask, and show the answer as it is spoken.
+   *
+   * The API streams server-sent events: a `delta` per fragment, then one `done`
+   * carrying the kind, the cap state and the whole answer. `done` is what the
+   * page trusts — the fragments are only so that the room does not sit blank
+   * for eight seconds while a person is thinking — so a dropped fragment
+   * cannot leave the screen disagreeing with the transcript.
+   *
+   * fetch is used directly rather than EventSource: EventSource cannot send an
+   * Authorization header or a body, and this request is a POST that carries
+   * the question.
+   */
+  async function askStreamed(path, payload, onDelta) {
+    const t = await token();
+    if (!t) throw Object.assign(new Error("sign_in_required"), { code: "sign_in_required" });
+    const r = await fetch(`${C.API_BASE}${path}`, {
+      method: "POST", headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json", Accept: "text/event-stream" },
+      body: JSON.stringify(payload || {}),
+    });
+    if (r.status === 401) { store.set(null); throw Object.assign(new Error("sign_in_required"), { code: "sign_in_required" }); }
+    if (!r.ok || !r.body) {
+      const j = await r.json().catch(() => ({}));
+      throw Object.assign(new Error(j.message || j.error || `HTTP ${r.status}`), { code: j.error, status: r.status });
+    }
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "", done = null, failed = null;
+    for (;;) {
+      const { value, done: end } = await reader.read();
+      if (end) break;
+      buf += dec.decode(value, { stream: true });
+      // Events are separated by a blank line; a partial one stays in the
+      // buffer until the rest of it arrives.
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const raw = buf.slice(0, i); buf = buf.slice(i + 2);
+        let ev = "message", data = "";
+        for (const line of raw.split("\n")) {
+          if (line.startsWith("event:")) ev = line.slice(6).trim();
+          else if (line.startsWith("data:")) data += line.slice(5).trim();
+        }
+        if (!data) continue;
+        let parsed; try { parsed = JSON.parse(data); } catch { continue; }
+        if (ev === "delta" && parsed.t) onDelta(parsed.t);
+        else if (ev === "done") done = parsed;
+        else if (ev === "failed") failed = parsed;
+      }
+    }
+    if (failed) throw Object.assign(new Error(failed.message || "The interview stalled."), { code: failed.error });
+    if (!done) throw new Error("The answer was cut off. Ask again.");
+    return done;
   }
 
   async function room(id) {
@@ -864,10 +923,38 @@
       const silence = Math.min(600, Math.round((Date.now() - lastAnswerAt) / 1000));
       const shown = holding;
       if (shown) { addTurn(box, "sys", `You put ${shown.code} — ${docName(shown)} — in front of them.`); holding = null; drawChip(); }
+      // The answer arrives as it is spoken. An empty turn goes up first so the
+      // room shows who is talking and the page does not sit blank while a
+      // person thinks; the text then grows inside it. `done` carries the whole
+      // answer and replaces whatever accumulated, so a dropped fragment cannot
+      // leave the screen out of step with the transcript. If the stream cannot
+      // be had at all — an old browser, a proxy that will not pass it — the
+      // buffered route still answers, and the only difference is the wait.
+      const payload = { question: text, silence_seconds: silence, document_code: shown ? shown.code : undefined };
       try {
-        const r = await post(`/sessions/${id}/ask`, { question: text, silence_seconds: silence, document_code: shown ? shown.code : undefined });
-        if (r.kind === "answer") addTurn(box, p.name, r.answer);
-        else addTurn(box, "sys", r.message);
+        let live = null;
+        let r;
+        try {
+          r = await askStreamed(`/sessions/${id}/ask/stream`, payload, (chunk) => {
+            if (!live) { live = addTurn(box, p.name, ""); live.turn.classList.add("speaking"); }
+            live.body.textContent += chunk;
+            live.turn.scrollIntoView({ block: "nearest" });
+          });
+        } catch (streamErr) {
+          if (streamErr.code === "sign_in_required") throw streamErr;
+          // Nothing was shown yet: fall back rather than fail. Something was
+          // shown: the turn was spoken and asking again would double it.
+          if (live) throw streamErr;
+          console.warn("[room] stream unavailable, falling back", streamErr);
+          r = await post(`/sessions/${id}/ask`, payload);
+        }
+        if (live) live.turn.classList.remove("speaking");
+        if (r.kind === "answer") {
+          if (live) live.body.textContent = r.answer; else addTurn(box, p.name, r.answer);
+        } else {
+          if (live) live.turn.remove();
+          addTurn(box, "sys", r.message);
+        }
         showState(r.state, p.name, wallTotal); lastAnswerAt = Date.now();
         if (r.kind === "closed" || (r.state && !r.state.allowed && String(r.state.reason || "").startsWith("session_"))) setTimeout(() => { location.hash = `#/transcripts/${id}`; }, 1500);
       } catch (err) { $("#r-err").textContent = err.message; }
