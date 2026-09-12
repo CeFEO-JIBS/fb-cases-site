@@ -568,14 +568,41 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
    flight. Idle, it is as quiet as the button next to it. */
 .btn.mic{display:inline-flex;align-items:center;gap:6px;padding-inline:11px}
 .btn.mic svg{flex:none;display:block}
+/* The label changes word when it goes live — Dictate, then Talk — and Dictate
+   is nearly twice as wide, so the button was shrinking 105px to 80px on the
+   click and shoving "End the conversation" along with it. The span holds the
+   wider word's room (measured: 46.9px against 5.65ch at this size) so the
+   button never moves. Left-aligned, so the icon does not drift either. */
+.btn.mic > span{min-width:5.8ch;text-align:left}
 .btn.mic[aria-pressed="true"]{background:var(--stamp);border-color:var(--stamp);color:#fff}
 .btn.mic.off{opacity:.45;cursor:not-allowed}
-/* The button reports the state a screen reader needs; the animation is for the
-   eye and is dropped for anyone who asked for less motion. */
+/* While it is listening the capsule beats: the mic fills with ink and empties.
+   A shape change rather than a glow, because the design system allows no
+   shadows — and deliberately NOT a level meter. Bars that rise and fall with a
+   fixed rhythm look like they are measuring the student's voice and are not,
+   which is the visual form of shipping a number that looks measured and isn't.
+   A steady beat claims nothing except that the thing is on.
+
+   The old version faded the whole icon to 45%, which read as the button going
+   weak — the opposite of live.
+
+   Motion is never the only signal. The label says Talk, the button carries the
+   live colour, and aria-pressed carries it for a screen reader, so anyone who
+   asked for less motion still sees a listening button: the capsule simply
+   holds half-filled instead of beating. */
+/* Idle, the mic stands alone. Listening, two pairs of arcs come out of it and
+   go again, the near pair first. Strokes appearing where there was nothing is
+   the largest change available at this size — filling the capsule was tried and
+   is invisible, because a 2px outline on a 15px glyph leaves almost no interior
+   to fill. */
+.btn.mic .mic-waves{opacity:0}
+.btn.mic[aria-pressed="true"] .mic-waves{opacity:1}
+.btn.mic[aria-pressed="true"] .mic-waves .w2{opacity:.55}
 @media (prefers-reduced-motion: no-preference){
-  .btn.mic[aria-pressed="true"] svg{animation:mic-pulse 1.6s ease-in-out infinite}
+  .btn.mic[aria-pressed="true"] .w1{animation:mic-wave 1.3s ease-in-out infinite}
+  .btn.mic[aria-pressed="true"] .w2{animation:mic-wave 1.3s ease-in-out .22s infinite}
 }
-@keyframes mic-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes mic-wave{0%,70%,100%{opacity:0}25%,45%{opacity:1}}
 .micnote{font-size:12.5px;line-height:1.5;color:var(--muted);margin:8px 0 0;max-width:62ch}
 .micnote.live{color:var(--stamp)}
 .micnote.interim{color:var(--stamp);font-style:italic}
