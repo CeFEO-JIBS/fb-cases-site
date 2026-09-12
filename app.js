@@ -1461,15 +1461,24 @@
     const virt = [...new Set(mine.map((p) => p.budget.virtual_minutes))];
     const wall = [...new Set(mine.map((p) => p.budget.wall_minutes).filter(Boolean))];
     const same = virt.length === 1;
+    // The figure, then the consequence — never the mechanism. How the clock is
+    // metered is already said twice above ("you can sit with the documents for
+    // an hour and spend none of it", and the window paragraph below), and a
+    // third telling was what made this passage flabby: it explained a meter
+    // where it should have given an instruction.
     $("#how-clocks").innerHTML =
       `<p>${same
-        ? `Their time is <strong>${virt[0]}</strong> minutes`
+        ? `Their time is <strong>${virt[0]}</strong> minutes.`
         : `How long each person will give you varies — the figure is on their card, and it runs from
-           <strong>${Math.min(...virt)}</strong> to <strong>${Math.max(...virt)}</strong> minutes`},
-        and it is spent by how much they say rather than by how long you take to think. A
-        short-spoken person will get through many more of your questions than a talkative one.
-        Neither is better — the talkative one may be telling you what matters — but notice which
-        you are sitting with and adjust what you prioritise.</p>
+           <strong>${Math.min(...virt)}</strong> to <strong>${Math.max(...virt)}</strong> minutes.`}
+        With some people you will not reach the end of your list — not because you were slow, but
+        because a person who answers at length is spending your meeting for you.</p>
+       <p>Someone who answers in a line gives you room to chase a detail. Someone who answers in
+        paragraphs makes every question a choice. Learn to stop them:
+        <em>&ldquo;Can I hold you there — I want to be sure we get to the shareholders&rsquo;
+        agreement.&rdquo;</em> Nobody minds it as much as you expect. But interrupt only when the
+        answer is repeating or narrating what you already have; when it is telling you something
+        new, let it run, even if it is not what you asked.</p>
        <p>Your window is ${same && wall.length === 1 ? `<strong>${wall[0]}</strong> minutes of ` : ""}real
         time and it starts with your first question, not when you open the page.</p>`;
 
