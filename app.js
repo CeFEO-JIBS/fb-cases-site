@@ -1420,6 +1420,96 @@
     box.appendChild(d);
   }
 
+
+  /**
+   * The briefing. Everything a team needs to know before its first meeting,
+   * and the reasons rather than the rules.
+   *
+   * Three passages are NOT written here: whether the team chooses its own
+   * interviewees and how many it may hold, how long a conversation lasts, and
+   * which desks are open with what they will take. All three are the
+   * instructor's settings, and a page that asserted them would be wrong for
+   * the next course and quietly wrong for this one. They are read from the
+   * same responses every other page reads, so this page cannot drift from
+   * what the engine will actually do.
+   */
+  async function how() {
+    await ensureMe(); nav("how"); render("t-how");
+    const ps = await personas();
+    const iv = S.interviews;
+
+    // Whether choosing is even a thing on this course, and what it costs.
+    const choose = $("#how-choose");
+    if (iv && iv.selection === "open") {
+      choose.innerHTML = `<p>You may hold <strong>${iv.budget}</strong> conversation${iv.budget === 1 ? "" : "s"},
+        and there ${iv.available === 1 ? "is" : "are"} <strong>${iv.available}</strong> ${iv.available === 1 ? "person" : "people"}
+        you could approach. You have used <strong>${iv.held + iv.pending}</strong>;
+        <strong>${iv.left}</strong> remain${iv.left === 1 ? "s" : ""}. Choosing is part of the work — decide who is
+        worth an hour before you knock.</p>`;
+    } else if (iv) {
+      const capped = iv.budget && iv.budget < iv.available;
+      choose.innerHTML = `<p>Your team leader has named the <strong>${iv.available}</strong>
+        ${iv.available === 1 ? "person" : "people"} you will meet.
+        ${capped ? `You may hold <strong>${iv.budget}</strong> of those conversations, so the order matters twice over: ` : "See all of them, and plan the order: "}
+        what you learn from one tells you what to ask the next.</p>`;
+    }
+
+    // One number if every person keeps the same appointment, and the truth if
+    // they do not: a persona may be given its own clock, and a single figure
+    // would then be a lie on every card but one.
+    const mine = ps.filter((p) => p.budget && p.budget.virtual_minutes);
+    const virt = [...new Set(mine.map((p) => p.budget.virtual_minutes))];
+    const wall = [...new Set(mine.map((p) => p.budget.wall_minutes).filter(Boolean))];
+    const same = virt.length === 1;
+    $("#how-clocks").innerHTML =
+      `<p>${same
+        ? `Their time is <strong>${virt[0]}</strong> minutes`
+        : `How long each person will give you varies — the figure is on their card, and it runs from
+           <strong>${Math.min(...virt)}</strong> to <strong>${Math.max(...virt)}</strong> minutes`},
+        and it is spent by how much they say rather than by how long you take to think. A
+        short-spoken person will get through many more of your questions than a talkative one.
+        Neither is better — the talkative one may be telling you what matters — but notice which
+        you are sitting with and adjust what you prioritise.</p>
+       <p>Your window is ${same && wall.length === 1 ? `<strong>${wall[0]}</strong> minutes of ` : ""}real
+        time and it starts with your first question, not when you open the page.</p>`;
+
+    // Only the desks this course has opened, with what they will actually take.
+    // Named from the response rather than from this file, and written without
+    // a pronoun: another case's desks are other people.
+    const ds = (await api("/desks")).desks;
+    const box = $("#how-desks");
+    if (!ds.length) {
+      $("#how-desks-h").hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+    // Registry first: it is the desk a team uses most, and the file section
+    // below refers to it by the time the reader gets there.
+    const order = { registry: 0, literature: 1 };
+    box.innerHTML = [...ds].sort((a, b) => (order[a.desk_kind] ?? 9) - (order[b.desk_kind] ?? 9)).map((d) => {
+      const who = `<strong>${esc(d.name)}</strong>`;
+      if (d.desk_kind === "registry") {
+        return `<p>${who} keeps the archive. Ask for a record by name and you will be told whether it
+          exists, what kind of record it is, and whether this team may have it — and if you may, it
+          goes into your file. Documents are not read out to you, and nothing is described that is
+          not being released. Ask precisely; a vague request gets a vague answer.</p>`;
+      }
+      // Two different caps, and picking one of them says the wrong thing:
+      // turn_cap is what one request will take, questions_total is what this
+      // team has with the desk across every request it makes.
+      const left = d.questions_total ? Math.max(0, d.questions_total - d.asked) : null;
+      const limits = [
+        d.turn_cap ? `one request takes up to <strong>${d.turn_cap}</strong> question${d.turn_cap === 1 ? "" : "s"}` : null,
+        d.questions_total ? `this team has <strong>${d.questions_total}</strong> in all${left !== null && left !== d.questions_total ? `, of which <strong>${left}</strong> remain${left === 1 ? "s" : ""}` : ""}` : null,
+        d.max_citations ? `at most <strong>${d.max_citations}</strong> source${d.max_citations === 1 ? "" : "s"} are cited at a time` : null,
+      ].filter(Boolean);
+      return `<p>${who} knows the field, not the family. Describe the problem you are facing and you
+        will be given the vocabulary for it and pointed to where it has been written about.
+        ${limits.length ? `There are limits: ${limits.length > 1 ? `${limits.slice(0, -1).join(", ")} and ${limits[limits.length - 1]}` : limits[0]}.` : ""}
+        Nothing is known here about this company.</p>`;
+    }).join("");
+  }
+
   // ── router ──────────────────────────────────────────────────────────────
   async function route() {
     const h = location.hash.replace(/^#\/?/, "");
@@ -1430,6 +1520,7 @@
     try {
       if (!a) return await landing();
       if (a === "people") return await people();
+      if (a === "how") return await how();
       // #/file            the whole file
       // #/file/CODE       that document
       // #/file/CODE/at    the file, landed on that document's line

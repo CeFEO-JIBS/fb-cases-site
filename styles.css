@@ -417,6 +417,11 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
    size, and the weight and the grotesque do the separating. Both read from
    --hist so they cannot drift apart at a breakpoint. */
 .prose.read h2{font-family:var(--ui);font-size:var(--hist);margin:32px 0 10px}
+/* Nine headings on one page: same size as the body, as on the landing page,
+   but weighted and ruled so the eye can find its place in a long read. */
+.howto h2{font-weight:600;border-top:1px solid var(--rule-soft);padding-top:18px}
+.howto h2:first-child{border-top:0;padding-top:0;margin-top:8px}
+.howto strong{font-family:var(--ui);font-weight:600}
 .prose.read p{margin:0 0 16px}
 /* The standfirst stays above the history in the hierarchy, so it moves up
    with it, and the case title above them both. */

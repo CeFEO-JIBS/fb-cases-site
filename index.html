@@ -13,7 +13,7 @@
      markup has arrived and show a half-updated page. The query makes the
      three files move together: it carries the version in config.js, so it
      moves whenever the site does. -->
-<link rel="stylesheet" href="styles.css?v=1.0">
+<link rel="stylesheet" href="styles.css?v=1.1">
 </head>
 <body>
 <header class="hdr">
@@ -24,6 +24,7 @@
     <a href="#/transcripts" data-nav="transcripts">Transcripts</a>
     <a href="#/file" data-nav="file">Case file</a>
     <a href="#/desk" data-nav="desk">Research desk</a>
+    <a href="#/how" data-nav="how">How we work</a>
     <span class="who" id="who"></span>
     <button id="out" type="button">Sign out</button>
   </nav>
@@ -35,7 +36,7 @@
 <footer>
   <div class="cols">
     <div>Centre for Family Entrepreneurship and Ownership, Jönköping International Business School.
-      <!-- Inline rather than a class: styles.css is cached under ?v=1.0, so a
+      <!-- Inline rather than a class: styles.css is cached under ?v=1.1, so a
            returning browser would take this new markup with the old stylesheet
            and the line would run on inline. The HTML carries its own spacing
            and needs no version bump. -->
@@ -43,8 +44,101 @@
     <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
     <div id="foot-edition"></div>
   </div>
-  <div class="base">CASE ROOM · <span id="stamp">v1.0</span></div>
+  <div class="base">CASE ROOM · <span id="stamp">v1.1</span></div>
 </footer>
+
+<template id="t-how">
+  <p class="label">Before you go in</p>
+  <h1>How we work</h1>
+  <p class="lede">A briefing for the team. Read it once before your first meeting, and again before your last.</p>
+
+  <div class="prose read howto">
+    <h2>This engagement</h2>
+    <p>We have been retained by the family, not by the company, and not by any one person in
+      it. Keep that straight, because almost everyone you speak to will assume we are working
+      for them.</p>
+    <p>Read the file before you speak to anyone. It costs you nothing — the clock on a meeting
+      does not start until you ask your first question, so you can sit with the documents for an
+      hour and spend none of it. Going in unprepared is the most expensive mistake available to
+      you, and it is the one teams make most often.</p>
+
+    <h2>Who you are talking to</h2>
+    <p>Each person sees the business from where they stand in it. One has sat on the board for
+      twenty years, another married into the family, another runs a plant and has never been to
+      an owners&rsquo; meeting. What each of them can tell you is bounded by that.</p>
+    <p>Expect their accounts to differ. When two people describe the same decision differently,
+      that is usually not dishonesty — it is position, memory, and what they were told at the
+      time. Note the difference rather than resolving it in your head: the disagreement is often
+      more useful than either version.</p>
+    <p>And expect some of them to be wrong. People are confident about events they have
+      recounted the same way for years. Where an account carries weight in our advice, check it
+      against a document or against someone else who was there.</p>
+    <p>They will also help you. Ask something a person cannot answer and most will tell you who
+      can, or which paper records it. Follow those.</p>
+
+    <h2>Prepare your questionnaire</h2>
+    <p>Write your questions before you go in. Not a script to read out — an agenda, so that a
+      conversation that wanders still covers what you came for.</p>
+    <p>Start from the answer, not the question: what do we need to know when this meeting ends?
+      Three or four things, written down. Then work out which of them only this person can tell
+      you, and put those first.</p>
+    <p>Order it deliberately. Open with facts they can confirm plainly — dates, roles, who was
+      present. You are calibrating: you learn how precise this person is, and they settle into
+      answering. Save the difficult question for when they are talking freely, not for your
+      opening.</p>
+    <p>One question per item. If an item has three parts, it is three items — asked together,
+      you will get an answer to the easiest one and nothing on the other two.</p>
+    <p>Ask the same question of several people. Putting one carefully worded question to three
+      of them is how you find the places where the story does not hold, and it is worth more
+      than three unique questions asked once each.</p>
+    <p>Mark each item for what it is: something you need to discover, or something you are
+      testing against what you already have. The second kind should quote what you have — “the
+      1998 minutes say X; is that how you remember it?” — because that is where you find out
+      whether the paper is the whole story.</p>
+    <p>Leave room. The questionnaire is the floor, not the ceiling. The best material in any
+      interview comes from following what someone has just said, so plan to abandon the order
+      and return to it. If you finish your list with time left, you prepared too little.</p>
+    <p>Divide the work before you go in: who asks, who takes notes, who is watching for what has
+      been avoided.</p>
+
+    <h2>You meet each person once</h2>
+    <p>One conversation each. When it ends it does not reopen — as in a real engagement, where a
+      chief executive gives an adviser an hour and does not give it twice. We cannot go back
+      because we forgot to ask something.</p>
+    <div id="how-choose"></div>
+    <p>Open a conversation and leave without asking anything and nothing is lost. It is spent
+      only once you have put a question.</p>
+
+    <h2>Two clocks</h2>
+    <div id="how-clocks"></div>
+    <p>Inside your window, take as long as you like between questions. Confer, look something
+      up, disagree with each other. None of that costs you anything.</p>
+
+    <h2>Take notes as you go</h2>
+    <p>You will be allowed to download the full transcript when the interview is completed.</p>
+    <p>Take notes anyway. Taking notes helps you track the flow of the interview and decide what
+      to ask next — which is the whole job in the room. It shows you what has already been
+      answered, what was half-answered, and what the person moved away from. A team that is
+      writing is listening; a team waiting for the record afterwards is not steering the
+      conversation while it still can.</p>
+    <p>Decide before you go in who holds the pen.</p>
+
+    <h2 id="how-desks-h">The desks</h2>
+    <div id="how-desks"></div>
+
+    <h2>Your file</h2>
+    <p>You start with the engagement pack and the curriculum vitae of everyone you may
+      interview. More arrives three ways: something in an interview releases it, you ask the
+      registry for it, or your team leader puts it there. Anything you are given stays
+      available.</p>
+
+    <h2>What we owe the client</h2>
+    <p>Not a chronology — they know their own history better than we will. What they are paying
+      for is a view: what the ownership actually is, where it is fragile, and what they should do
+      about it, with the evidence for each claim and an honest note where the evidence is
+      thin.</p>
+  </div>
+</template>
 
 <template id="t-signin">
   <section class="signin card">
@@ -297,7 +391,7 @@
   </div>
 </template>
 
-<script src="config.js?v=1.0"></script>
-<script src="app.js?v=1.0"></script>
+<script src="config.js?v=1.1"></script>
+<script src="app.js?v=1.1"></script>
 </body>
 </html>
