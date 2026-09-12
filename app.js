@@ -163,7 +163,7 @@
    */
   const VOICE = {
     idle: "Please speak in English. Chrome, Edge and Safari can listen; Firefox cannot.",
-    listening: "Listening — speak in English. Your words appear in the box; press Enter to send.",
+    listening: "Speak in English. Your words appear in the box; press Enter to send.",
     unsupported: "This browser cannot listen. Chrome, Edge and Safari can; Firefox does not support it. Type your question instead.",
     blocked: "Microphone blocked. Allow it in the address bar, then try again.",
     network: "The speech service could not be reached. Type your question instead.",
@@ -188,7 +188,7 @@
       button.title = !supported ? "Dictation needs Chrome, Edge or Safari"
         : listening ? "Stop dictating" : "Dictate your question";
       const label = button.querySelector("span");
-      if (label) label.textContent = listening ? "Listening" : "Dictate";
+      if (label) label.textContent = listening ? "Talk" : "Dictate";
     };
     const append = (text) => {
       const clean = text.trim();
