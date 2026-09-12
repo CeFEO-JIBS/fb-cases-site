@@ -560,3 +560,23 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
    not visible. */
 .lnk.stale{background:none;border:0;padding:0;font:inherit;color:var(--stamp);cursor:pointer;text-decoration:underline}
 .lnk.stale:hover{text-decoration:none}
+
+/* ── Dictation ─────────────────────────────────────────────────────────────
+   The microphone beside a composer, switched on per course run. Purple is the
+   live state and nothing else, as everywhere: the button carries it only while
+   it is listening, and the notice line carries it only while there are words in
+   flight. Idle, it is as quiet as the button next to it. */
+.btn.mic{display:inline-flex;align-items:center;gap:6px;padding-inline:11px}
+.btn.mic svg{flex:none;display:block}
+.btn.mic[aria-pressed="true"]{background:var(--stamp);border-color:var(--stamp);color:#fff}
+.btn.mic.off{opacity:.45;cursor:not-allowed}
+/* The button reports the state a screen reader needs; the animation is for the
+   eye and is dropped for anyone who asked for less motion. */
+@media (prefers-reduced-motion: no-preference){
+  .btn.mic[aria-pressed="true"] svg{animation:mic-pulse 1.6s ease-in-out infinite}
+}
+@keyframes mic-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.micnote{font-size:12.5px;line-height:1.5;color:var(--muted);margin:8px 0 0;max-width:62ch}
+.micnote.live{color:var(--stamp)}
+.micnote.interim{color:var(--stamp);font-style:italic}
+.micnote.bad{color:var(--stamp);border-left:2px solid var(--stamp);padding-left:9px}

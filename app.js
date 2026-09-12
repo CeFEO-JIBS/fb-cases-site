@@ -5,7 +5,7 @@
   const C = window.FB;
   const $ = (s, r = document) => r.querySelector(s);
   const view = $("#view");
-  const S = { me: null, personas: null, interviews: null, docs: null, poll: null };
+  const S = { me: null, personas: null, interviews: null, docs: null, poll: null, voice: null };
 
   // ── auth ────────────────────────────────────────────────────────────────
   const store = {
@@ -133,6 +133,127 @@
   }
   async function documents(force) { if (force || !S.docs) S.docs = (await api("/documents")).documents; return S.docs; }
   function stopPoll() { if (S.poll) { clearInterval(S.poll); S.poll = null; } }
+
+
+  // ── dictation ───────────────────────────────────────────────────────────
+  /**
+   * The microphone beside a composer. Browser-native recognition (Web Speech
+   * API): the transcript lands in the box, the student reads it and presses
+   * Enter. No audio reaches the platform and none is stored — Chrome sends it
+   * to Google and Safari to Apple, which is the one sentence the course privacy
+   * notice has to carry, and which the notice line says out loud.
+   *
+   * Switched on per course run by the instructor (fbcourse migration 035). The
+   * button stays hidden until `me.edition.voice_input_enabled` says otherwise.
+   *
+   * Two behaviours that look like bugs and are not:
+   *
+   *  - Chrome ends the session on a silence even with `continuous = true`, so
+   *    `onend` restarts it. `manualStop` is what stops that turning the
+   *    student's click into an instant restart.
+   *  - Interim text is NOT written into the textarea. It shows in the notice
+   *    line instead: written into the box it flickers and fights whatever the
+   *    student has already typed.
+   *
+   * Accuracy on Swedish surnames is poor and there is no vocabulary hint in the
+   * API. That is the argument for the transcript landing in an editable box
+   * rather than going to the persona, and if it becomes a real irritation in
+   * class it is the signal to move to server-side recognition that accepts a
+   * prompt — this flag and this admin toggle would not change.
+   */
+  const VOICE = {
+    idle: "Please speak in English. Chrome, Edge and Safari can listen; Firefox cannot.",
+    listening: "Listening — speak in English. Your words appear in the box; press Enter to send.",
+    unsupported: "This browser cannot listen. Chrome, Edge and Safari can; Firefox does not support it. Type your question instead.",
+    blocked: "Microphone blocked. Allow it in the address bar, then try again.",
+    network: "The speech service could not be reached. Type your question instead.",
+    failed: "Dictation stopped unexpectedly. Type your question instead.",
+  };
+  function attachVoice(button, textarea, notice) {
+    if (!button || !textarea) return null;
+    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const supported = !!Ctor;
+    let rec = null, listening = false, manualStop = false;
+
+    const say = (text, tone) => {
+      if (!notice) return;
+      notice.hidden = !text;
+      notice.textContent = text || "";
+      notice.className = `micnote${tone ? " " + tone : ""}`;
+    };
+    const paint = () => {
+      button.setAttribute("aria-pressed", String(listening));
+      button.classList.toggle("on", listening);
+      button.classList.toggle("off", !supported);
+      button.title = !supported ? "Dictation needs Chrome, Edge or Safari"
+        : listening ? "Stop dictating" : "Dictate your question";
+      const label = button.querySelector("span");
+      if (label) label.textContent = listening ? "Listening" : "Dictate";
+    };
+    const append = (text) => {
+      const clean = text.trim();
+      if (!clean) return;
+      const base = textarea.value || "";
+      textarea.value = base + (base && !/\s$/.test(base) ? " " : "") + clean;
+      // The counter, the autosize and the send button all listen for this.
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+
+    function start() {
+      if (!supported) return;
+      const r = new Ctor();
+      r.lang = "en-US"; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
+      r.onresult = (ev) => {
+        let pending = "";
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          const res = ev.results[i];
+          if (res.isFinal) append(res[0].transcript); else pending += res[0].transcript;
+        }
+        say(pending || VOICE.listening, pending ? "interim" : "live");
+      };
+      r.onerror = (ev) => {
+        if (ev.error === "aborted" || ev.error === "no-speech") return;
+        manualStop = true; listening = false; rec = null;
+        say(ev.error === "not-allowed" || ev.error === "service-not-allowed" ? VOICE.blocked
+          : ev.error === "network" ? VOICE.network : VOICE.failed, "bad");
+        paint();
+      };
+      r.onend = () => {
+        if (manualStop) { listening = false; rec = null; say(VOICE.idle); paint(); return; }
+        try { r.start(); } catch { listening = false; rec = null; paint(); }
+      };
+      manualStop = false;
+      try { r.start(); rec = r; listening = true; say(VOICE.listening, "live"); }
+      catch { say(VOICE.failed, "bad"); }
+      paint();
+    }
+    function stop() {
+      manualStop = true;
+      if (rec) { try { rec.stop(); } catch {} }
+      listening = false; say(VOICE.idle); paint();
+    }
+    const onClick = () => {
+      if (!supported) { say(VOICE.unsupported, "bad"); return; }
+      listening ? stop() : start();
+    };
+    button.addEventListener("click", onClick);
+    button.hidden = false;
+    say(VOICE.idle);
+    paint();
+    return { destroy() {
+      button.removeEventListener("click", onClick);
+      manualStop = true;
+      if (rec) { try { rec.abort(); } catch {} }
+      rec = null; listening = false; say(null);
+    } };
+  }
+  /** Wire the microphone for one composer, if this course run allows it. */
+  function voiceFor(me, buttonId, textareaId, noticeId) {
+    stopVoice();
+    if (!me?.edition?.voice_input_enabled) return;
+    S.voice = attachVoice($(`#${buttonId}`), $(`#${textareaId}`), $(`#${noticeId}`));
+  }
+  function stopVoice() { if (S.voice) { S.voice.destroy(); S.voice = null; } }
 
   // ── screens ─────────────────────────────────────────────────────────────
   function signin(msg) {
@@ -844,7 +965,7 @@
   }
 
   async function room(id) {
-    await ensureMe(); render("t-room");
+    const me = await ensureMe(); render("t-room");
     const ps = await personas();
     let st = await api(`/sessions/${id}/state`);
     const p = ps.find((x) => x.session_id === Number(id)) || ps.find((x) => x.code === st.persona_code) || { name: st.persona_code, budget: {} };
@@ -914,6 +1035,10 @@
     const q = $("#question"), cnt = $("#count");
     q.addEventListener("input", () => { cnt.textContent = q.value.length; const cap = Number($("#cap").textContent); cnt.parentElement.classList.toggle("over", cap && q.value.length > cap); });
     sendOnEnter(q, "#ask");
+    // The microphone, if this course run allows one. It appends into the same
+    // box the student types in, so everything downstream — the counter, the cap,
+    // Enter to send — is unchanged and unaware of it.
+    voiceFor(me, "mic", "question", "mic-note");
     let lastAnswerAt = Date.now();
     $("#ask").addEventListener("submit", async (e) => {
       e.preventDefault(); const text = q.value.trim(); if (!text) return;
@@ -1058,7 +1183,7 @@
   }
 
   async function deskPage(code, skipIntro, threadId) {
-    await ensureMe(); nav("desk");
+    const me = await ensureMe(); nav("desk");
     let d;
     // `new` is the blank page: no request on screen, the composer ready. It
     // has to be its own address. Without it "open a new request" pointed at
@@ -1252,6 +1377,9 @@
     });
 
     sendOnEnter($("#dk-q"), "#dk-form");
+    // A request to the archive is as worth dictating as a question to a person,
+    // and it is the same composer, so it gets the same button.
+    voiceFor(me, "dk-mic", "dk-q", "dk-mic-note");
     $("#dk-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const b = $("#dk-go"), q = $("#dk-q").value.trim();
@@ -1434,9 +1562,26 @@
    * what the engine will actually do.
    */
   async function how() {
-    await ensureMe(); nav("how"); render("t-how");
+    const me = await ensureMe(); nav("how"); render("t-how");
     const ps = await personas();
     const iv = S.interviews;
+
+    // Dictation, only if this course run offers it. The page must not describe
+    // a button that is not there, and it must not stay silent about where the
+    // audio goes when it is — the browser's own recognition service is a third
+    // party, and a student is entitled to know before they use it.
+    if (me?.edition?.voice_input_enabled) {
+      $("#how-voice").innerHTML = `<h2>You can speak instead of typing</h2>
+        <p>There is a microphone beside the box. Press it, say your question, and the words appear
+          in the box for you to read. Nothing is sent until you press Enter — so check it first,
+          because it will mishear a surname, and the person you are talking to will answer the
+          question it heard rather than the one you asked.</p>
+        <p>It listens in English, and it needs Chrome, Edge or Safari; Firefox cannot do it. If you
+          would rather type, type — nothing about the exercise assumes you spoke.</p>
+        <p class="prov">Your browser does the listening, and it sends the audio to its own
+          recognition service to do it — Google for Chrome, Apple for Safari. It does not reach
+          this platform and nothing here records it.</p>`;
+    }
 
     // Whether choosing is even a thing on this course, and what it costs.
     const choose = $("#how-choose");
@@ -1525,7 +1670,7 @@
     const [a, b, c] = h.split("/");
     if (!store.get()) return signin();
     if (a !== "room") { stopPoll(); recording(null); }
-    stopGate();
+    stopGate(); stopVoice();
     try {
       if (!a) return await landing();
       if (a === "people") return await people();
