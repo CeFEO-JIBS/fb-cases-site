@@ -163,7 +163,7 @@
    */
   const VOICE = {
     idle: "Please speak in English. Chrome, Edge and Safari can listen; Firefox cannot.",
-    listening: "Speak in English. Your words appear in the box; press Enter to send.",
+    listening: "Speak in English — pause when you finish a sentence and it will be punctuated. Say \u201ccomma\u201d or \u201cquestion mark\u201d for one mid-sentence. Press Enter to send.",
     unsupported: "This browser cannot listen. Chrome, Edge and Safari can; Firefox does not support it. Type your question instead.",
     blocked: "Microphone blocked. Allow it in the address bar, then try again.",
     network: "The speech service could not be reached. Type your question instead.",
@@ -190,13 +190,82 @@
       const label = button.querySelector("span");
       if (label) label.textContent = listening ? "Talk" : "Dictate";
     };
+    // ── punctuation, and the pause that decides where a sentence ends ─────
+    //
+    // The Web Speech API supplies none of this. It returns unpunctuated,
+    // uncapitalised text and it finalises a phrase the moment it hears a
+    // breath, so a spoken question arrives in pieces with nothing between
+    // them. Both of those are fixed here, in the assembly, because there is
+    // nowhere else: the standard has no punctuation option and no setting for
+    // how long a silence has to be before a phrase is closed.
+    //
+    // So a finalised phrase does NOT end a sentence. It is appended and a
+    // timer starts; another phrase within the window joins the same sentence,
+    // and only a real pause closes it and punctuates it. The words still
+    // appear the instant they are heard — waiting to show them would be worse
+    // than no punctuation.
+    const SENTENCE_PAUSE = 1500;
+    // On top of the recogniser's own endpointing (roughly half a second to a
+    // second), so a sentence closes after about two seconds of silence. Long
+    // enough to think mid-question, short enough that stopping feels finished.
+    // A question mark is chosen from how the sentence opens — and from how its
+    // LAST clause opens, because "Before nineteen ninety five, who held the
+    // shares" is a question and does not begin like one.
+    const ASKING = /^(what|who|whom|whose|why|how|when|where|which|is|are|was|were|do|does|did|can|could|will|would|should|have|has|had|may|might|am)\b/i;
+    // The clause test is deliberately narrower: no "which", or every relative
+    // clause becomes a question — "the board met in 1995, which was the year
+    // of the court permission" is not one.
+    const ASKING_CLAUSE = /^(what|who|whom|whose|why|how|when|where|is|are|was|were|do|does|did|can|could|will|would|should|have|has|had)\b/i;
+    const asks = (t) => {
+      if (ASKING.test(t)) return true;
+      const tail = t.split(/[,;\u2014]/).pop().trim();
+      return !!tail && ASKING_CLAUSE.test(tail);
+    };
+    // Said aloud, these become marks. Whole words only — a sentence about a
+    // comma is rarer than a student wanting one, but "commander" must survive.
+    const SPOKEN = [
+      [/\b(full stop|period)\b/gi, "."], [/\bcomma\b/gi, ","],
+      [/\bquestion mark\b/gi, "?"], [/\bexclamation (mark|point)\b/gi, "!"],
+      [/\b(colon)\b/gi, ":"], [/\bsemicolon\b/gi, ";"],
+      [/\b(new line|new paragraph)\b/gi, "\n"], [/\bdash\b/gi, " — "],
+    ];
+    const marks = (t) => SPOKEN.reduce((x, [re, ch]) => x.replace(re, ch), t)
+      // A mark arrives as its own word, so it lands with a space before it.
+      .replace(/\s+([.,?!:;])/g, "$1").replace(/\s*\n\s*/g, "\n").replace(/ {2,}/g, " ").trim();
+
+    let sentenceAt = null;   // where in the box the open sentence begins
+    let pause = null;        // the timer that closes it
+
+    /** Close the open sentence: capitalise it, and end it with a mark. */
+    function finish() {
+      if (pause) { clearTimeout(pause); pause = null; }
+      if (sentenceAt == null) return;
+      const v = textarea.value;
+      if (sentenceAt >= v.length) { sentenceAt = null; return; }
+      let body = v.slice(sentenceAt).trimEnd();
+      if (!body) { sentenceAt = null; return; }
+      body = body.charAt(0).toUpperCase() + body.slice(1);
+      if (!/[.?!:;,\u2014]$/.test(body)) body += asks(body) ? "?" : ".";
+      textarea.value = v.slice(0, sentenceAt) + body;
+      sentenceAt = null;
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
     const append = (text) => {
-      const clean = text.trim();
+      const clean = marks(text);
       if (!clean) return;
       const base = textarea.value || "";
-      textarea.value = base + (base && !/\s$/.test(base) ? " " : "") + clean;
+      // The student may have typed or edited between phrases. If the open
+      // sentence is no longer where it was, abandon it and start another
+      // rather than capitalise the middle of their own typing.
+      if (sentenceAt != null && sentenceAt > base.length) sentenceAt = null;
+      const joiner = base && !/[\s\n]$/.test(base) ? " " : "";
+      if (sentenceAt == null) sentenceAt = base.length + joiner.length;
+      textarea.value = base + joiner + clean;
       // The counter, the autosize and the send button all listen for this.
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      if (pause) clearTimeout(pause);
+      pause = setTimeout(finish, SENTENCE_PAUSE);
     };
 
     function start() {
@@ -230,6 +299,7 @@
     function stop() {
       manualStop = true;
       if (rec) { try { rec.stop(); } catch {} }
+      finish();   // pressing stop is itself the end of the sentence
       listening = false; say(VOICE.idle); paint();
     }
     const onClick = () => {
@@ -244,6 +314,7 @@
       button.removeEventListener("click", onClick);
       manualStop = true;
       if (rec) { try { rec.abort(); } catch {} }
+      finish();   // do not leave half a sentence behind on the way out
       rec = null; listening = false; say(null);
     } };
   }
@@ -1576,6 +1647,13 @@
           in the box for you to read. Nothing is sent until you press Enter — so check it first,
           because it will mishear a surname, and the person you are talking to will answer the
           question it heard rather than the one you asked.</p>
+        <p><strong>Pause when you reach the end of a sentence.</strong> A short silence is what tells
+          it you have finished: it then capitalises the sentence and puts a full stop or a question
+          mark on it. Pause in the middle of a thought and it waits for you, so you can stop to
+          think without your question being chopped in two. For a mark mid-sentence, say it —
+          <em>&ldquo;before ninety-five, comma, who held the shares&rdquo;</em> — and
+          <em>comma</em>, <em>full stop</em>, <em>question mark</em>, <em>colon</em> and
+          <em>new line</em> all work that way.</p>
         <p>It listens in English, and it needs Chrome, Edge or Safari; Firefox cannot do it. If you
           would rather type, type — nothing about the exercise assumes you spoke.</p>
         <p class="prov">Your browser does the listening, and it sends the audio to its own
