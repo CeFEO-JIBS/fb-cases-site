@@ -9,5 +9,5 @@ window.FB = {
   // deployment the page came from. Public by definition — it is the repo that
   // serves this file.
   REPO: "CeFEO-JIBS/fb-cases-site",
-  VERSION: "v1.8",
+  VERSION: "v1.9",
 };

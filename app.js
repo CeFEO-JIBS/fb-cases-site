@@ -155,15 +155,17 @@
    *    line instead: written into the box it flickers and fights whatever the
    *    student has already typed.
    *
-   * Accuracy on Swedish surnames is poor and there is no vocabulary hint in the
-   * API. That is the argument for the transcript landing in an editable box
-   * rather than going to the persona, and if it becomes a real irritation in
-   * class it is the signal to move to server-side recognition that accepts a
-   * prompt — this flag and this admin toggle would not change.
+   * Accuracy on names is poor and there is no vocabulary hint in the API, which
+   * is why the transcript lands in an editable box rather than going to the
+   * persona, and why pressing stop sends the dictated span to the server for a
+   * pass against the case's own vocabulary (see the tidy pass below). The
+   * listening itself is still the browser's; if the recognition ever moves
+   * server-side, neither this flag nor the admin toggle changes.
    */
   const VOICE = {
     idle: "Please speak in English. Chrome, Edge and Safari can listen; Firefox cannot.",
-    listening: "Speak in English. Say \u201ccomma\u201d, \u201cfull stop\u201d or \u201cquestion mark\u201d where you want one — nothing is punctuated for you. Read it back before you send.",
+    listening: "Speak in English — press the button again when you have finished, and the punctuation and the names are put right for you to read.",
+    tidying: "Reading it back…",
     unsupported: "This browser cannot listen. Chrome, Edge and Safari can; Firefox does not support it. Type your question instead.",
     blocked: "Microphone blocked. Allow it in the address bar, then try again.",
     network: "The speech service could not be reached. Type your question instead.",
@@ -254,14 +256,61 @@
         try { r.start(); } catch { listening = false; rec = null; paint(); }
       };
       manualStop = false;
-      try { r.start(); rec = r; listening = true; say(VOICE.listening, "live"); }
-      catch { say(VOICE.failed, "bad"); }
+      try {
+        r.start(); rec = r; listening = true; say(VOICE.listening, "live");
+        // Where the tidy pass will start from. Anything already in the box was
+        // typed, and stays as typed.
+        if (from == null) from = textarea.value.length;
+      } catch { say(VOICE.failed, "bad"); }
       paint();
     }
+    // ── the tidy pass ─────────────────────────────────────────────────────
+    //
+    // The recogniser is a general-purpose one. It has never heard of this
+    // school, this case, or the surnames and places in it, and there is no
+    // vocabulary hint in the API to teach it: on a real interview it wrote
+    // the centre's own name as a first name belonging to someone in the case,
+    // and the interviewee spent a paragraph arguing about the wrong branch of
+    // the family. So when the student stops talking, what was dictated goes
+    // once to the server, which knows the case's own vocabulary, and comes
+    // back spelled and punctuated.
+    //
+    // Only the dictated span is sent, never the whole box: a student who
+    // typed a careful sentence and then dictated one more must not have their
+    // typing rewritten. If the box changed while the request was in flight,
+    // the reply is dropped — their edit wins over our correction. Every
+    // failure leaves the words exactly as they were heard, because a student
+    // who has just spoken a question must always be able to send it.
+    let from = null;   // where this dictation run began in the box
+
+    async function tidy() {
+      if (from == null) return;
+      const at = from; from = null;
+      const before = textarea.value;
+      const span = before.slice(at);
+      if (!span.trim()) return;
+      say(VOICE.tidying, "live");
+      try {
+        const r = await post("/dictation/tidy", { text: span.trim() });
+        const clean = (r && typeof r.text === "string" ? r.text : "").trim();
+        // Their own edit, or nothing worth writing back.
+        if (!clean || textarea.value !== before) { say(VOICE.idle); return; }
+        const head = before.slice(0, at);
+        textarea.value = head + (head && !/[\s\n]$/.test(head) ? " " : "") + clean;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        say(VOICE.idle);
+      } catch {
+        // Including a course run with voice switched off between the click and
+        // the reply: the words stand as dictated and nothing is said about it.
+        say(VOICE.idle);
+      }
+    }
+
     function stop() {
       manualStop = true;
       if (rec) { try { rec.stop(); } catch {} }
-      listening = false; say(VOICE.idle); paint();
+      listening = false; paint();
+      tidy();
     }
     const onClick = () => {
       if (!supported) { say(VOICE.unsupported, "bad"); return; }
@@ -275,7 +324,7 @@
       button.removeEventListener("click", onClick);
       manualStop = true;
       if (rec) { try { rec.abort(); } catch {} }
-      rec = null; listening = false; say(null);
+      rec = null; listening = false; from = null; say(null);
     } };
   }
   /** Wire the microphone for one composer, if this course run allows it. */
@@ -1607,11 +1656,15 @@
           in the box for you to read. Nothing is sent until you press Enter — so check it first,
           because it will mishear a surname, and the person you are talking to will answer the
           question it heard rather than the one you asked.</p>
-        <p><strong>Say your punctuation.</strong> Nothing is added for you: say
-          <em>comma</em>, <em>full stop</em>, <em>question mark</em>, <em>colon</em> or
-          <em>new line</em> where you want one — <em>&ldquo;before ninety-five, comma, who held
-          the shares, question mark&rdquo;</em>. Guessing where your sentences end from your
-          pauses was tried and it got them wrong, which is worse than leaving them out.</p>
+        <p><strong>Press the button again when you have finished.</strong> That is what ends the
+          dictation, and it is also when the text is put right: the punctuation goes in, and the
+          names are checked against the ones this case actually contains. It takes a second or
+          two. You can also say a mark where you want one — <em>&ldquo;before ninety-five, comma,
+          who held the shares&rdquo;</em> — and <em>comma</em>, <em>full stop</em>,
+          <em>question mark</em>, <em>colon</em> and <em>new line</em> all work that way.</p>
+        <p><strong>Read it before you send it.</strong> The correction is good with a surname it
+          knows and useless with a word it never heard: a sentence can still come out saying
+          something you did not say. Anything you typed yourself is left alone.</p>
         <p>It listens in English, and it needs Chrome, Edge or Safari; Firefox cannot do it. If you
           would rather type, type — nothing about the exercise assumes you spoke.</p>
         <p class="prov">Your browser does the listening, and it sends the audio to its own
