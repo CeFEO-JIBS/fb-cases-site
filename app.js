@@ -164,16 +164,13 @@
    */
   const VOICE = {
     idle: "Please speak in English. Chrome, Edge and Safari can listen; Firefox cannot.",
-    listening: "Speak in English — press the button again when you have finished, and the punctuation and the names are put right for you to read.",
-    tidying: "Reading it back…",
-    corrected: "Punctuation added and names checked against the case.",
-    undone: "Put back exactly as it was heard.",
-    // Failures used to say nothing at all, which is how a pass that was never
-    // running looked identical to one that ran and found nothing to change.
-    // Each of these names what happened, so "it doesn't work" has an answer.
-    tidyFailed: "The words stand as heard — the correction could not be fetched. Punctuate it yourself and send it.",
-    tidyOff: "The words stand as heard: this course run has voice correction switched off.",
-    tidyNone: "Nothing to correct — it came back as it was heard.",
+    listening: "Listening. Your words arrive punctuated, a moment behind your voice — press the button again when you have finished.",
+    // Failure used to say nothing at all, which is how a correction that never
+    // ran looked identical to one that ran and found nothing to change. These
+    // name what happened, so "it doesn't work" has an answer — and either way
+    // the words still reach the box, only rough.
+    rough: "Words are landing uncorrected — punctuation and names are not being checked. Read it before you send.",
+    tidyOff: "The words land as heard: this course run has voice correction switched off.",
     unsupported: "This browser cannot listen. Chrome, Edge and Safari can; Firefox does not support it. Type your question instead.",
     blocked: "Microphone blocked. Allow it in the address bar, then try again.",
     network: "The speech service could not be reached. Type your question instead.",
@@ -236,16 +233,9 @@
       if (!base.trim() || /[.?!\n]\s*$/.test(base)) clean = clean.charAt(0).toUpperCase() + clean.slice(1);
       const joiner = base && !/[\s\n]$/.test(base) ? " " : "";
       textarea.value = base + joiner + clean;
-      heardAt++;
       // The counter, the autosize and the send button all listen for this.
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
     };
-    // Text this component put in the box, as opposed to text the student
-    // typed. The tidy pass has to tell them apart: a recogniser flushing one
-    // last phrase after the session ends must not look like the student
-    // editing, or the correction is thrown away for their own protection.
-    let heardAt = 0;
-
     function start() {
       if (!supported) return;
       const r = new Ctor();
@@ -254,7 +244,7 @@
         let pending = "";
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
           const res = ev.results[i];
-          if (res.isFinal) append(res[0].transcript); else pending += res[0].transcript;
+          if (res.isFinal) hear(res[0].transcript); else pending += res[0].transcript;
         }
         say(pending || VOICE.listening, pending ? "interim" : "live");
       };
@@ -277,124 +267,71 @@
       manualStop = false;
       try {
         r.start(); rec = r; listening = true; say(VOICE.listening, "live");
-        // Where the tidy pass will start from. Anything already in the box was
-        // typed, and stays as typed.
-        if (from == null) from = textarea.value.length;
+        placed = "";
       } catch { say(VOICE.failed, "bad"); }
       paint();
     }
-    // ── the tidy pass ─────────────────────────────────────────────────────
+    // ── the correction, which the student never has to think about ────────
     //
-    // The recogniser is a general-purpose one. It has never heard of this
-    // school, this case, or the surnames and places in it, and there is no
-    // vocabulary hint in the API to teach it: on a real interview it wrote
-    // the centre's own name as a first name belonging to someone in the case,
-    // and the interviewee spent a paragraph arguing about the wrong branch of
-    // the family. So when the student stops talking, what was dictated goes
-    // once to the server, which knows the case's own vocabulary, and comes
-    // back spelled and punctuated.
+    // A phrase is NOT written into the box as it is heard. It is sent to the
+    // server — which knows the case's names — and only the corrected version
+    // is appended. So the box holds finished text at every moment: nothing
+    // appears wrong and is then fixed, there is no second step to press and
+    // nothing to undo.
     //
-    // Only the dictated span is sent, never the whole box: a student who
-    // typed a careful sentence and then dictated one more must not have their
-    // typing rewritten. If the box changed while the request was in flight,
-    // the reply is dropped — their edit wins over our correction. Every
-    // failure leaves the words exactly as they were heard, because a student
-    // who has just spoken a question must always be able to send it.
-    let from = null;   // where this dictation run began in the box
+    // That is the third design here and the first intuitive one. Correcting on
+    // stop meant a student watched raw words pile up and then change under
+    // them, and the honest answer to "when does it land?" was "when you press
+    // the button again" — which is a thing to learn, and therefore wrong.
+    // People expect dictation to put correct words on the screen while they
+    // talk, so that is what this does.
+    //
+    // The cost is that the box lags a second or so behind the voice. What is
+    // being heard right now shows in the line underneath, where interim text
+    // has always gone — so the lag reads as the transcript catching up rather
+    // than as nothing happening.
+    //
+    // Each phrase carries the corrected text before it, so the server can
+    // continue an open sentence rather than punctuate a fragment as though it
+    // were a whole one. Phrases are sent as they finalise but appended in
+    // order, and a phrase whose correction fails is appended as it was heard —
+    // a word is never lost to a network.
+    let placed = "";        // what this run has put in the box, corrected
+    let queue = Promise.resolve();
 
-    /**
-     * `speak` is false when the caller has already put a failure on the notice
-     * line and does not want it overwritten by ours.
-     *
-     * The correction is announced and it is reversible. A pilot's first
-     * reaction to the box changing under them was "why show one text and then
-     * change it?" — which is the right question to ask of an edit that arrives
-     * unattributed and cannot be refused. The words appear as they are heard,
-     * because waiting in silence is worse; then the line under the box says
-     * what was done and offers to put it back. Undo restores the dictation
-     * exactly as the recogniser produced it.
-     */
-    async function tidy(fallback) {
-      // `fallback` is the engine's own failure, when the run ended on one. It
-      // stays on the line whenever the tidy pass has nothing of its own to
-      // report — a blocked microphone is more use to the student than "ready".
-      const idle = () => (fallback ? say(fallback, "bad") : say(VOICE.idle));
-      if (from == null) { idle(); return; }
-      const at = from; from = null;
-      say(VOICE.tidying, "live");
-
-      // A recogniser does not go quiet the moment its session ends: Safari
-      // hands back one last finalised phrase just after, and that phrase lands
-      // in the box through append(). Sending before it arrives means correcting
-      // a sentence that is missing its ending, and — worse — the arriving words
-      // then made the box differ from what was captured, which the edit guard
-      // below read as the student typing and threw the whole correction away.
-      // Silently. This wait is the cheapest way to let the tail land first.
-      await new Promise((go) => setTimeout(go, 400));
-
-      const before = textarea.value;
-      const span = before.slice(at);
-      if (!span.trim()) { idle(); return; }
-      const heardBefore = heardAt;
-
-      try {
-        const r = await post("/dictation/tidy", { text: span.trim() });
-        const clean = (r && typeof r.text === "string" ? r.text : "").trim();
-        if (!clean) { say(VOICE.tidyNone); return; }
-
-        // What the box holds now. Three cases, and only one of them is the
-        // student: unchanged, grown by the recogniser (correct what was sent
-        // and keep the tail as heard), or genuinely edited (their text wins —
-        // we do not overwrite typing to install a correction).
-        const now = textarea.value;
-        let tail = "";
-        if (now !== before) {
-          if (heardAt !== heardBefore && now.startsWith(before)) tail = now.slice(before.length);
-          else { idle(); return; }
+    function hear(phrase) {
+      const raw = phrase.trim();
+      if (!raw) return;
+      const context = placed;
+      queue = queue.then(async () => {
+        let text = raw;
+        try {
+          const r = await post("/dictation/tidy", { text: raw, context });
+          const clean = (r && typeof r.text === "string" ? r.text : "").trim();
+          if (clean) text = clean;
+          else say(VOICE.rough, "bad");
+        } catch (e) {
+          // The words still reach the box; only the polish is missing, and the
+          // student is told which it was rather than left to wonder.
+          say(e && e.code === "voice_disabled" ? VOICE.tidyOff : VOICE.rough, "bad");
         }
-        const head = before.slice(0, at);
-        const joined = head + (head && !/[\s\n]$/.test(head) ? " " : "") + clean + tail;
-        if (joined === now) { say(VOICE.tidyNone); return; }
-        textarea.value = joined;
-        heardAt++;
-        textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        offerUndo(now);
-      } catch (e) {
-        // Say which failure it was. A pass that never ran and a pass that ran
-        // and changed nothing used to look exactly alike from the outside,
-        // which is most of why this took four rounds to find.
-        say(e && e.code === "voice_disabled" ? VOICE.tidyOff : VOICE.tidyFailed, "bad");
-      }
-    }
-
-    /** Say what was changed, and let the student take it back in one tap. */
-    function offerUndo(raw) {
-      say(VOICE.corrected, "live");
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "undo"; b.textContent = "Undo";
-      b.addEventListener("click", () => {
-        textarea.value = raw;
-        textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        say(VOICE.undone);
+        append(text);
+        placed = (placed ? placed + " " : "") + text;
       });
-      notice.append(" ", b);
     }
 
     /**
-     * The run is over, however it ended — and the tidy pass belongs here
-     * rather than on the stop button, which is where it was.
+     * The run is over, however it ended — the button, the engine giving up on
+     * a silence and refusing to restart, or an error. All three land here so
+     * the button always releases and the notice always settles.
      *
-     * The button is only one of the four ways a run finishes. Safari on a
-     * phone ends the recognition session by itself after a silence; the
-     * restart in `onend` can refuse; the engine can error out. Each of those
-     * left the button reading "Dictate" with the raw, unpunctuated words in
-     * the box and no correction ever asked for — indistinguishable, from the
-     * outside, from the feature being broken. On a phone it is the commonest
-     * of the four, which is why it is what a pilot found first.
+     * Corrections still in flight are left alone: they will put their words in
+     * the box on their own, and the notice waits for them rather than
+     * announcing "ready" over the top of a phrase still arriving.
      */
     function ended(note) {
       listening = false; rec = null; paint();
-      tidy(note);
+      queue.then(() => { if (!listening) say(note || VOICE.idle, note ? "bad" : undefined); });
     }
 
     function stop() {
@@ -414,7 +351,7 @@
       button.removeEventListener("click", onClick);
       manualStop = true;
       if (rec) { try { rec.abort(); } catch {} }
-      rec = null; listening = false; from = null; say(null);
+      rec = null; listening = false; placed = ""; say(null);
     } };
   }
   /** Wire the microphone for one composer, if this course run allows it. */
@@ -1746,18 +1683,17 @@
           in the box for you to read. Nothing is sent until you press Enter — so check it first,
           because it will mishear a surname, and the person you are talking to will answer the
           question it heard rather than the one you asked.</p>
-        <p><strong>Your words appear as you say them, and are tidied when you finish.</strong>
-          Two stages, deliberately. While you speak, what the microphone hears goes straight into
-          the box, unpunctuated — so you can see it is working. When the dictation ends, that
-          passage is read once more against the names this case actually contains: the punctuation
-          goes in and the surnames come out right. It takes a second or two, the line under the box
-          says when it has happened, and <em>Undo</em> puts back exactly what was heard. You can
-          also say a mark where you want one — <em>&ldquo;before ninety-five, comma, who held the
-          shares&rdquo;</em> — and <em>comma</em>, <em>full stop</em>, <em>question mark</em>,
-          <em>colon</em> and <em>new line</em> all work that way.</p>
-        <p><strong>Read it before you send it.</strong> The correction is good with a surname it
-          knows and useless with a word it never heard: a sentence can still come out saying
-          something you did not say. Anything you typed yourself is left alone.</p>
+        <p>Your words arrive in the box already punctuated, a second or so behind your voice,
+          with the names in this case spelled the way the case spells them. What is being heard
+          right now shows in the line underneath, so the pause reads as the transcript catching up.
+          Press the button again when you have finished. You can also say a mark where you want
+          one — <em>&ldquo;before ninety-five, comma, who held the shares&rdquo;</em> — and
+          <em>comma</em>, <em>full stop</em>, <em>question mark</em>, <em>colon</em> and
+          <em>new line</em> all work that way.</p>
+        <p><strong>Read it before you send it.</strong> It is good with a name it knows and
+          useless with a word it never heard, so a sentence can still come out saying something
+          you did not say. A name it could not place is left in lower case — that is the tell.
+          Anything you typed yourself is left alone.
         <p>It listens in English, and it needs Chrome, Edge or Safari; Firefox cannot do it. If you
           would rather type, type — nothing about the exercise assumes you spoke.</p>
         <p class="prov">Your browser does the listening, and it sends the audio to its own
