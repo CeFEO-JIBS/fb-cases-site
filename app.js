@@ -1803,6 +1803,81 @@
   }
 
   // ── router ──────────────────────────────────────────────────────────────
+  /**
+   * Dictation, end to end, on the device that is having the trouble.
+   *
+   * This exists because a voice fault took four rounds to find, and every one
+   * of them was spent guessing: the transcript is the browser's, the
+   * correction is the server's, and from a report saying "it doesn't work"
+   * there was no way to tell which half had failed, or whether the phone had
+   * even reached the route. A screenshot of this page answers all of that at
+   * once — which build, whether the engine exists, what it heard, what was
+   * sent, what came back, and how long each leg took.
+   *
+   * It runs against the real API as the signed-in group, so it proves the
+   * whole chain rather than a model of it. It is not linked from anywhere:
+   * #/voice-check, given out when it is needed.
+   */
+  async function voiceCheck() {
+    const me = await ensureMe(); nav(null);
+    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    view.innerHTML = `<h1>Dictation check</h1>
+      <p class="lede">Press the button and read the sentence aloud. Everything the page learns is
+        printed below — send that whole screen to whoever is looking at the problem.</p>
+      <div class="card">
+        <p class="label">read this aloud</p>
+        <p style="font-family:var(--read);font-size:19px;margin:4px 0 16px">
+          &ldquo;Hello, we work for CeFEO in Jönköping and we would like to ask about ownership.&rdquo;</p>
+        <button class="btn" id="vc-go">Start</button>
+        <button class="btn quiet" id="vc-stop" disabled>Stop</button>
+      </div>
+      <pre id="vc-log" class="vclog"></pre>`;
+
+    const log = $("#vc-log");
+    const t0 = Date.now();
+    const lines = [];
+    const put = (s) => { lines.push(`${String(Date.now() - t0).padStart(6)}ms  ${s}`); log.textContent = lines.join("\n"); };
+
+    put(`site ${C.VERSION}  ·  group ${me?.group?.code ?? "?"}  ·  voice ${me?.edition?.voice_input_enabled ? "on" : "OFF for this course run"}`);
+    put(`speech engine: ${Ctor ? (window.SpeechRecognition ? "SpeechRecognition" : "webkitSpeechRecognition") : "ABSENT — this browser cannot listen"}`);
+    try {
+      const h = await fetch(`${C.API_BASE}/health`).then((r) => r.json());
+      put(`api ${h.version} ${h.commit}  ·  tidy calls so far ${JSON.stringify(h.tidy ?? {})}`);
+    } catch (e) { put(`api /health UNREACHABLE: ${e.message}`); }
+
+    if (!Ctor) return;
+    let rec = null, placed = "";
+    $("#vc-go").addEventListener("click", () => {
+      const r = new Ctor();
+      r.lang = "en-US"; r.continuous = true; r.interimResults = true;
+      r.onresult = async (ev) => {
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          const res = ev.results[i];
+          if (!res.isFinal) continue;
+          const heard = res[0].transcript.trim();
+          put(`heard:  "${heard}"`);
+          const at = Date.now();
+          try {
+            const out = await post("/dictation/tidy", { text: heard, context: placed, next: "" });
+            put(`tidied: "${out.text}"   (changed ${out.changed}, ${Date.now() - at}ms)`);
+            placed = (placed ? placed + " " : "") + (out.text || heard);
+          } catch (e) {
+            put(`TIDY FAILED after ${Date.now() - at}ms: ${e.code || ""} ${e.message}`);
+          }
+        }
+      };
+      r.onerror = (ev) => put(`engine error: ${ev.error}`);
+      r.onend = () => put("engine ended the session");
+      try { r.start(); rec = r; put("listening…"); $("#vc-go").disabled = true; $("#vc-stop").disabled = false; }
+      catch (e) { put(`could not start: ${e.message}`); }
+    });
+    $("#vc-stop").addEventListener("click", () => {
+      if (rec) { try { rec.stop(); } catch {} }
+      put(`stopped. final text: "${placed}"`);
+      $("#vc-go").disabled = false; $("#vc-stop").disabled = true;
+    });
+  }
+
   async function route() {
     const h = location.hash.replace(/^#\/?/, "");
     const [a, b, c] = h.split("/");
@@ -1813,6 +1888,8 @@
       if (!a) return await landing();
       if (a === "people") return await people();
       if (a === "how") return await how();
+      // Unlinked, deliberately: a diagnostic, not a page of the course.
+      if (a === "voice-check") return await voiceCheck();
       // #/file            the whole file
       // #/file/CODE       that document
       // #/file/CODE/at    the file, landed on that document's line

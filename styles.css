@@ -607,3 +607,9 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 .micnote.live{color:var(--stamp)}
 .micnote.interim{color:var(--stamp);font-style:italic}
 .micnote.bad{color:var(--stamp);border-left:2px solid var(--stamp);padding-left:9px}
+
+/* The dictation check (#/voice-check). A log meant to be screenshotted and
+   sent on, so it wraps rather than scrolls sideways and stays readable at
+   phone width. */
+.vclog{font-family:var(--mono);font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;
+  background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:12px 13px;margin:16px 0 0;overflow-x:auto}
