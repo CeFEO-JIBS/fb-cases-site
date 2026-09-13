@@ -168,6 +168,12 @@
     tidying: "Reading it back…",
     corrected: "Punctuation added and names checked against the case.",
     undone: "Put back exactly as it was heard.",
+    // Failures used to say nothing at all, which is how a pass that was never
+    // running looked identical to one that ran and found nothing to change.
+    // Each of these names what happened, so "it doesn't work" has an answer.
+    tidyFailed: "The words stand as heard — the correction could not be fetched. Punctuate it yourself and send it.",
+    tidyOff: "The words stand as heard: this course run has voice correction switched off.",
+    tidyNone: "Nothing to correct — it came back as it was heard.",
     unsupported: "This browser cannot listen. Chrome, Edge and Safari can; Firefox does not support it. Type your question instead.",
     blocked: "Microphone blocked. Allow it in the address bar, then try again.",
     network: "The speech service could not be reached. Type your question instead.",
@@ -230,9 +236,15 @@
       if (!base.trim() || /[.?!\n]\s*$/.test(base)) clean = clean.charAt(0).toUpperCase() + clean.slice(1);
       const joiner = base && !/[\s\n]$/.test(base) ? " " : "";
       textarea.value = base + joiner + clean;
+      heardAt++;
       // The counter, the autosize and the send button all listen for this.
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
     };
+    // Text this component put in the box, as opposed to text the student
+    // typed. The tidy pass has to tell them apart: a recogniser flushing one
+    // last phrase after the session ends must not look like the student
+    // editing, or the correction is thrown away for their own protection.
+    let heardAt = 0;
 
     function start() {
       if (!supported) return;
@@ -302,28 +314,56 @@
      * what was done and offers to put it back. Undo restores the dictation
      * exactly as the recogniser produced it.
      */
-    async function tidy(speak = true) {
-      if (from == null) return;
+    async function tidy(fallback) {
+      // `fallback` is the engine's own failure, when the run ended on one. It
+      // stays on the line whenever the tidy pass has nothing of its own to
+      // report — a blocked microphone is more use to the student than "ready".
+      const idle = () => (fallback ? say(fallback, "bad") : say(VOICE.idle));
+      if (from == null) { idle(); return; }
       const at = from; from = null;
+      say(VOICE.tidying, "live");
+
+      // A recogniser does not go quiet the moment its session ends: Safari
+      // hands back one last finalised phrase just after, and that phrase lands
+      // in the box through append(). Sending before it arrives means correcting
+      // a sentence that is missing its ending, and — worse — the arriving words
+      // then made the box differ from what was captured, which the edit guard
+      // below read as the student typing and threw the whole correction away.
+      // Silently. This wait is the cheapest way to let the tail land first.
+      await new Promise((go) => setTimeout(go, 400));
+
       const before = textarea.value;
       const span = before.slice(at);
-      if (!span.trim()) return;
-      if (speak) say(VOICE.tidying, "live");
+      if (!span.trim()) { idle(); return; }
+      const heardBefore = heardAt;
+
       try {
         const r = await post("/dictation/tidy", { text: span.trim() });
         const clean = (r && typeof r.text === "string" ? r.text : "").trim();
-        // Their own edit, or nothing worth writing back.
-        if (!clean || textarea.value !== before) { if (speak) say(VOICE.idle); return; }
+        if (!clean) { say(VOICE.tidyNone); return; }
+
+        // What the box holds now. Three cases, and only one of them is the
+        // student: unchanged, grown by the recogniser (correct what was sent
+        // and keep the tail as heard), or genuinely edited (their text wins —
+        // we do not overwrite typing to install a correction).
+        const now = textarea.value;
+        let tail = "";
+        if (now !== before) {
+          if (heardAt !== heardBefore && now.startsWith(before)) tail = now.slice(before.length);
+          else { idle(); return; }
+        }
         const head = before.slice(0, at);
-        const joined = head + (head && !/[\s\n]$/.test(head) ? " " : "") + clean;
-        if (joined === before) { if (speak) say(VOICE.idle); return; }
+        const joined = head + (head && !/[\s\n]$/.test(head) ? " " : "") + clean + tail;
+        if (joined === now) { say(VOICE.tidyNone); return; }
         textarea.value = joined;
+        heardAt++;
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        offerUndo(before);
-      } catch {
-        // Including a course run with voice switched off between the click and
-        // the reply: the words stand as dictated and nothing is said about it.
-        if (speak) say(VOICE.idle);
+        offerUndo(now);
+      } catch (e) {
+        // Say which failure it was. A pass that never ran and a pass that ran
+        // and changed nothing used to look exactly alike from the outside,
+        // which is most of why this took four rounds to find.
+        say(e && e.code === "voice_disabled" ? VOICE.tidyOff : VOICE.tidyFailed, "bad");
       }
     }
 
@@ -354,8 +394,7 @@
      */
     function ended(note) {
       listening = false; rec = null; paint();
-      if (note) say(note, "bad");
-      tidy(!note);
+      tidy(note);
     }
 
     function stop() {
