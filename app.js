@@ -267,7 +267,7 @@
       manualStop = false;
       try {
         r.start(); rec = r; listening = true; say(VOICE.listening, "live");
-        placed = "";
+        placed = ""; held = null;
       } catch { say(VOICE.failed, "bad"); }
       paint();
     }
@@ -291,22 +291,39 @@
     // has always gone — so the lag reads as the transcript catching up rather
     // than as nothing happening.
     //
-    // Each phrase carries the corrected text before it, so the server can
-    // continue an open sentence rather than punctuate a fragment as though it
-    // were a whole one. Phrases are sent as they finalise but appended in
-    // order, and a phrase whose correction fails is appended as it was heard —
-    // a word is never lost to a network.
+    // A phrase is held until the NEXT one arrives, because the end of a
+    // fragment cannot be punctuated without knowing what follows it. A
+    // recogniser finalises "who signed the agreement" as a complete-looking
+    // question; only "in nineteen ninety five" reveals that it was not one.
+    // Punctuating on arrival produced exactly that — "Who signed the
+    // agreement? in 1995?" — so each phrase is sent with the corrected text
+    // before it AND the raw phrase after it, and the last one is released when
+    // the student stops, which is when "nothing follows" becomes true.
+    //
+    // The cost is that the box trails one phrase behind rather than one
+    // second. The gain is that it is right, and that nothing ever changes once
+    // it is on the screen.
+    //
+    // A phrase whose correction fails is appended exactly as heard: a word is
+    // never lost to a network.
     let placed = "";        // what this run has put in the box, corrected
+    let held = null;        // a phrase waiting to learn what comes after it
     let queue = Promise.resolve();
 
     function hear(phrase) {
       const raw = phrase.trim();
       if (!raw) return;
+      if (held !== null) release(held, raw);
+      held = raw;
+    }
+
+    /** Send one phrase, knowing both sides of it, and append what comes back. */
+    function release(raw, next) {
       const context = placed;
       queue = queue.then(async () => {
         let text = raw;
         try {
-          const r = await post("/dictation/tidy", { text: raw, context });
+          const r = await post("/dictation/tidy", { text: raw, context, next });
           const clean = (r && typeof r.text === "string" ? r.text : "").trim();
           if (clean) text = clean;
           else say(VOICE.rough, "bad");
@@ -331,6 +348,9 @@
      */
     function ended(note) {
       listening = false; rec = null; paint();
+      // Stopping is what makes "nothing follows" true, so the held phrase can
+      // finally be closed — with a full stop or a question mark, as it needs.
+      if (held !== null) { release(held, ""); held = null; }
       queue.then(() => { if (!listening) say(note || VOICE.idle, note ? "bad" : undefined); });
     }
 
@@ -351,7 +371,7 @@
       button.removeEventListener("click", onClick);
       manualStop = true;
       if (rec) { try { rec.abort(); } catch {} }
-      rec = null; listening = false; placed = ""; say(null);
+      rec = null; listening = false; placed = ""; held = null; say(null);
     } };
   }
   /** Wire the microphone for one composer, if this course run allows it. */
