@@ -166,6 +166,8 @@
     idle: "Please speak in English. Chrome, Edge and Safari can listen; Firefox cannot.",
     listening: "Speak in English — press the button again when you have finished, and the punctuation and the names are put right for you to read.",
     tidying: "Reading it back…",
+    corrected: "Punctuation added and names checked against the case.",
+    undone: "Put back exactly as it was heard.",
     unsupported: "This browser cannot listen. Chrome, Edge and Safari can; Firefox does not support it. Type your question instead.",
     blocked: "Microphone blocked. Allow it in the address bar, then try again.",
     network: "The speech service could not be reached. Type your question instead.",
@@ -246,14 +248,19 @@
       };
       r.onerror = (ev) => {
         if (ev.error === "aborted" || ev.error === "no-speech") return;
-        manualStop = true; listening = false; rec = null;
-        say(ev.error === "not-allowed" || ev.error === "service-not-allowed" ? VOICE.blocked
-          : ev.error === "network" ? VOICE.network : VOICE.failed, "bad");
-        paint();
+        manualStop = true;
+        // The words heard before it failed are still the student's, so they are
+        // still worth correcting: ended() runs the tidy pass, and its own
+        // notice replaces this one only if it has something to say.
+        ended(ev.error === "not-allowed" || ev.error === "service-not-allowed" ? VOICE.blocked
+          : ev.error === "network" ? VOICE.network : VOICE.failed);
       };
       r.onend = () => {
-        if (manualStop) { listening = false; rec = null; say(VOICE.idle); paint(); return; }
-        try { r.start(); } catch { listening = false; rec = null; paint(); }
+        if (manualStop) { ended(); return; }
+        // Not the student's doing: the engine gave up on a silence. Restart it,
+        // and if the restart will not take, the run is over and the words in
+        // the box need the same tidy as a run the student ended themselves.
+        try { r.start(); } catch { ended(); }
       };
       manualStop = false;
       try {
@@ -283,34 +290,78 @@
     // who has just spoken a question must always be able to send it.
     let from = null;   // where this dictation run began in the box
 
-    async function tidy() {
+    /**
+     * `speak` is false when the caller has already put a failure on the notice
+     * line and does not want it overwritten by ours.
+     *
+     * The correction is announced and it is reversible. A pilot's first
+     * reaction to the box changing under them was "why show one text and then
+     * change it?" — which is the right question to ask of an edit that arrives
+     * unattributed and cannot be refused. The words appear as they are heard,
+     * because waiting in silence is worse; then the line under the box says
+     * what was done and offers to put it back. Undo restores the dictation
+     * exactly as the recogniser produced it.
+     */
+    async function tidy(speak = true) {
       if (from == null) return;
       const at = from; from = null;
       const before = textarea.value;
       const span = before.slice(at);
       if (!span.trim()) return;
-      say(VOICE.tidying, "live");
+      if (speak) say(VOICE.tidying, "live");
       try {
         const r = await post("/dictation/tidy", { text: span.trim() });
         const clean = (r && typeof r.text === "string" ? r.text : "").trim();
         // Their own edit, or nothing worth writing back.
-        if (!clean || textarea.value !== before) { say(VOICE.idle); return; }
+        if (!clean || textarea.value !== before) { if (speak) say(VOICE.idle); return; }
         const head = before.slice(0, at);
-        textarea.value = head + (head && !/[\s\n]$/.test(head) ? " " : "") + clean;
+        const joined = head + (head && !/[\s\n]$/.test(head) ? " " : "") + clean;
+        if (joined === before) { if (speak) say(VOICE.idle); return; }
+        textarea.value = joined;
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
-        say(VOICE.idle);
+        offerUndo(before);
       } catch {
         // Including a course run with voice switched off between the click and
         // the reply: the words stand as dictated and nothing is said about it.
-        say(VOICE.idle);
+        if (speak) say(VOICE.idle);
       }
+    }
+
+    /** Say what was changed, and let the student take it back in one tap. */
+    function offerUndo(raw) {
+      say(VOICE.corrected, "live");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "undo"; b.textContent = "Undo";
+      b.addEventListener("click", () => {
+        textarea.value = raw;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        say(VOICE.undone);
+      });
+      notice.append(" ", b);
+    }
+
+    /**
+     * The run is over, however it ended — and the tidy pass belongs here
+     * rather than on the stop button, which is where it was.
+     *
+     * The button is only one of the four ways a run finishes. Safari on a
+     * phone ends the recognition session by itself after a silence; the
+     * restart in `onend` can refuse; the engine can error out. Each of those
+     * left the button reading "Dictate" with the raw, unpunctuated words in
+     * the box and no correction ever asked for — indistinguishable, from the
+     * outside, from the feature being broken. On a phone it is the commonest
+     * of the four, which is why it is what a pilot found first.
+     */
+    function ended(note) {
+      listening = false; rec = null; paint();
+      if (note) say(note, "bad");
+      tidy(!note);
     }
 
     function stop() {
       manualStop = true;
       if (rec) { try { rec.stop(); } catch {} }
-      listening = false; paint();
-      tidy();
+      ended();
     }
     const onClick = () => {
       if (!supported) { say(VOICE.unsupported, "bad"); return; }
@@ -1656,12 +1707,15 @@
           in the box for you to read. Nothing is sent until you press Enter — so check it first,
           because it will mishear a surname, and the person you are talking to will answer the
           question it heard rather than the one you asked.</p>
-        <p><strong>Press the button again when you have finished.</strong> That is what ends the
-          dictation, and it is also when the text is put right: the punctuation goes in, and the
-          names are checked against the ones this case actually contains. It takes a second or
-          two. You can also say a mark where you want one — <em>&ldquo;before ninety-five, comma,
-          who held the shares&rdquo;</em> — and <em>comma</em>, <em>full stop</em>,
-          <em>question mark</em>, <em>colon</em> and <em>new line</em> all work that way.</p>
+        <p><strong>Your words appear as you say them, and are tidied when you finish.</strong>
+          Two stages, deliberately. While you speak, what the microphone hears goes straight into
+          the box, unpunctuated — so you can see it is working. When the dictation ends, that
+          passage is read once more against the names this case actually contains: the punctuation
+          goes in and the surnames come out right. It takes a second or two, the line under the box
+          says when it has happened, and <em>Undo</em> puts back exactly what was heard. You can
+          also say a mark where you want one — <em>&ldquo;before ninety-five, comma, who held the
+          shares&rdquo;</em> — and <em>comma</em>, <em>full stop</em>, <em>question mark</em>,
+          <em>colon</em> and <em>new line</em> all work that way.</p>
         <p><strong>Read it before you send it.</strong> The correction is good with a surname it
           knows and useless with a word it never heard: a sentence can still come out saying
           something you did not say. Anything you typed yourself is left alone.</p>

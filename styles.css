@@ -607,3 +607,8 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 .micnote.live{color:var(--stamp)}
 .micnote.interim{color:var(--stamp);font-style:italic}
 .micnote.bad{color:var(--stamp);border-left:2px solid var(--stamp);padding-left:9px}
+/* Undo the correction. A tap target on a phone, so it carries real padding
+   rather than sitting as bare underlined text at 12.5px. */
+.micnote .undo{font:inherit;color:inherit;background:none;border:0;border-bottom:1px solid currentColor;
+  padding:4px 2px;margin-left:2px;cursor:pointer;-webkit-appearance:none;appearance:none}
+.micnote .undo:hover{opacity:.7}
