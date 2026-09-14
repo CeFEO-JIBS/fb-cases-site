@@ -123,6 +123,17 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .cmeet{display:flex;gap:22px;align-items:flex-start;margin-bottom:14px}
 .cmeet>.whocard{flex:none;width:var(--face)}
 .cmeet .whobody .pfacts{margin:5px 0 0}
+/* A desk's own "before the conversation" page puts the portrait beside the name
+   rather than inside a card under it, so the frame a card gives a portrait —
+   the width, the 4:5 crop, the border — has to be stated for it here. It was
+   not, and a bare <img class="portrait"> matches no rule at all: the file
+   rendered at its natural size, so a 230-pixel face came out at 845 and pushed
+   the desk itself below the fold. */
+.cmeet>.deskface{flex:none;width:var(--face)}
+.cmeet>.deskface .portrait{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;
+  object-position:50% 18%;background:var(--rule-soft);border:1px solid var(--rule);border-radius:2px}
+.cmeet>.deskface .portrait.none{display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:34px;color:var(--muted)}
 .cbrief{min-width:0;padding-top:2px}
 .cbrief .lede{margin:0;max-width:64ch}
 .cbrief .lede p{margin:0 0 11px}
