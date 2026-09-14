@@ -386,23 +386,40 @@ ul.sources li{padding:3px 0;border-bottom:1px solid var(--rule-soft);display:fle
 ul.sources li:last-child{border-bottom:0}
 ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 
-/* The onboarding pack, named rather than counted. A team lands on this page to
-   read the pack, so the papers are the list: a folder is a heading and each
-   document is a line you can open. */
-ul.sources li.packgrp{display:block;border-bottom:0;padding:0;margin:0 0 10px}
-ul.sources li.packgrp>.label{margin:8px 0 2px}
-ul.packdocs{list-style:none;margin:0;padding:0}
-ul.packdocs li{padding:0;border-bottom:1px solid var(--rule-soft)}
-ul.packdocs li:last-child{border-bottom:0}
-ul.packdocs a{display:flex;gap:12px;align-items:baseline;padding:5px 0;text-decoration:none}
+/* The onboarding pack, named rather than counted, and folded.
+   A team lands on this page to read the pack, so the papers are the list
+   rather than a count of them — but eleven of them listed open is a wall, so
+   each folder is a fold and all three start shut. The count stays on the
+   summary, because a shut folder still has to say how much is in it.
+
+   Three type treatments were fighting in a list two inches wide: a mono-caps
+   folder heading, a mono code and a serif title. The folder is a heading and
+   takes the sans the rest of the system speaks in; the code and the title keep
+   the sizes the case file's own rows use, so the same paper looks the same on
+   both pages. */
+ul.sources li.packgrp{display:block;padding:0;margin:0;border-bottom:1px solid var(--rule-soft)}
+ul.sources li.packgrp:last-child{border-bottom:0}
+li.packgrp>details>summary{display:flex;align-items:baseline;gap:10px;padding:10px 0;
+  cursor:pointer;list-style:none}
+li.packgrp>details>summary::-webkit-details-marker{display:none}
+li.packgrp>details>summary::before{content:"\25b8";font-family:var(--mono);font-size:11px;
+  color:var(--muted);flex:none}
+li.packgrp>details[open]>summary::before{content:"\25be"}
+li.packgrp>details>summary:hover .fname{color:var(--ledger)}
+li.packgrp .fname{font-family:var(--ui);font-size:13.5px;font-weight:600}
+li.packgrp .n{margin-left:auto}
+ul.packdocs{list-style:none;margin:0 0 6px;padding:0 0 0 21px}
+ul.packdocs li{padding:0;border-top:1px solid var(--rule-soft)}
+ul.packdocs a{display:grid;grid-template-columns:20ch minmax(0,1fr);gap:12px;align-items:baseline;
+  padding:7px 0;text-decoration:none}
 ul.packdocs a:hover .ttl{border-bottom-color:var(--ledger)}
-ul.packdocs .code{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);
-  flex:none;min-width:14ch}
-ul.packdocs .ttl{font-family:var(--read);font-size:15px;color:var(--ledger);
-  border-bottom:1px solid transparent;padding-bottom:1px}
+ul.packdocs .code{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted)}
+ul.packdocs .ttl{font-family:var(--read);font-size:15.5px;color:var(--ledger);
+  border-bottom:1px solid transparent;padding-bottom:1px;justify-self:start}
 @media (max-width:560px){
-  ul.packdocs a{display:block;padding:7px 0}
-  ul.packdocs .code{display:block;min-width:0}
+  ul.packdocs{padding-left:14px}
+  ul.packdocs a{display:block;padding:8px 0}
+  ul.packdocs .code{display:block;margin-bottom:1px}
 }
 .cites{margin:8px 0 0;padding:10px 0 0;border-top:1px solid var(--rule-soft);list-style:none}
 .cites li{font-size:13px;line-height:1.45;margin-bottom:5px;display:flex;gap:8px}

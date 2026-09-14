@@ -80,6 +80,25 @@
    * to those gave "… at 30 August 2026 · 2026".
    */
   const yearTail = (d) => (d.doc_year && !String(nameEn(d)).includes(String(d.doc_year)) ? ` \u00b7 ${d.doc_year}` : "");
+
+  /**
+   * A record's name with a trailing date clause taken off.
+   *
+   * For a row of links only. Three titles ending "at 30 August 2026" side by
+   * side is three-quarters date and none of it distinguishes them — and the
+   * one paper in the row that has no date, the family tree, is the one a
+   * reader's eye then goes to for the wrong reason. The record's own page and
+   * the case file keep the filed title whole, because that is what is printed
+   * on the paper and what a team will quote.
+   */
+  const MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December";
+  const shortName = (d) => String(docName(d) || d.code || "")
+    .replace(new RegExp(String.raw`\s+(?:at|as at|as of|of)\s+\d{1,2}\s+(?:${MONTHS})\s+\d{4}\s*$`, "i"), "")
+    // The day has to be part of this pattern too: without it "…the advisers,
+    // 8 September 2026" lost the month and the year and kept the 8.
+    .replace(new RegExp(String.raw`,?\s+(?:\d{1,2}\s+)?(?:${MONTHS})\s+\d{4}\s*$`, "i"), "")
+    .replace(/[,;:\s]+$/, "")
+    .trim();
   /**
    * The opening of a brief, cut at a sentence where there is one and at a word
    * where there is not. The card carries enough to choose on; the whole brief
@@ -496,13 +515,16 @@
         if (!byFolder.has(key)) byFolder.set(key, []);
         byFolder.get(key).push(doc);
       }
+      // Folded, and shut. Eleven papers listed open is a wall on the page a
+      // team lands on; three folders they can open is an index. The count
+      // stays on the summary so a shut folder still says how much is in it.
       $("#ld-packlist").innerHTML = byFolder.size
-        ? [...byFolder].map(([folder, docs]) => `<li class="packgrp">
-            <p class="label">${esc(folder)}</p>
+        ? [...byFolder].map(([folder, docs]) => `<li class="packgrp"><details>
+            <summary><span class="fname">${esc(folder)}</span><span class="n">${docs.length}</span></summary>
             <ul class="packdocs">${docs.map((doc) => `<li><a href="#/file/${esc(doc.code)}">
               <span class="code">${esc(doc.code)}</span>
               <span class="ttl">${esc(docName(doc))}${yearTail(doc)}</span>
-            </a></li>`).join("")}</ul></li>`).join("")
+            </a></li>`).join("")}</ul></details></li>`).join("")
         // No per-document list served: fall back to what the page used to show
         // rather than an empty box.
         : d.pack.map((x) => `<li><span>${esc(x.folder || "Papers")}</span><span class="n">${x.n}</span></li>`).join("");
@@ -761,7 +783,7 @@
       const el = $("#case-tree"); if (!el || !docs.length) return;
       el.innerHTML = `<p class="label">The papers to read first</p>`
         // A record with no English title would otherwise render an empty link.
-        + docs.map((d) => `<a href="#/file/${esc(d.code)}">${esc(docName(d) || d.code)}</a>`)
+        + docs.map((d) => `<a href="#/file/${esc(d.code)}">${esc(shortName(d))}</a>`)
               .join('<span class="sep">\u00b7</span>');
       el.hidden = false;
     });
