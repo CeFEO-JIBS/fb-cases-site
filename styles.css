@@ -385,6 +385,25 @@ ul.sources{list-style:none;margin:6px 0 12px;padding:0;font-size:13px}
 ul.sources li{padding:3px 0;border-bottom:1px solid var(--rule-soft);display:flex;justify-content:space-between;gap:10px}
 ul.sources li:last-child{border-bottom:0}
 ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* The onboarding pack, named rather than counted. A team lands on this page to
+   read the pack, so the papers are the list: a folder is a heading and each
+   document is a line you can open. */
+ul.sources li.packgrp{display:block;border-bottom:0;padding:0;margin:0 0 10px}
+ul.sources li.packgrp>.label{margin:8px 0 2px}
+ul.packdocs{list-style:none;margin:0;padding:0}
+ul.packdocs li{padding:0;border-bottom:1px solid var(--rule-soft)}
+ul.packdocs li:last-child{border-bottom:0}
+ul.packdocs a{display:flex;gap:12px;align-items:baseline;padding:5px 0;text-decoration:none}
+ul.packdocs a:hover .ttl{border-bottom-color:var(--ledger)}
+ul.packdocs .code{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);
+  flex:none;min-width:14ch}
+ul.packdocs .ttl{font-family:var(--read);font-size:15px;color:var(--ledger);
+  border-bottom:1px solid transparent;padding-bottom:1px}
+@media (max-width:560px){
+  ul.packdocs a{display:block;padding:7px 0}
+  ul.packdocs .code{display:block;min-width:0}
+}
 .cites{margin:8px 0 0;padding:10px 0 0;border-top:1px solid var(--rule-soft);list-style:none}
 .cites li{font-size:13px;line-height:1.45;margin-bottom:5px;display:flex;gap:8px}
 .cites .pos{font-family:var(--mono);font-size:11px;color:var(--stamp);flex:none}
@@ -667,9 +686,20 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
   display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .person .pacts{margin-top:auto}
 
-/* The family tree, above the roster. */
-.treeline{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 14px}
-.treeline a{color:var(--ledger);text-underline-offset:3px}
+/* The orientation papers, above the roster. Four document titles set in mono
+   caps is a wall; the label carries the mono and the titles are read. */
+.treeline{margin:0 0 16px}
+.treeline>.label{margin:0 0 4px}
+.treeline a{font-family:var(--read);font-size:15px;color:var(--ledger);text-decoration:none;
+  border-bottom:1px solid var(--rule);padding-bottom:1px}
+.treeline a:hover{border-bottom-color:var(--ledger)}
+.treeline .sep{color:var(--muted);margin:0 9px}
+@media (max-width:560px){
+  /* One per line on a phone: four titles separated by dots wrap into a
+     paragraph you cannot pick a link out of. */
+  .treeline a{display:block;padding:5px 0;border-bottom:0}
+  .treeline .sep{display:none}
+}
 
 /* The room's sidebar has three things in it and a laptop screen to fit them
    into, and it did not fit: measured at 1440x900 the clock's own bottom edge

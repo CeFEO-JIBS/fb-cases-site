@@ -13,12 +13,12 @@
      markup has arrived and show a half-updated page. The query makes the
      three files move together: it carries the version in config.js, so it
      moves whenever the site does. -->
-<link rel="stylesheet" href="styles.css?v=1.22">
+<link rel="stylesheet" href="styles.css?v=1.23">
 <!-- Before anything is drawn. The case's palette was cached by the last visit,
      so a returning student's first paint is already in their case's colours
      and their own dark-mode choice — rather than a flash of the platform's
      defaults, which after dark is what people actually mind about. -->
-<script src="theme.js?v=1.22"></script>
+<script src="theme.js?v=1.23"></script>
 </head>
 <body>
 <header class="hdr">
@@ -48,7 +48,7 @@
     <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
     <div id="foot-edition"></div>
   </div>
-  <div class="base">CASE ROOM · <span id="stamp">v1.22</span>
+  <div class="base">CASE ROOM · <span id="stamp">v1.23</span>
     <button type="button" id="lightswitch" class="lightswitch" hidden></button>
   </div>
 </footer>
@@ -189,9 +189,9 @@
 <template id="t-case">
   <p class="label" id="edition"></p>
   <h1>Interviews</h1>
-  <p class="lede" id="case-lede">Everyone the family has agreed you may speak with. You have one conversation with each, and it does not reopen — so read the room before you choose. Take notes; the transcript arrives only when the conversation ends.</p>
+  <p class="lede" id="case-lede">Everyone the family has agreed you may speak with. You have one conversation with each, and it does not reopen — so read the room before you choose.</p>
   <div id="gate" class="empty" hidden></div>
-  <p class="treeline" id="case-tree" hidden></p>
+  <div class="treeline" id="case-tree" hidden></div>
   <div class="strip">
     <div class="cell"><div class="label" id="l-people">people</div><div class="v" id="n-people">–</div></div>
     <div class="cell"><div class="label" id="l-held">conversations held</div><div class="v" id="n-held">–</div></div>
@@ -419,7 +419,7 @@
   </div>
 </template>
 
-<script src="config.js?v=1.22"></script>
-<script src="app.js?v=1.22"></script>
+<script src="config.js?v=1.23"></script>
+<script src="app.js?v=1.23"></script>
 </body>
 </html>

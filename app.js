@@ -75,6 +75,12 @@
   // own page — but it is not the name of the thing.
   const docName = (d) => nameEn(d);
   /**
+   * The year after a record's name, unless the name already says it. Half of
+   * this case's papers are titled "… at 30 August 2026", and appending the year
+   * to those gave "… at 30 August 2026 · 2026".
+   */
+  const yearTail = (d) => (d.doc_year && !String(nameEn(d)).includes(String(d.doc_year)) ? ` \u00b7 ${d.doc_year}` : "");
+  /**
    * The opening of a brief, cut at a sentence where there is one and at a word
    * where there is not. The card carries enough to choose on; the whole brief
    * is one click away, on the page before the conversation.
@@ -478,7 +484,28 @@
     if (total) {
       $("#ld-pack").hidden = false;
       $("#ld-packnote").textContent = p.pack_note || "What the family, its companies and the public registers would hand you on the first day.";
-      $("#ld-packlist").innerHTML = d.pack.map((x) => `<li><span>${esc(x.folder || "Papers")}</span><span class="n">${x.n}</span></li>`).join("");
+      // The papers themselves, not a count of them. A team lands here and the
+      // pack is the first thing it is meant to read; a folder name with a
+      // number beside it tells them something is there and makes them go and
+      // look for it. Each row goes to the record's own page, where the blurb
+      // and the provenance are and where opening it signs a URL — so this
+      // names what the team already holds and grants nothing.
+      const byFolder = new Map();
+      for (const doc of d.pack_docs || []) {
+        const key = doc.folder || "Papers";
+        if (!byFolder.has(key)) byFolder.set(key, []);
+        byFolder.get(key).push(doc);
+      }
+      $("#ld-packlist").innerHTML = byFolder.size
+        ? [...byFolder].map(([folder, docs]) => `<li class="packgrp">
+            <p class="label">${esc(folder)}</p>
+            <ul class="packdocs">${docs.map((doc) => `<li><a href="#/file/${esc(doc.code)}">
+              <span class="code">${esc(doc.code)}</span>
+              <span class="ttl">${esc(docName(doc))}${yearTail(doc)}</span>
+            </a></li>`).join("")}</ul></li>`).join("")
+        // No per-document list served: fall back to what the page used to show
+        // rather than an empty box.
+        : d.pack.map((x) => `<li><span>${esc(x.folder || "Papers")}</span><span class="n">${x.n}</span></li>`).join("");
     }
     const gate = interviewGate(me);
     $("#ld-gate").hidden = !open || !gate;
@@ -649,9 +676,9 @@
       const spending = bs.held + bs.pending;
       $("#case-lede").innerHTML = bs.choosing
         ? `Everyone the family has agreed to make available. Your team chooses <strong>${bs.budget}</strong> of them`
-          + ` — one conversation each, and none of them reopens, so choose before you knock. Take notes; the transcript arrives only when the conversation ends.`
+          + ` — one conversation each, and none of them reopens, so choose before you knock.`
         : `Everyone the family has agreed you may speak with. Your team may hold <strong>${bs.budget}</strong> of these conversations`
-          + ` — one with each person, and none of them reopens, so choose before you knock. Take notes; the transcript arrives only when the conversation ends.`;
+          + ` — one with each person, and none of them reopens, so choose before you knock.`;
       $("#l-people").textContent = bs.choosing ? "people you may choose from" : "people";
       $("#l-held").textContent = "conversations held";
       $("#l-left").textContent = "still to speak with";
@@ -717,14 +744,25 @@
         "Every branch", (v) => { fBranch = v; });
     }
 
-    // The family tree, one click from the roster: twenty-odd people across
-    // several branches and six generations is not a list anybody holds in their
-    // head. A link is safe on this page — it is only in the room that leaving
-    // would cost a team what it has heard.
-    genoDoc().then((tree) => {
-      const el = $("#case-tree"); if (!el || !tree) return;
-      // A record with no English title would otherwise render an empty link.
-      el.innerHTML = `<a href="#/file/${esc(tree.code)}">${esc(docName(tree) || "The family tree")}</a>`;
+    // The orientation papers, one click from the roster. The family tree first,
+    // because twenty-odd people across several branches and six generations is
+    // not a list anybody holds in their head; then the papers filed beside it,
+    // because choosing whom to spend an hour with is a question about who owns
+    // what and who sits where, and those are the pages that answer it. Links
+    // are safe on this page — it is only in the room that leaving would cost a
+    // team what it has heard.
+    //
+    // Derived as "the pack's papers filed with the family tree" rather than
+    // named here. This site runs whatever case it is pointed at, and a list of
+    // four codes would be four codes about one case; a case that files its
+    // genogram alongside its structure papers gets all of them, and a case
+    // that files it alone gets just the tree.
+    orientationDocs().then((docs) => {
+      const el = $("#case-tree"); if (!el || !docs.length) return;
+      el.innerHTML = `<p class="label">The papers to read first</p>`
+        // A record with no English title would otherwise render an empty link.
+        + docs.map((d) => `<a href="#/file/${esc(d.code)}">${esc(docName(d) || d.code)}</a>`)
+              .join('<span class="sep">\u00b7</span>');
       el.hidden = false;
     });
 
@@ -962,6 +1000,25 @@
   async function genoDoc() {
     try { return (await documents()).find((d) => /genogram/i.test(d.code) || /genogram/i.test(docName(d))) || null; }
     catch { return null; }
+  }
+
+  /**
+   * What a team should read before it chooses whom to interview: the family
+   * tree, and whatever the case files with it.
+   *
+   * The tree leads because it is the one paper nobody can hold in their head.
+   * The rest are its folder-mates — in the reference case the boards, the group
+   * structure and the shareholder schedule, which is exactly the set — found by
+   * the folder rather than by name so that this stays true of a case nobody has
+   * written yet. Empty when the case has no tree, in which case the row does
+   * not appear at all.
+   */
+  async function orientationDocs() {
+    const tree = await genoDoc();
+    if (!tree) return [];
+    const ds = await documents();
+    const kin = tree.folder ? ds.filter((d) => d.folder === tree.folder && d.code !== tree.code) : [];
+    return [tree, ...kin];
   }
 
   async function confirm_(code) {
