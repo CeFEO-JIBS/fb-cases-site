@@ -442,13 +442,15 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .prose.read h2{font-family:var(--ui);font-size:var(--hist);margin:32px 0 10px}
 /* Nine headings on one page: same size as the body, as on the landing page,
    but weighted and ruled so the eye can find its place in a long read. */
-/* The briefing ranges left, unlike the case landing page.
-   `--col` is centred up there for a stated reason — a film sits in the column
-   and the prose has to share its edge — and this page has no film. Centring it
-   anyway gave the page two left edges: the label, the headline and the
-   standfirst against the margin, and then every word of the briefing itself
-   indented by half the empty space beside it. */
-.prose.read.howto{margin-inline:0}
+/* The briefing is one centred column, the way the case landing page is.
+   It had two left edges: the label, the headline and the standfirst against the
+   page margin, and then every word of the briefing indented by half the space
+   beside it, because .prose.read carries the measure and the heading block did
+   not. The first attempt at this ranged the prose left to meet the heading;
+   wrong way round — the measure is the page's own and the heading belongs
+   inside it, which is exactly how the landing page is built. So the whole
+   briefing goes in the column and the column sits in the middle of the page. */
+.howpage{max-width:var(--col);margin-inline:auto}
 .howto h2{font-weight:600;border-top:1px solid var(--rule-soft);padding-top:18px}
 .howto h2:first-child{border-top:0;padding-top:0;margin-top:8px}
 .howto strong{font-family:var(--ui);font-weight:600}
