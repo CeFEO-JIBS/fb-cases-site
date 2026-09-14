@@ -87,6 +87,12 @@
   const ME_TTL = 15000;
   async function ensureMe(force) {
     if (force || !S.me || Date.now() - (S.meAt || 0) > ME_TTL) { S.me = await api("/me"); S.meAt = Date.now(); }
+    // The case's palette rides down with this row. Caching it is what lets the
+    // NEXT first paint be right — this one has already happened — and
+    // repainting now is what makes a palette an instructor changed mid-seminar
+    // arrive within fifteen seconds rather than at the next reload.
+    if (window.FBTheme && S.me.theme) { window.FBTheme.cache(S.me.theme); window.FBTheme.paint(); }
+    lightswitch();
     $("#who").textContent = S.me.group.code;
     $("#foot-edition").textContent = `${S.me.edition.title || S.me.edition.code} · ${S.me.group.code}`;
     return S.me;
@@ -132,6 +138,35 @@
              left: iv.left == null ? null : iv.left, choosing: iv.selection === "open" };
   }
   async function documents(force) { if (force || !S.docs) S.docs = (await api("/documents")).documents; return S.docs; }
+
+  /**
+   * The footer's light switch.
+   *
+   * Hidden until a palette has been served, because until then there is no
+   * dark one to switch to and a dead control is worse than no control. Three
+   * states rather than two: a student can take the decision (light, dark) or
+   * hand it back to the course (auto), and handing it back matters most under
+   * the "after dark" policy, where the right answer changes during the
+   * evening a team is working.
+   *
+   * The label says what pressing it will do. The current state needs no label:
+   * it is the page.
+   */
+  function lightswitch() {
+    const b = $("#lightswitch"); if (!b || !window.FBTheme) return;
+    const policy = window.FBTheme.policy();
+    b.hidden = !policy;
+    if (!policy) return;
+    const now = window.FBTheme.choice();
+    // light -> dark -> back to whatever the course says -> light
+    const next = now === "light" ? "dark" : now === "dark" ? "auto" : "light";
+    const name = { light: "light", dark: "dark", auto: "the course setting" };
+    b.textContent = `\u00b7 ${name[next]}`;
+    b.title = now === "auto"
+      ? `This device follows the course, which right now is ${window.FBTheme.isDark() ? "dark" : "light"}. Press to set ${name[next]} for yourself.`
+      : `This device is set to ${now}. Press for ${name[next]}.`;
+    b.onclick = () => { window.FBTheme.set(next); lightswitch(); };
+  }
   function stopPoll() {
     if (S.poll) { clearInterval(S.poll); S.poll = null; }
     if (S.age) { clearInterval(S.age); S.age = null; }
@@ -2081,7 +2116,17 @@
   }
 
   window.addEventListener("hashchange", route);
-  $("#out").addEventListener("click", () => { store.set(null); S.me = S.personas = S.docs = null; location.hash = "#/"; signin(); });
+  $("#out").addEventListener("click", () => {
+    store.set(null); S.me = S.personas = S.docs = null;
+    // A shared laptop is the normal case in a seminar room. The next group may
+    // be on a different case, and its palette is not this one's to inherit.
+    if (window.FBTheme) window.FBTheme.forget();
+    lightswitch();
+    location.hash = "#/"; signin();
+  });
+  // The palette was already applied by theme.js, before any of this ran; the
+  // switch only needs to catch up with what it did.
+  lightswitch();
   route();
   stamp();
 })();

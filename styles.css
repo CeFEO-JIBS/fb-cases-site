@@ -1,10 +1,22 @@
 /* design/design-system.md — the system speaks in sans, people in serif, the machine in mono */
 :root{
-  --paper:#E7E9E3; --card:#FCFCFA; --ink:#15171B; --rule:#C7CBC1; --rule-soft:#DCDFD8;
-  --muted:#6C7068; --ledger:#003865; --stamp:#961B81; --spent:#9AA096;
+  /* The five a case chooses, and the thirteen they imply. The eighteen are
+     set again at boot from the case's own palette (app.js: paint) — these are
+     the design system's, and they are the values app/core's derivation
+     produces from the five, so a page that never hears from the API and a page
+     served the defaults look identical. design/design-system.md */
+  --paper:#E7E9E3; --card:#FCFCFA; --ink:#15171B; --ledger:#003865; --stamp:#961B81;
+  --rule:#c8cac5; --rule-soft:#dddfd9; --rule-hard:#15171B; --muted:#656767; --spent:#8f918f;
+  --wash:#f5f5f2; --wash-2:#edefea; --field:#fefefd; --on-brand:#ffffff;
+  --band:#003865; --on-band:#e0e7ed; --on-band-dim:#a8bbcb; --on-band-faint:#8ca5ba;
+  --on-band-hi:#ffffff; --stamp-wash:#ead1e6;
+  color-scheme:light;
   --ui:'Archivo',system-ui,sans-serif; --read:'Newsreader',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
   --hdr-h:52px;
 }
+/* Native controls, scrollbars and form widgets take their cue from this, and
+   a dark page with a light scrollbar reads as a bug rather than a choice. */
+:root[data-dark]{color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
@@ -13,14 +25,14 @@ button,input{font:inherit}
 :focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-.hdr{background:var(--ledger);color:#DDE3EA;height:var(--hdr-h);display:flex;align-items:center;gap:16px;padding:0 22px;border-bottom:2px solid var(--ink);position:sticky;top:0;z-index:20}
+.hdr{background:var(--band);color:var(--on-band);height:var(--hdr-h);display:flex;align-items:center;gap:16px;padding:0 22px;border-bottom:2px solid var(--rule-hard);position:sticky;top:0;z-index:20}
 .hdr .mark{display:flex;align-items:baseline;gap:9px}
-.hdr .mark .n{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:#8FA6BC}
+.hdr .mark .n{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--on-band-faint)}
 .hdr .mark .t{font-weight:600;font-size:13.5px;white-space:nowrap}
 .hdr nav{display:flex;gap:2px;margin-left:auto;align-items:center}
-.hdr nav a,.hdr nav button{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;text-decoration:none;padding:6px 11px;border-radius:2px;color:#A9BCCD;background:transparent;border:0;cursor:pointer}
-.hdr nav a:hover,.hdr nav button:hover{background:rgba(255,255,255,.09);color:#fff}
-.hdr .who{display:flex;align-items:center;align-self:stretch;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;color:#A9BCCD;border-left:1px solid rgba(255,255,255,.2);padding-left:14px;margin-left:8px}
+.hdr nav a,.hdr nav button{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;text-decoration:none;padding:6px 11px;border-radius:2px;color:var(--on-band-dim);background:transparent;border:0;cursor:pointer}
+.hdr nav a:hover,.hdr nav button:hover{background:rgba(255,255,255,.09);color:var(--on-band-hi)}
+.hdr .who{display:flex;align-items:center;align-self:stretch;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;color:var(--on-band-dim);border-left:1px solid rgba(255,255,255,.2);padding-left:14px;margin-left:8px}
 
 main{flex:1 0 auto;width:100%;max-width:1080px;margin:0 auto;padding:34px 22px}
 h1{font-size:31px;font-weight:600;letter-spacing:-.017em;line-height:1.2;margin:0 0 6px}
@@ -31,8 +43,8 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .card{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:22px}
 .signin{max-width:400px;margin:40px auto 0}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.field input{padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:15px}
-.btn{display:inline-block;padding:9px 16px;border-radius:2px;border:1px solid var(--ledger);background:var(--ledger);color:#fff;cursor:pointer;font-weight:500}
+.field input{padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-size:15px}
+.btn{display:inline-block;padding:9px 16px;border-radius:2px;border:1px solid var(--ledger);background:var(--ledger);color:var(--on-brand);cursor:pointer;font-weight:500}
 .btn.quiet{background:transparent;color:var(--ledger)}
 .btn[disabled]{opacity:.55;cursor:default}
 .err{font-family:var(--mono);font-size:12px;color:var(--stamp);margin-top:10px;min-height:1.2em}
@@ -79,7 +91,7 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .people{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:16px}
 .person{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--rule);border-radius:2px;overflow:hidden}
 .person.live{border-color:var(--stamp);border-top:3px solid var(--stamp)}
-.person.spent{background:#F1F2EE}
+.person.spent{background:var(--wash-2)}
 .person.spent .portrait{filter:grayscale(1);opacity:.62}
 .person.shut .portrait{opacity:.82}
 
@@ -95,7 +107,7 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .person.live .pstate{color:var(--stamp)}
 
 .pacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid var(--rule-soft)}
-.pbtn{display:inline-block;font-family:var(--ui);font-size:12.5px;font-weight:500;text-decoration:none;background:var(--ledger);color:#fff;border:1px solid var(--ledger);padding:6px 11px;border-radius:2px;cursor:pointer}
+.pbtn{display:inline-block;font-family:var(--ui);font-size:12.5px;font-weight:500;text-decoration:none;background:var(--ledger);color:var(--on-brand);border:1px solid var(--ledger);padding:6px 11px;border-radius:2px;cursor:pointer}
 .pbtn.quiet{background:none;color:var(--ledger)}
 .pbtn.off{background:none;border-color:var(--rule);color:var(--muted);cursor:default}
 .pbtn[disabled]{opacity:.6;cursor:progress}
@@ -139,13 +151,19 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 footer{border-top:1px solid var(--rule);margin-top:40px;padding:22px;font-size:13px;color:var(--muted)}
 footer .cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;max-width:1080px;margin:0 auto}
 footer .base{max-width:1080px;margin:14px auto 0;padding-top:10px;border-top:1px solid var(--rule-soft);font-family:var(--mono);font-size:10px;letter-spacing:.1em}
+/* The one control a student has over the palette, in the one place a control
+   that is nothing to do with the case belongs. It says what it will do, not
+   what is currently true, because the state is already visible: the page. */
+.lightswitch{font:inherit;letter-spacing:inherit;text-transform:uppercase;color:var(--muted);
+  background:none;border:0;border-bottom:1px solid var(--rule);padding:0 0 1px;margin-left:10px;cursor:pointer}
+.lightswitch:hover{color:var(--ink);border-bottom-color:var(--ink)}
 @media (max-width:720px){footer .cols{grid-template-columns:1fr}.hdr nav{gap:0}}
 [hidden]{display:none!important}
 
 /* ── v0.2: the room, the file, the reader ─────────────────────────────── */
 .hdr .mark{text-decoration:none;color:inherit}
-.hdr nav a[aria-current]{color:#fff;background:rgba(255,255,255,.13)}
-.rec{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#F3D9EE}
+.hdr nav a[aria-current]{color:var(--on-band-hi);background:rgba(255,255,255,.13)}
+.rec{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--stamp-wash)}
 .rec .dot{width:8px;height:8px;border-radius:50%;background:var(--stamp);animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
 .two{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;align-items:start}
@@ -173,11 +191,11 @@ footer .base{max-width:1080px;margin:14px auto 0;padding-top:10px;border-top:1px
 }
 .prose{font-family:var(--read);font-size:17px;line-height:1.62;max-width:62ch}
 .prose p{margin:0 0 12px}
-textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-family:var(--read);font-size:16px;line-height:1.5;resize:vertical}
+textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-family:var(--read);font-size:16px;line-height:1.5;resize:vertical}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
 .seg{display:inline-flex;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
-.seg button{border:0;background:#fff;padding:6px 10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;color:var(--muted)}
-.seg button.on{background:var(--ledger);color:#fff}
+.seg button{border:0;background:var(--field);padding:6px 10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--ledger);color:var(--on-brand)}
 
 /* ── Finding one record in seventy ────────────────────────────────────────
    The file grows all course. A team looking for a record it can already name
@@ -185,18 +203,18 @@ textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:
 .findbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
 .findbar .label{flex:none}
 .findbar input{flex:1 1 210px;min-width:0;-webkit-appearance:none;appearance:none;
-               padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:14.5px}
+               padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-size:14.5px}
 .findbar .fcount{flex:none;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
 .doclist{border:1px solid var(--rule);border-radius:2px;background:var(--card)}
-.doclist .grp{padding:8px 12px;border-bottom:1px solid var(--rule-soft);background:#F4F5F1}
+.doclist .grp{padding:8px 12px;border-bottom:1px solid var(--rule-soft);background:var(--wash-2)}
 /* A record in the file: the row opens the record, the chevron beside it opens
    the description. The toggle is a sibling of the anchor rather than a child,
    because a button inside a link is neither. */
 .docitem{display:grid;grid-template-columns:20px minmax(0,1fr);border-bottom:1px solid var(--rule-soft)}
 .docitem:last-child{border-bottom:0}
-.docitem:hover{background:#F7F8F4}
-.docitem.open{background:#F7F8F4}
+.docitem:hover{background:var(--wash)}
+.docitem.open{background:var(--wash)}
 .docmore{grid-area:1/1;align-self:center;justify-self:center;width:20px;height:22px;padding:0;border:0;background:none;
          cursor:pointer;color:var(--muted);font-family:var(--mono);font-size:11px;line-height:1}
 .docmore::before{content:"▸"}
@@ -207,7 +225,7 @@ textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:
 .docrow{display:grid;grid-template-columns:162px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px;
         border-bottom:1px solid var(--rule-soft);align-items:center;text-decoration:none}
 .docrow:last-child{border-bottom:0}
-.docrow:hover{background:#F7F8F4}
+.docrow:hover{background:var(--wash)}
 /* Inside a foldable item the chevron holds the left gutter and the wrapper
    draws the rule, so the row gives both up. */
 .docitem>.docrow{grid-area:1/2;padding-left:0;border-bottom:0}
@@ -235,7 +253,7 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 .registry .prose{font-size:15px}
 .doc{background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:34px 40px;overflow-wrap:break-word;font-family:var(--read);font-size:17px;line-height:1.62;max-width:72ch;white-space:pre-wrap}
 .pages{display:flex;flex-direction:column;gap:10px;margin:10px 0 18px}
-.pages canvas{max-width:100%;border:1px solid var(--rule);background:#fff}
+.pages canvas{max-width:100%;border:1px solid var(--rule);background:var(--field)}
 
 .room{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;align-items:start}
 .conv{min-width:0}
@@ -288,7 +306,7 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
 @media (prefers-reduced-motion:reduce){.turn.working .dot{animation:none;opacity:.55}}
 .counter{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
 .counter.over{color:var(--stamp)}
-select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:14px;max-width:320px}
+select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-size:14px;max-width:320px}
 .clock{text-align:center}
 .clock .v{font-family:var(--mono);font-size:22px;color:var(--ledger)}
 .clock .v.live{color:var(--stamp)}
@@ -361,7 +379,7 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .cites .pos{font-family:var(--mono);font-size:11px;color:var(--stamp);flex:none}
 /* The composer, the same in an interview and at either desk: what you write,
    then what you can do with it, then anything that went wrong. */
-.compose{margin-top:20px;padding-top:16px;border-top:2px solid var(--ink)}
+.compose{margin-top:20px;padding-top:16px;border-top:2px solid var(--rule-hard)}
 .compose .field{margin-bottom:10px}
 .composebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .composebar .prov{margin-left:auto}
@@ -380,12 +398,12 @@ ul.sources .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .exdrop:hover{color:var(--stamp)}
 .expick{margin-top:8px;padding:12px 14px}
 .expick input{width:100%;margin-top:5px;-webkit-appearance:none;appearance:none;
-              padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:14.5px}
+              padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-size:14.5px}
 .exlist{margin-top:8px;max-height:230px;overflow-y:auto}
 .exhit{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;cursor:pointer;
        border:0;border-bottom:1px solid var(--rule-soft);background:none;padding:8px 2px}
 .exhit:last-child{border-bottom:0}
-.exhit:hover{background:#F4F5F1}
+.exhit:hover{background:var(--wash-2)}
 .exhit .excode{font-family:var(--mono);font-size:10.5px;color:var(--muted);flex:none;min-width:108px}
 .exhit .exttl{font-family:var(--read);font-size:15px;min-width:0}
 /* The window has not started yet, said where the team is about to start it. */
@@ -438,7 +456,7 @@ section.pack p,section.start p{font-size:16px;line-height:1.5}
 /* A figure carries 40px of margin from the browser's own stylesheet, which
    would inset the film from the column it is meant to define. */
 .films .film{margin:0}
-.film .embed{position:relative;padding-top:56.25%;background:#15171B;border-radius:2px;overflow:hidden}
+.film .embed{position:relative;padding-top:56.25%;background:#15171B;/* not --ink: a letterbox is black in either palette */border-radius:2px;overflow:hidden}
 .film .embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .film .cap{font-size:13px;color:var(--muted);margin-top:6px}
 .film .ttl{font-weight:600;margin-bottom:6px}
@@ -449,9 +467,9 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 /* ── A document ───────────────────────────────────────────────────────────
    The facsimile is the record; the transcription is a convenience under it. */
 .pages{display:flex;flex-direction:column;gap:14px;margin:16px 0 8px}
-.pages canvas{width:100%;height:auto;border:1px solid var(--rule);background:#fff}
+.pages canvas{width:100%;height:auto;border:1px solid var(--rule);background:var(--field)}
 .textswitch{display:flex;align-items:center;justify-content:space-between;gap:12px;
-            margin:30px 0 0;padding-top:14px;border-top:2px solid var(--ink)}
+            margin:30px 0 0;padding-top:14px;border-top:2px solid var(--rule-hard)}
 .textswitch .label{margin:0}
 
 /* ── On a phone ────────────────────────────────────────────────────────────
@@ -536,7 +554,7 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
        padding:5px 9px;white-space:nowrap;cursor:pointer}
 .rmark:hover{border-color:var(--ink);color:var(--ink)}
 .rmark.ask{color:var(--stamp);border-color:var(--stamp)}
-.rmark.ask:hover{background:var(--stamp);color:#fff}
+.rmark.ask:hover{background:var(--stamp);color:var(--on-brand)}
 .rmark:disabled{opacity:.5;cursor:default}
 .rmark:disabled:hover{background:none;color:var(--stamp)}
 @media (max-width:860px){
@@ -579,7 +597,7 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
    wider word's room (measured: 46.9px against 5.65ch at this size) so the
    button never moves. Left-aligned, so the icon does not drift either. */
 .btn.mic > span{min-width:5.8ch;text-align:left}
-.btn.mic[aria-pressed="true"]{background:var(--stamp);border-color:var(--stamp);color:#fff}
+.btn.mic[aria-pressed="true"]{background:var(--stamp);border-color:var(--stamp);color:var(--on-brand)}
 .btn.mic.off{opacity:.45;cursor:not-allowed}
 /* While it is listening the capsule beats: the mic fills with ink and empties.
    A shape change rather than a glow, because the design system allows no
