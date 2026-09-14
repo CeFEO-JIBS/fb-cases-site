@@ -74,6 +74,20 @@
   // is printed on the paper, it stays searchable, and it stays on the record's
   // own page — but it is not the name of the thing.
   const docName = (d) => nameEn(d);
+  /**
+   * The opening of a brief, cut at a sentence where there is one and at a word
+   * where there is not. The card carries enough to choose on; the whole brief
+   * is one click away, on the page before the conversation.
+   */
+  const snippet = (t, n) => {
+    const s = String(t || "").replace(/\s+/g, " ").trim();
+    if (s.length <= n) return s;
+    const cut = s.slice(0, n);
+    const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
+    if (stop > n * 0.45) return cut.slice(0, stop + 1);
+    const word = cut.lastIndexOf(" ");
+    return (word > 0 ? cut.slice(0, word) : cut) + "\u2026";
+  };
   // Both names, for searching only: a student who reads the name off the
   // facsimile is typing Swedish, and that has to find the record.
   const bothNames = (d) => { const a = nameSv(d), b = nameEn(d); return a === b ? [a] : [a, b]; };
@@ -583,12 +597,13 @@
     const cv = p.cv
       ? `<button type="button" class="pbtn quiet cv-get" data-code="${esc(p.cv.code)}" data-name="${esc(p.name)}">CV (PDF)</button>`
       : "";
-    return `<article class="person ${cls}" data-group="${esc(groupOf(p))}">
+    return `<article class="person ${cls}" data-group="${esc(groupOf(p))}" data-branch="${esc(p.branch || "")}">
       ${face}
       <div class="pbody">
         <h3 class="pname">${esc(p.name)}</h3>
         ${facts.length ? `<p class="pfacts">${facts.map(esc).join(" · ")}</p>` : ""}
         ${p.role ? `<p class="prole">${esc(p.role)}</p>` : ""}
+        ${p.brief ? `<p class="pbrief">${esc(snippet(p.brief, 210))}</p>` : ""}
         <p class="pstate">${esc(st)}${mins && p.state === "not_started" && !shut ? ` · ${mins}` : ""}</p>
         <div class="pacts">${action}${cv}</div>
       </div>
@@ -659,24 +674,59 @@
       $("#n-left").textContent = ps.length - held;
     }
 
-    // The filter, built from the people who are actually there: one chip per
+    // Two filters rather than one, because a team choosing twelve of
+    // twenty-six is asking two different questions: who is of this generation,
+    // and who sits in this branch. They combine — a chip in each bar narrows to
+    // the intersection, and "everyone" in a bar drops that question again.
+    // Both are built from the people who are actually there: one chip per
     // generation the case knows, and one for everybody outside the family tree
     // — the board and the management, who belong to no generation of it.
-    const gens = [...new Set(ps.map((p) => p.generation).filter(Boolean))];
-    const independents = ps.filter((p) => !p.generation).length;
-    if (gens.length > 1 || (gens.length && independents)) {
-      const bar = $("#gen-filter"); bar.hidden = false;
-      bar.innerHTML = `<button type="button" class="gen on" data-group="">Everyone</button>`
-        + gens.map((g) => `<button type="button" class="gen" data-group="gen:${esc(g)}">${esc(/^\d+$/.test(String(g)) ? `Generation ${g}` : g)}</button>`).join("")
-        + (independents ? `<button type="button" class="gen" data-group="independent">Independent</button>` : "");
+    let fGen = "", fBranch = "";
+    const applyFilter = () => {
+      document.querySelectorAll("#roster .person").forEach((el) => {
+        el.hidden = (!!fGen && el.dataset.group !== fGen)
+                 || (!!fBranch && el.dataset.branch !== fBranch);
+      });
+    };
+    const chipbar = (bar, chips, all, pick) => {
+      if (!bar || !chips.length) return;
+      bar.hidden = false;
+      bar.innerHTML = `<button type="button" class="gen on" data-v="">${esc(all)}</button>`
+        + chips.map(([v, lab]) => `<button type="button" class="gen" data-v="${esc(v)}">${esc(lab)}</button>`).join("");
       bar.addEventListener("click", (e) => {
         const b = e.target.closest("button.gen"); if (!b) return;
         bar.querySelectorAll("button.gen").forEach((x) => x.classList.toggle("on", x === b));
-        document.querySelectorAll("#roster .person").forEach((el) => {
-          el.hidden = !!b.dataset.group && el.dataset.group !== b.dataset.group;
-        });
+        pick(b.dataset.v || ""); applyFilter();
       });
+    };
+    const gens = [...new Set(ps.map((p) => p.generation).filter(Boolean))];
+    const independents = ps.filter((p) => !p.generation).length;
+    if (gens.length > 1 || (gens.length && independents)) {
+      chipbar($("#gen-filter"),
+        gens.map((g) => [`gen:${g}`, /^\d+$/.test(String(g)) ? `Generation ${g}` : String(g)])
+          .concat(independents ? [["independent", "Independent"]] : []),
+        "Everyone", (v) => { fGen = v; });
     }
+    // Branch is the other axis the case is built on, and it is already on the
+    // card. One branch is not a filter, so the bar appears only where there are
+    // several.
+    const branches = [...new Set(ps.map((p) => p.branch).filter(Boolean))].map(String).sort();
+    if (branches.length > 1) {
+      chipbar($("#branch-filter"),
+        branches.map((b) => [b, /^(branch|gren)\b/i.test(b) ? b : `Branch ${b}`]),
+        "Every branch", (v) => { fBranch = v; });
+    }
+
+    // The family tree, one click from the roster: twenty-odd people across
+    // several branches and six generations is not a list anybody holds in their
+    // head. A link is safe on this page — it is only in the room that leaving
+    // would cost a team what it has heard.
+    genoDoc().then((tree) => {
+      const el = $("#case-tree"); if (!el || !tree) return;
+      // A record with no English title would otherwise render an empty link.
+      el.innerHTML = `<a href="#/file/${esc(tree.code)}">${esc(docName(tree) || "The family tree")}</a>`;
+      el.hidden = false;
+    });
 
     $("#roster").innerHTML = ps.length
       ? ps.map((p) => personCard(p, open, !!bs && bs.left === 0)).join("")
@@ -904,6 +954,16 @@
     await load("en");
   }
 
+  /**
+   * The case's family tree, if it has one and the team holds it. Matched on the
+   * code and on the title rather than named here: this site runs whatever case
+   * it is pointed at, and not every case has a tree.
+   */
+  async function genoDoc() {
+    try { return (await documents()).find((d) => /genogram/i.test(d.code) || /genogram/i.test(docName(d))) || null; }
+    catch { return null; }
+  }
+
   async function confirm_(code) {
     await ensureMe(); nav("case"); render("t-confirm");
     const p = (await personas()).find((x) => x.code === code);
@@ -919,10 +979,8 @@
       const el = $("#c-papers"); if (!el) return;
       const bits = [];
       if (p.cv && p.cv.code) bits.push(`<a href="#/file/${esc(p.cv.code)}">Curriculum vitae</a>`);
-      try {
-        const tree = (await documents()).find((d) => /genogram/i.test(d.code) || /genogram/i.test(docName(d)));
-        if (tree) bits.push(`<a href="#/file/${esc(tree.code)}">${esc(docName(tree))}</a>`);
-      } catch { /* the CV alone is worth the line */ }
+      const tree = await genoDoc();
+      if (tree) bits.push(`<a href="#/file/${esc(tree.code)}">${esc(docName(tree) || "The family tree")}</a>`);
       el.innerHTML = bits.length ? bits.join('<span class="sep">·</span>') : "";
     })();
     // The same portrait and the same few facts as the roster: this is the last
@@ -1170,6 +1228,28 @@
       facts: personFacts(p).join(" · "),
       state: "conversation running",
     });
+    // The two papers a team wants open while it talks, and neither may cost it
+    // the room: there is no live transcript, so a navigation away loses the
+    // turns on screen. These arrive as files rather than routing to the case
+    // file. Neither clock moves — the window is the server's, and virtual time
+    // is spent only by asking.
+    (async () => {
+      const acts = $("#r-papers-acts"), card = $("#r-papers");
+      if (!acts || !card) return;
+      const papers = [];
+      if (p.cv && p.cv.code) papers.push([p.cv.code, `${p.name} CV.pdf`, "Their CV (PDF)"]);
+      const tree = await genoDoc();
+      if (tree) papers.push([tree.code, `${docName(tree) || tree.code}.pdf`, "Family tree (PDF)"]);
+      if (!papers.length) return;
+      acts.innerHTML = papers.map(([, , lab], i) => `<button type="button" class="pbtn quiet" data-i="${i}">${esc(lab)}</button>`).join("");
+      acts.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-i]"); if (!b) return;
+        const [code, file] = papers[Number(b.dataset.i)];
+        downloadDoc(code, file.replace(/[^\p{L}\p{N} .-]/gu, ""), b);
+      });
+      card.hidden = false;
+    })();
+
     const box = $("#turns");
     // The opening line is the only earlier turn the room shows. There is no live transcript: a reload mid-conversation shows what you have heard only from your notes.
     let opening = null; try { opening = sessionStorage.getItem(`fb.opening.${id}`); } catch {}
@@ -1351,8 +1431,115 @@
     // ever reached a state this page lists.
     const iv = ss.filter((s) => s.kind !== "desk");
     const mins = (n) => `${n} minute${n === 1 ? "" : "s"} of their time`;
-    $("#tr-list").innerHTML = iv.length ? `<div class="doclist">${iv.map((s) => `<a class="docrow" href="#/transcripts/${s.id}"><span class="code">${esc(s.closed_at ? s.closed_at.slice(0, 16).replace("T", " ") : "")}</span><span><div class="ttl">${esc(s.name)}</div><div class="prov">${s.turn_count} turns · ${esc(mins(Math.round(s.virtual_seconds / 60)))}</div></span><span></span><span class="st">${esc(s.state.replace("_", " "))}</span></a>`).join("")}</div>`
-      : `<div class="empty"><span class="tag">none yet</span><p>A transcript appears here when a conversation ends.</p></div>`;
+    const list = $("#tr-list");
+    const row = (s, hit) => `<a class="docrow" href="#/transcripts/${s.id}"><span class="code">${esc(s.closed_at ? s.closed_at.slice(0, 16).replace("T", " ") : "")}</span><span><div class="ttl">${esc(s.name)}</div><div class="prov">${s.turn_count} turns · ${esc(mins(Math.round(s.virtual_seconds / 60)))}</div>${hit || ""}</span><span></span><span class="st">${esc(s.state.replace("_", " "))}</span></a>`;
+    if (!iv.length) {
+      list.innerHTML = `<div class="empty"><span class="tag">none yet</span><p>A transcript appears here when a conversation ends.</p></div>`;
+      return;
+    }
+    list.innerHTML = `<div class="doclist">${iv.map((s) => row(s)).join("")}</div>`;
+    $("#tr-tools").hidden = false;
+
+    // Every transcript, fetched once and kept for the visit. A team writing its
+    // report holds a dozen of these and needs the one place somebody said
+    // "Vetlanda" — which is a search, not twelve readings. The fetch waits until
+    // the team asks for it, so arriving at this page stays one request. Four at
+    // a time: enough to be quick, few enough not to queue behind itself.
+    let all = null;
+    const note = (t) => { const el = $("#tr-count"); if (el) el.textContent = t; };
+    async function loadAll(saying) {
+      if (all) return all;
+      note(saying);
+      const out = [];
+      for (let i = 0; i < iv.length; i += 4) {
+        out.push(...await Promise.all(iv.slice(i, i + 4).map((s) =>
+          api(`/sessions/${s.id}/transcript`).then((t) => ({ s, t })).catch(() => ({ s, t: null })))));
+      }
+      all = out;
+      return all;
+    }
+
+    // The line the word appears in, cut around the match rather than from the
+    // start of the turn: a persona's answer runs to a paragraph and the match is
+    // rarely in its first clause.
+    const excerpt = (h, needle) => {
+      const pad = 72;
+      const from = Math.max(0, h.at - pad);
+      const to = Math.min(h.text.length, h.at + needle.length + pad);
+      // Cut at a word on both sides: a fragment ending "Peopl…" reads as a bug.
+      let pre = h.text.slice(from, h.at), post = h.text.slice(h.at + needle.length, to);
+      if (from) pre = pre.slice(pre.indexOf(" ") + 1);
+      if (to < h.text.length) post = post.slice(0, post.lastIndexOf(" ") + 1 || undefined);
+      const head = (from ? "\u2026" : "") + pre;
+      const tail = post.replace(/\s+$/, "") + (to < h.text.length ? "\u2026" : "");
+      return `<span class="who">${esc(h.who)}</span> ${esc(head)}<mark>${esc(h.text.slice(h.at, h.at + needle.length))}</mark>${esc(tail)}`;
+    };
+
+    let timer = null;
+    $("#tr-q").addEventListener("input", (e) => {
+      const term = e.target.value.trim();
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        if (term.length < 2) {
+          list.innerHTML = `<div class="doclist">${iv.map((s) => row(s)).join("")}</div>`;
+          note(""); return;
+        }
+        const data = await loadAll("reading your transcripts\u2026");
+        const needle = term.toLowerCase();
+        const rows = []; let total = 0;
+        for (const { s, t } of data) {
+          if (!t) continue;
+          // Every occurrence, not every turn that has one: a persona's answer
+          // often says the word twice and a team counting mentions is counting
+          // the word.
+          let n = 0, first = null, said = null;
+          for (const tr of t.turns) {
+            const hay = tr.text.toLowerCase();
+            const mine = tr.speaker === "interviewer";
+            for (let at = hay.indexOf(needle); at >= 0; at = hay.indexOf(needle, at + needle.length)) {
+              n++;
+              const h = { who: mine ? "You:" : `${t.name}:`, at, text: tr.text };
+              if (!first) first = h;
+              // What they said outranks what you asked: a team searching a
+              // transcript is looking for the answer, and the word is usually
+              // in the question that prompted it as well.
+              if (!said && !mine) said = h;
+            }
+          }
+          if (!n) continue;
+          total += n;
+          rows.push(row(s, `<div class="trhit"><span class="n">${n} mention${n === 1 ? "" : "s"}</span>${excerpt(said || first, needle)}</div>`));
+        }
+        list.innerHTML = rows.length
+          ? `<div class="doclist">${rows.join("")}</div>`
+          : `<div class="empty"><span class="tag">nothing matches</span><p>No transcript carries that word. It may be a thing nobody said, or a thing you did not ask.</p></div>`;
+        note(rows.length ? `${total} in ${rows.length} transcript${rows.length === 1 ? "" : "s"}` : "nothing");
+      }, 220);
+    });
+
+    // One file, all of it, in the order they were held. What a team opens beside
+    // its draft.
+    $("#tr-all").addEventListener("click", async (e) => {
+      const b = e.currentTarget, was = b.textContent;
+      b.disabled = true; b.textContent = "Collecting\u2026";
+      try {
+        const data = await loadAll("collecting\u2026");
+        const parts = data.filter((x) => x.t).map(({ s, t }) => {
+          const when = s.closed_at ? s.closed_at.slice(0, 16).replace("T", " ") : "";
+          const head = `${t.name}\n${when} \u00b7 ${t.session.turn_count} turns \u00b7 ${(t.session.virtual_seconds / 60).toFixed(0)} minutes of their time`;
+          const body = t.turns.map((tr) => `${tr.speaker === "interviewer" ? "You" : t.name}: ${tr.text}`).join("\n\n");
+          return `${head}\n${"\u2500".repeat(58)}\n\n${body}`;
+        });
+        const txt = `Interview transcripts \u2014 ${S.me.group.code}\n`
+          + `${parts.length} conversation${parts.length === 1 ? "" : "s"}\n\n\n`
+          + parts.join("\n\n\n\n");
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
+        a.download = `transcripts-${S.me.group.code}.txt`; a.click();
+        note("");
+      } catch (err) { note("could not collect them"); }
+      finally { b.disabled = false; b.textContent = was; }
+    });
   }
   async function transcript(id) {
     await ensureMe(); nav("transcripts"); render("t-transcript"); recording(null);

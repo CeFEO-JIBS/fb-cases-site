@@ -636,3 +636,41 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
    phone width. */
 .vclog{font-family:var(--mono);font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;
   background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:12px 13px;margin:16px 0 0;overflow-x:auto}
+
+/* ── v1.18 ───────────────────────────────────────────────────────────────── */
+
+/* The roster card carries the opening of the brief. A team chooses twelve of
+   twenty-six on this page, and until now it chose on a name and a role. Clamped
+   rather than trusted: a long brief must not push the buttons off the card, and
+   the buttons are pinned to the foot so a row of cards still lines up. */
+.pbrief{font-family:var(--read);font-size:14px;line-height:1.42;color:var(--muted);margin:8px 0 2px;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.person .pacts{margin-top:auto}
+
+/* The family tree, above the roster. */
+.treeline{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 14px}
+.treeline a{color:var(--ledger);text-underline-offset:3px}
+
+/* The room's sidebar has three things in it and a laptop screen to fit them
+   into, and it did not fit: measured at 1440x900 the clock's own bottom edge
+   landed at 908px and the papers strip below it began at 936 — the live meter
+   clipped and the papers invisible. Reordering only trades one for the other,
+   so the portrait gives up the space instead. On the roster a 4:5 portrait is
+   how a team chooses whom to spend an hour with; in the room the choice is
+   made and the picture is only identity, so it takes a third of the height and
+   the clock and the papers both clear the fold. */
+.room .side .whocard .portrait{aspect-ratio:3/2;max-height:212px}
+
+/* Papers a team can open without leaving the room, under the clock: the clock
+   is live state and keeps the position nearest the eye. */
+.papers{margin:12px 2px 14px}
+.paperacts{display:flex;flex-wrap:wrap;gap:8px;margin:7px 0 0}
+.papernote{font-family:var(--read);font-size:13px;line-height:1.38;color:var(--muted);margin:8px 0 0}
+
+/* A search hit, under the row it was found in. */
+.findbar .btn{flex:none}
+.trhit{font-family:var(--read);font-size:13.5px;line-height:1.45;color:var(--muted);margin:7px 0 0}
+.trhit .n{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ledger);margin-right:9px}
+.trhit .who{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.trhit mark{background:var(--stamp-wash);color:var(--ink);padding:0 2px;border-radius:2px}
