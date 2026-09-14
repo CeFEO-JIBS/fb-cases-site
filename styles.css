@@ -256,7 +256,8 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
   .room>aside.side>.clock>:nth-child(3){grid-area:2/1}
   .room>aside.side>.clock>:nth-child(4){grid-area:1/2;margin-top:0!important}
   .room>aside.side>.clock>:nth-child(5){grid-area:2/2}
-  .room>aside.side>.clock>:nth-child(6){grid-area:3/1/4/3;margin-top:6px}
+  .room>aside.side>.clock>:nth-child(6){grid-area:3/1/4/3;margin-top:4px}
+  .room>aside.side>.clock>:nth-child(7){grid-area:4/1/5/3;margin-top:6px}
   .room>aside.side>.clock .v{font-size:19px}
 }
 .turns{margin-top:14px;border-top:1px solid var(--rule)}
@@ -291,6 +292,10 @@ select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;backgroun
 .clock{text-align:center}
 .clock .v{font-family:var(--mono);font-size:22px;color:var(--ledger)}
 .clock .v.live{color:var(--stamp)}
+/* The window figure is true at the instant it was read. This line is true
+   for as long as the appointment lasts, and says when the reading is old. */
+.clock .closes{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin-top:5px;min-height:1.3em}
 .clock .note{font-family:var(--read);font-size:14.5px;color:var(--ink);margin:12px 0 0;min-height:1.4em}
 .clock circle{transition:stroke-dashoffset .6s ease}
 

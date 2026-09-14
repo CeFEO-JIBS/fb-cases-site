@@ -5,7 +5,7 @@
   const C = window.FB;
   const $ = (s, r = document) => r.querySelector(s);
   const view = $("#view");
-  const S = { me: null, personas: null, interviews: null, docs: null, poll: null, voice: null };
+  const S = { me: null, personas: null, interviews: null, docs: null, poll: null, age: null, wake: null, voice: null };
 
   // ── auth ────────────────────────────────────────────────────────────────
   const store = {
@@ -132,7 +132,15 @@
              left: iv.left == null ? null : iv.left, choosing: iv.selection === "open" };
   }
   async function documents(force) { if (force || !S.docs) S.docs = (await api("/documents")).documents; return S.docs; }
-  function stopPoll() { if (S.poll) { clearInterval(S.poll); S.poll = null; } }
+  function stopPoll() {
+    if (S.poll) { clearInterval(S.poll); S.poll = null; }
+    if (S.age) { clearInterval(S.age); S.age = null; }
+    if (S.wake) {
+      document.removeEventListener("visibilitychange", S.wake);
+      window.removeEventListener("focus", S.wake);
+      S.wake = null;
+    }
+  }
 
 
   // ── dictation ───────────────────────────────────────────────────────────
@@ -996,12 +1004,35 @@
     box.hidden = false;
   }
 
+  /**
+   * The line under the window figure that cannot go stale.
+   *
+   * "76 min" is only true at the instant the server computed it, and a phone
+   * that sleeps through a coffee break wakes holding that number as though it
+   * were now. A closing time is a fact about the appointment rather than about
+   * the reading, so it stays true however long the tab was away — and when the
+   * reading itself is old, because a poll failed or the tab was suspended, the
+   * line says so rather than let a confident figure stand in for a current
+   * one. The age is the only arithmetic the page does here: how old its own
+   * reading is, which is a fact about the page and not about the interview.
+   */
+  function clockLine(clock) {
+    if (!clock) return "";
+    const bits = [];
+    if (clock.closesAt) bits.push(`closes ${clock.closesAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}`);
+    const age = Math.round((Date.now() - clock.readAt) / 1000);
+    if (age >= 90) bits.push(`read ${Math.max(2, Math.round(age / 60))} min ago`);
+    return bits.join(" · ");
+  }
+
   function ring(id, frac) {
     const el = $(id); const r = Number(el.getAttribute("r")); const c = 2 * Math.PI * r;
     el.setAttribute("stroke-dasharray", c.toFixed(1)); el.setAttribute("stroke-dashoffset", (c * (1 - Math.max(0, Math.min(1, frac)))).toFixed(1));
   }
-  function showState(st, name, wallTotal) {
+  function showState(st, name, wallTotal, clock) {
     const note = $("#k-note"); if (!note) return;
+    const closes = $("#k-closes");
+    if (closes) closes.textContent = st.allowed ? clockLine(clock) : "";
     if (!st.allowed) {
       $("#k-virt").textContent = "–"; $("#k-wall").textContent = "–"; ring("#ring-virt", 0); ring("#ring-wall", 0);
       note.textContent = st.message || "The conversation has ended.";
@@ -1110,7 +1141,41 @@
     if (opening) addTurn(box, p.name, opening);
     addTurn(box, "sys", "The conversation is running. There is no live transcript: take notes. It arrives when the conversation ends.");
     const wallTotal = p.budget.wall_minutes || null;
-    showState(st.state, p.name, wallTotal);
+    // ── the clock ────────────────────────────────────────────────────────
+    // How much time is left is the server's to say and never the browser's to
+    // work out, so the room re-reads it rather than counting down locally.
+    // What changed is when it re-reads: every thirty seconds while the tab is
+    // actually in front of someone, and once immediately on coming back,
+    // because a phone suspends its timers the moment it is put in a pocket and
+    // the figure it wakes holding is as old as the nap. The deadline itself
+    // comes down with the reading, so the line beneath the number survives a
+    // sleep that the number cannot.
+    const clock = { closesAt: null, readAt: Date.now() };
+    const takeClock = (env) => {
+      if (env && "wall_expires_at" in env) clock.closesAt = env.wall_expires_at ? new Date(env.wall_expires_at) : null;
+      clock.readAt = Date.now();
+    };
+    takeClock(st);
+    showState(st.state, p.name, wallTotal, clock);
+    let reading = false;
+    const refresh = async () => {
+      if (reading || document.visibilityState === "hidden") return;
+      reading = true;
+      try {
+        st = await api(`/sessions/${id}/state`);
+        takeClock(st);
+        showState(st.state, p.name, wallTotal, clock);
+        if (st.session_state !== "open") { stopPoll(); S.personas = null; location.hash = `#/transcripts/${id}`; }
+      } catch (err) {
+        // The last reading stays on screen and is allowed to age. A figure
+        // labelled old is honest; a blanked meter is alarming; a stale one
+        // presenting itself as current is the only unacceptable one of the
+        // three, and it is what this used to do — the failure was swallowed
+        // and the clock simply stopped without saying so.
+        console.warn("[room] clock read failed", err);
+        showState(st.state, p.name, wallTotal, clock);
+      } finally { reading = false; }
+    };
     // ── putting a record in front of them ────────────────────────────────
     // This was a native <select> holding the team's whole case file, labels
     // truncated at 110 characters, firing on `change` — so choosing was
@@ -1216,7 +1281,12 @@
           if (live) live.turn.remove();
           addTurn(box, "sys", r.message);
         }
-        showState(r.state, p.name, wallTotal); lastAnswerAt = Date.now();
+        clock.readAt = Date.now();
+        showState(r.state, p.name, wallTotal, clock); lastAnswerAt = Date.now();
+        // The window opens with the first question, so until one is asked
+        // there is no deadline to print. Read it now rather than leave the
+        // line empty for the next half-minute.
+        if (!clock.closesAt) void refresh();
         if (r.kind === "closed" || (r.state && !r.state.allowed && String(r.state.reason || "").startsWith("session_"))) setTimeout(() => { location.hash = `#/transcripts/${id}`; }, 1500);
       } catch (err) { $("#r-err").textContent = err.message; }
       finally { b.disabled = !st.state.allowed ? true : false; q.focus(); }
@@ -1226,10 +1296,14 @@
       try { await post(`/sessions/${id}/close`); S.personas = null; location.hash = `#/transcripts/${id}`; } catch (err) { $("#r-err").textContent = err.message; }
     });
     stopPoll();
-    S.poll = setInterval(async () => {
-      try { st = await api(`/sessions/${id}/state`); showState(st.state, p.name, wallTotal); if (st.session_state !== "open") { stopPoll(); S.personas = null; location.hash = `#/transcripts/${id}`; } }
-      catch {}
-    }, 30000);
+    S.poll = setInterval(refresh, 30000);
+    // Ageing the reading is cheap and touches one line of text, so it runs
+    // whether or not the reads are succeeding — which is the case that needs
+    // it.
+    S.age = setInterval(() => { const el = $("#k-closes"); if (el && st.state.allowed) el.textContent = clockLine(clock); }, 15000);
+    S.wake = () => { if (document.visibilityState === "visible") void refresh(); };
+    document.addEventListener("visibilitychange", S.wake);
+    window.addEventListener("focus", S.wake);
   }
 
   async function transcripts() {
