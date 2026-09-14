@@ -191,20 +191,38 @@
    * The label says what pressing it will do. The current state needs no label:
    * it is the page.
    */
+  /**
+   * Appearance, as three named choices.
+   *
+   * It was one button that cycled and showed the NEXT state — "· the course
+   * setting" — which reads as a label for what is currently true and is not.
+   * Three choices with the current one marked says the same thing without
+   * anyone having to work out which it means.
+   *
+   * "Default" rather than "auto" or "the course setting": what it does is hand
+   * the decision back, and the instructor's setting is the default in the
+   * ordinary sense of the word.
+   */
   function lightswitch() {
-    const b = $("#lightswitch"); if (!b || !window.FBTheme) return;
+    const wrap = $("#appearance"); if (!wrap || !window.FBTheme) return;
     const policy = window.FBTheme.policy();
-    b.hidden = !policy;
+    // Hidden until a palette has been served: until then there is no dark one
+    // to switch to, and a dead control is worse than no control.
+    wrap.hidden = !policy;
     if (!policy) return;
     const now = window.FBTheme.choice();
-    // light -> dark -> back to whatever the course says -> light
-    const next = now === "light" ? "dark" : now === "dark" ? "auto" : "light";
-    const name = { light: "light", dark: "dark", auto: "the course setting" };
-    b.textContent = `\u00b7 ${name[next]}`;
-    b.title = now === "auto"
-      ? `This device follows the course, which right now is ${window.FBTheme.isDark() ? "dark" : "light"}. Press to set ${name[next]} for yourself.`
-      : `This device is set to ${now}. Press for ${name[next]}.`;
-    b.onclick = () => { window.FBTheme.set(next); lightswitch(); };
+    const opts = [["auto", "default"], ["dark", "dark"], ["light", "light"]];
+    wrap.innerHTML = `<span class="aplabel">Appearance</span>`
+      + opts.map(([v, lab]) =>
+          `<button type="button" class="lightswitch${v === now ? " on" : ""}" data-v="${v}"`
+          + ` aria-pressed="${v === now}">${lab}</button>`).join("");
+    wrap.title = now === "auto"
+      ? `Following the course, which right now is ${window.FBTheme.isDark() ? "dark" : "light"}.`
+      : `This device is set to ${now}, whatever the course says.`;
+    wrap.onclick = (e) => {
+      const b = e.target.closest("button[data-v]"); if (!b) return;
+      window.FBTheme.set(b.dataset.v); lightswitch();
+    };
   }
   function stopPoll() {
     if (S.poll) { clearInterval(S.poll); S.poll = null; }
@@ -2350,23 +2368,31 @@
         }
       } catch { /* offline, blocked, or rate-limited: the fallback covers it */ }
     }
-    // Whether the code running here is the code that has been deployed. The
-    // script in this browser carries the date it was served with, and GitHub
-    // has just said when the newest deployment finished; if the script is
-    // meaningfully older than the deployment, this tab is behind. Read from
-    // the cache — force-cache returns the copy the page is running without
-    // going to the network — so the check costs nothing.
+    // Whether the code running in this tab is the code the site is serving.
     //
-    // Five minutes of slack, because a deployment finishes a few seconds after
-    // the file it publishes is stamped, and a difference of seconds means the
-    // two agree.
+    // This used to compare GitHub's deployment timestamp against app.js's
+    // last-modified header with five minutes of slack — and it fetched
+    // "app.js", which is not the file the page loaded: the page loads
+    // "app.js?v=1.24", a different cache entry. So the two dates could sit more
+    // than five minutes apart for reasons having nothing to do with this tab
+    // being behind, and the notice then never cleared however often somebody
+    // reloaded. That is the worst way for this line to fail: a true-sounding
+    // claim with a remedy that cannot work.
+    //
+    // The version is what is being asked about, so the version is what is
+    // compared: what this tab is RUNNING against what the site is SERVING.
+    // Exact, needs no clock and no slack, and it clears itself on reload —
+    // afterwards the tab IS the served version, so the test cannot stick.
     let stale = false;
     try {
-      if (got && got.when) {
-        const mine = (await fetch("app.js", { cache: "force-cache" })).headers.get("last-modified");
-        if (mine) stale = new Date(got.when) - new Date(mine) > 300e3;
+      // The query defeats the ten-minute Pages cache; no-store defeats the
+      // browser's. Both are needed to be reading the live file.
+      const r = await fetch(`config.js?stamp=${Date.now()}`, { cache: "no-store" });
+      if (r.ok) {
+        const served = (await r.text()).match(/VERSION:\s*["']([^"']+)["']/);
+        if (served && served[1] && served[1] !== base) stale = true;
       }
-    } catch { /* no date to compare says nothing either way */ }
+    } catch { /* offline or blocked: say nothing rather than guess */ }
     const day = (iso) => {
       const d = new Date(iso);
       return isNaN(d) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });

@@ -163,11 +163,18 @@ footer{border-top:1px solid var(--rule);margin-top:40px;padding:22px;font-size:1
 footer .cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;max-width:1080px;margin:0 auto}
 footer .base{max-width:1080px;margin:14px auto 0;padding-top:10px;border-top:1px solid var(--rule-soft);font-family:var(--mono);font-size:10px;letter-spacing:.1em}
 /* The one control a student has over the palette, in the one place a control
-   that is nothing to do with the case belongs. It says what it will do, not
-   what is currently true, because the state is already visible: the page. */
+   that is nothing to do with the case belongs.
+   Three named choices with the current one marked, rather than one button
+   cycling and showing the next state — which underlined the leading separator
+   along with the word and read as a label for something already true. Only the
+   chosen one is underlined now, so the row says what is set rather than what
+   pressing it would do. */
+.appearance{margin-left:16px;display:inline-flex;align-items:baseline;gap:8px}
+.appearance .aplabel{color:var(--muted)}
 .lightswitch{font:inherit;letter-spacing:inherit;text-transform:uppercase;color:var(--muted);
-  background:none;border:0;border-bottom:1px solid var(--rule);padding:0 0 1px;margin-left:10px;cursor:pointer}
-.lightswitch:hover{color:var(--ink);border-bottom-color:var(--ink)}
+  background:none;border:0;border-bottom:1px solid transparent;padding:0 0 1px;cursor:pointer}
+.lightswitch:hover{color:var(--ink)}
+.lightswitch.on{color:var(--ink);border-bottom-color:var(--ink)}
 @media (max-width:720px){footer .cols{grid-template-columns:1fr}.hdr nav{gap:0}}
 [hidden]{display:none!important}
 
