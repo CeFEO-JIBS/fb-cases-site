@@ -640,7 +640,7 @@
     // Two different closed doors, and a team is owed the difference: the
     // seminar has not begun, or the team has spent its choices.
     const shut = p.state === "not_started" && (!interviewsOpen || spent);
-    const cls = p.state === "in_progress" ? "live" : p.state === "completed" ? "spent" : shut ? "shut" : "";
+    const cls = p.state === "in_progress" ? "live" : p.state === "completed" || p.state === "declined" ? "spent" : shut ? "shut" : "";
     const face = p.portrait_url
       ? `<img class="portrait" src="${esc(p.portrait_url)}" alt="${esc(p.name)}" loading="lazy">`
       : `<div class="portrait none" aria-hidden="true">${esc(initials(p.name))}</div>`;
@@ -651,13 +651,17 @@
       p.branch ? (/^(branch|gren)\b/i.test(String(p.branch)) ? String(p.branch) : `branch ${p.branch}`) : null,
     ].filter(Boolean);
     const st = shut ? (interviewsOpen ? "no conversations left" : "not open yet")
-      : { not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held" }[p.state] || p.state;
+      : { not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held", declined: "declined to be interviewed" }[p.state] || p.state;
     const mins = p.budget && p.budget.virtual_minutes ? `${p.budget.virtual_minutes} minutes` : "";
     const href = p.state === "in_progress" ? `#/room/${p.session_id}`
       : p.state === "completed" ? `#/transcripts/${p.session_id}`
       : `#/interview/${p.code}`;
     const action = shut
       ? `<span class="pbtn off">${interviewsOpen ? "None left" : "Not open yet"}</span>`
+      // A refusal is the whole of that conversation: nothing opens, and nothing
+      // is spent. The card says so instead of offering the door again.
+      : p.state === "declined"
+      ? `<span class="pbtn off" title="${esc(p.declined && p.declined.message ? p.declined.message : "")}">Declined</span>`
       : `<a class="pbtn" href="${href}">${p.state === "in_progress" ? "Return to the room" : p.state === "completed" ? "Read the transcript" : "Begin the interview"}</a>`;
     // Direct access: the CV of someone you may interview is yours, so the button
     // fetches the file rather than sending you to a desk to ask for it.
@@ -736,9 +740,10 @@
           : `${bs.left} of ${bs.budget} left. A ${thing} is spent when you ask your first question — opening a room to read it and backing out costs nothing.`;
     } else {
       const held = ps.filter((p) => p.state === "completed").length;
+      const declined = ps.filter((p) => p.state === "declined").length;
       $("#n-people").textContent = ps.length;
       $("#n-held").textContent = held;
-      $("#n-left").textContent = ps.length - held;
+      $("#n-left").textContent = ps.length - held - declined;
     }
 
     // Two filters rather than one, because a team choosing twelve of
@@ -1103,6 +1108,16 @@
     // a record the team holds, a link to read the record itself.
     records(code).catch(() => {});
 
+    // A refusal already given: the answer stands, and the button is not offered
+    // twice. The words are the person's own, as recorded the first time.
+    const declined = (msg) => {
+      $("#c-go").disabled = true;
+      $("#c-err").innerHTML = `<span class="declined">${esc(p.name)} has declined to be interviewed.</span>`
+        + (msg ? ` <q>${esc(msg)}</q>` : "")
+        + ` <span class="muted">Nothing was spent. What you learn about ${esc(p.name.split(" ")[0])} comes from the others, and from the records.</span>`;
+    };
+    if (p.state === "declined") declined(p.declined && p.declined.message);
+
     $("#c-go").addEventListener("click", async () => {
       const b = $("#c-go"); b.disabled = true;
       try {
@@ -1110,7 +1125,10 @@
         try { if (r.opening_line) sessionStorage.setItem(`fb.opening.${r.session_id}`, r.opening_line); } catch {}
         location.hash = `#/room/${r.session_id}`;
       }
-      catch (err) { $("#c-err").textContent = err.message; b.disabled = false; }
+      catch (err) {
+        if (err.code === "declined" || err.code === "declined_closed") { S.personas = null; declined(err.message); return; }
+        $("#c-err").textContent = err.message; b.disabled = false;
+      }
     });
   }
 
@@ -2115,17 +2133,21 @@
     }
 
     // Whether choosing is even a thing on this course, and what it costs.
+    // The people are counted from the roster on the page, not from the
+    // engine's `available`: that figure leaves out anyone who declines to be
+    // interviewed, and a team still meets that person — formally, and on the
+    // roster — even if the meeting is a refusal.
     const choose = $("#how-choose");
     if (iv && iv.selection === "open") {
       choose.innerHTML = `<p>You may hold <strong>${iv.budget}</strong> conversation${iv.budget === 1 ? "" : "s"},
-        and there ${iv.available === 1 ? "is" : "are"} <strong>${iv.available}</strong> ${iv.available === 1 ? "person" : "people"}
+        and there ${ps.length === 1 ? "is" : "are"} <strong>${ps.length}</strong> ${ps.length === 1 ? "person" : "people"}
         you could approach. You have used <strong>${iv.held + iv.pending}</strong>;
         <strong>${iv.left}</strong> remain${iv.left === 1 ? "s" : ""}. Choosing is part of the work — decide who is
         worth an hour before you knock.</p>`;
     } else if (iv) {
-      const capped = iv.budget && iv.budget < iv.available;
-      choose.innerHTML = `<p>Your team leader has named the <strong>${iv.available}</strong>
-        ${iv.available === 1 ? "person" : "people"} you will meet.
+      const capped = iv.budget && iv.budget < ps.length;
+      choose.innerHTML = `<p>Your team leader has named the <strong>${ps.length}</strong>
+        ${ps.length === 1 ? "person" : "people"} you will meet.
         ${capped ? `You may hold <strong>${iv.budget}</strong> of those conversations, so the order matters twice over: ` : "See all of them, and plan the order: "}
         what you learn from one tells you what to ask the next.</p>`;
     }
