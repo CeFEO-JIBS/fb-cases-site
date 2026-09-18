@@ -2079,7 +2079,18 @@
             const ttl = code ? `<a href="#/file/${esc(code)}">${esc(c.title)}</a>` : `<strong>${esc(c.title)}</strong>`;
             return `<li><span class="pos">▸</span><span>${ttl} <span class="prov">now in your case file${code ? ` · <a href="#/file/${esc(code)}/at">${esc(code)}</a>` : ""}</span></span></li>`;
           }
-          return `<li><span class="pos">[${c.position}]</span><span>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.reference)}</a>` : esc(c.reference)}</span></li>`;
+          // Only the address is a link. A reference is authors, year, title
+          // and journal, and it ends with where the paper is: the DOI, or a
+          // publisher's page. Underlining the whole line said nothing about
+          // where a click would go; the address says it, and a DOI in the
+          // text is followed in preference to whatever the record's own link
+          // column held, which for most papers was an aggregator's page.
+          const ref = String(c.reference ?? "");
+          const m = /\s*(https?:\/\/\S+?)[.,;)]*\s*$/.exec(ref);
+          const href = m ? m[1] : c.url;
+          const text = m ? ref.slice(0, m.index) : ref;
+          const link = href ? ` <a href="${esc(href)}" target="_blank" rel="noopener">${esc(m ? m[1] : href)}</a>` : "";
+          return `<li><span class="pos">[${c.position}]</span><span>${esc(text)}${link}</span></li>`;
         }).join("")}</ul>`
       : "";
     d.innerHTML = `<div class="sp">${esc(who)}</div>${paras(t.text)}${cites}`;
