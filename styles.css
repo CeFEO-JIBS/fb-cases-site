@@ -775,3 +775,7 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
   color:var(--ledger);margin-right:9px}
 .trhit .who{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .trhit mark{background:var(--stamp-wash);color:var(--ink);padding:0 2px;border-radius:2px}
+
+/* A refusal on the page before a conversation: not an error, an answer. */
+#c-err .declined { color: var(--ink, #1c1c1c); font-weight: 600; }
+#c-err q { font-style: italic; }
