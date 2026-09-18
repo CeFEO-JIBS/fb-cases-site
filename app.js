@@ -1059,9 +1059,17 @@
    * not appear at all.
    */
   async function orientationDocs() {
+    const ds = await documents();
+    // A case that names its papers (documents.read_first, in order) is taken
+    // at its word. The list is already what this team can reach, so a paper
+    // named but not yet released simply is not here. A case that names none
+    // keeps the older rule: the tree and whatever is filed beside it — a rule
+    // that gave a case filing its tree alone, with the will, a strip of one.
+    const named = ds.filter((d) => Number.isInteger(d.read_first) && d.read_first > 0)
+      .sort((a, b) => a.read_first - b.read_first || String(a.code).localeCompare(String(b.code)));
+    if (named.length) return named;
     const tree = await genoDoc();
     if (!tree) return [];
-    const ds = await documents();
     const kin = tree.folder ? ds.filter((d) => d.folder === tree.folder && d.code !== tree.code) : [];
     return [tree, ...kin];
   }
