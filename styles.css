@@ -36,9 +36,16 @@ button,input{font:inherit}
    against the containing block, which for the header, main and the footer is
    the same body box. */
 padding:0 max(var(--gutter), calc((100% - var(--page))/2 + var(--gutter)));border-bottom:2px solid var(--rule-hard);position:sticky;top:0;z-index:20}
-.hdr .mark{display:flex;align-items:baseline;gap:9px}
-.hdr .mark .n{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--on-band-faint)}
+/* Centred rather than baseline-aligned: the lock-up is a drawing beside a
+   word now, and a drawing has no baseline to share. */
+.hdr .mark{display:flex;align-items:center;gap:12px}
+/* The mark inherits the band's foreground through currentColor, so it comes
+   with a re-liveried case for free and needs no second file. */
+.hdr .mark .gm{width:26px;height:26px;flex:none}
 .hdr .mark .t{font-weight:600;font-size:13.5px;white-space:nowrap}
+/* The page-wide ring is --stamp, which is purple on a blue band and hard to
+   see; the pale end of the same purple reads against it. */
+.hdr .mark:focus-visible{outline-color:var(--stamp-wash)}
 .hdr nav{display:flex;gap:2px;margin-left:auto;align-items:center}
 .hdr nav a,.hdr nav button{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;text-decoration:none;padding:6px 11px;border-radius:2px;color:var(--on-band-dim);background:transparent;border:0;cursor:pointer}
 .hdr nav a:hover,.hdr nav button:hover{background:rgba(255,255,255,.09);color:var(--on-band-hi)}
@@ -558,7 +565,11 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
      disagreed by eight pixels between 561 and 720. One variable now. */
   :root{--gutter:14px}
   .hdr{position:static;height:auto;min-height:var(--hdr-h);flex-wrap:wrap;gap:0;row-gap:2px;padding:6px var(--gutter) 4px}
-  .hdr .mark{padding:4px 0}
+  /* Measured, not guessed: the 26px mark makes this multi-row bar 5.8px taller
+     than the wordmark it replaced, at every width below 720. At 22px with 3px
+     of padding it is the height it has always been, to within half a pixel. */
+  .hdr .mark{padding:3px 0;gap:10px}
+  .hdr .mark .gm{width:22px;height:22px}
   .hdr nav{width:100%;flex-wrap:wrap;gap:0;row-gap:2px;margin:5px 0 0;padding-top:4px;
            border-top:1px solid rgba(255,255,255,.16)}
   .hdr nav a,.hdr nav button{padding:6px 9px}
