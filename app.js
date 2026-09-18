@@ -99,6 +99,12 @@
     .replace(new RegExp(String.raw`,?\s+(?:\d{1,2}\s+)?(?:${MONTHS})\s+\d{4}\s*$`, "i"), "")
     .replace(/[,;:\s]+$/, "")
     .trim();
+  // The strip on the interviews page reads four names in a row, so each is the
+  // head of its title: what stands before the first comma, once the date is
+  // gone. "Share register, Wästberg Transport AB, extract at …" is one paper
+  // among four there, and "Share register" is what a team scans for. The
+  // full title stays on the record's page and in the case file.
+  const headName = (d) => shortName(d).split(",")[0].trim() || shortName(d);
   /**
    * The opening of a brief, cut at a sentence where there is one and at a word
    * where there is not. The card carries enough to choose on; the whole brief
@@ -806,7 +812,7 @@
       const el = $("#case-tree"); if (!el || !docs.length) return;
       el.innerHTML = `<p class="label">The papers to read first</p>`
         // A record with no English title would otherwise render an empty link.
-        + docs.map((d) => `<a href="#/file/${esc(d.code)}">${esc(shortName(d))}</a>`)
+        + docs.map((d) => `<a href="#/file/${esc(d.code)}">${esc(headName(d))}</a>`)
               .join('<span class="sep">\u00b7</span>');
       el.hidden = false;
     });
