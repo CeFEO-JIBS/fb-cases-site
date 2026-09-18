@@ -812,7 +812,8 @@
       const el = $("#case-tree"); if (!el || !docs.length) return;
       el.innerHTML = `<p class="label">The papers to read first</p>`
         // A record with no English title would otherwise render an empty link.
-        + docs.map((d) => `<a href="#/file/${esc(d.code)}">${esc(headName(d))}</a>`)
+        // A case may give the strip its own word for a paper; else the head of the title.
+        + docs.map((d) => `<a href="#/file/${esc(d.code)}">${esc((d.read_first_label || "").trim() || headName(d))}</a>`)
               .join('<span class="sep">\u00b7</span>');
       el.hidden = false;
     });
