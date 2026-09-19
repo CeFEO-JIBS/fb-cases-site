@@ -1496,10 +1496,42 @@
     })();
 
     const box = $("#turns");
-    // The opening line is the only earlier turn the room shows. There is no live transcript: a reload mid-conversation shows what you have heard only from your notes.
-    let opening = null; try { opening = sessionStorage.getItem(`fb.opening.${id}`); } catch {}
-    if (opening) addTurn(box, p.name, opening);
-    addTurn(box, "sys", "The conversation is running. There is no live transcript: take notes. It arrives when the conversation ends.");
+    // The conversation as it stands, so coming back to your own room is not the
+    // same as losing it. A reload, a phone that dropped the tab, a teammate
+    // arriving on another device: none of those taught anyone to take notes,
+    // and the room already showed each exchange as it happened.
+    //
+    // Its own route, and not the transcript's: /sessions/:id/turns serves an
+    // OPEN session only, so the transcripts page still cannot render a
+    // conversation that has not ended. That distinction is the whole of rule 5
+    // here, and it is the server that keeps it.
+    //
+    // The opening line is a turn row on the server, so the copy this tab
+    // stashed when it opened the room would be a duplicate of the first thing
+    // in this list. It is the fallback for when the read fails, not an
+    // addition to it.
+    let served = false;
+    try {
+      const t = await api(`/sessions/${id}/turns`);
+      for (const tr of t.turns || []) {
+        addTurn(box, tr.speaker === "interviewer" ? "you" : tr.speaker === "persona" ? (t.name || p.name) : "sys", tr.text);
+      }
+      served = true;
+    } catch (err) {
+      // The one refusal that is not a failure: the conversation ended between
+      // the state read a moment ago and this one. Its transcript exists, so go
+      // there rather than sit under a line that says the room is running and
+      // wait thirty seconds for the poll to notice.
+      if (err && err.code === "session_closed") { stopPoll(); S.personas = null; location.hash = `#/transcripts/${id}`; return; }
+      console.warn("[room] scrollback unavailable", err && err.message);
+    }
+    if (!served) {
+      let opening = null; try { opening = sessionStorage.getItem(`fb.opening.${id}`); } catch {}
+      if (opening) addTurn(box, p.name, opening);
+    }
+    addTurn(box, "sys", served
+      ? "The conversation so far is above. The transcript \u2014 searchable, and yours to download \u2014 is released when this one ends."
+      : "The conversation is running. Take notes: the transcript is released when it ends.");
     const wallTotal = p.budget.wall_minutes || null;
     // ── the clock ────────────────────────────────────────────────────────
     // How much time is left is the server's to say and never the browser's to
