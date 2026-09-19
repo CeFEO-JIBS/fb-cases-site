@@ -88,10 +88,11 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 /* The lock-up above the sign-in box. The top margin moves here from the card,
    so the two read as one block rather than two things that happen to be
    stacked; both keep the card's own 400px measure so their edges agree. */
-/* The lock-up above the sign-in box. Its own aspect is given in the tag, so
-   the space is reserved before the file arrives and the card does not jump. */
-.signmark{display:block;width:210px;height:auto;margin:44px auto 18px}
-.signin{max-width:400px;margin:0 auto}
+/* The lock-up at the head of the sign-in box, on the card's own left edge.
+   Its aspect is given in the tag, so the space is reserved before the file
+   arrives and nothing below it moves when it lands. */
+.signmark{display:block;width:152px;height:auto;margin:2px 0 18px}
+.signin{max-width:400px;margin:40px auto 0}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .field input{padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-size:15px}
 .btn{display:inline-block;padding:9px 16px;border-radius:2px;border:1px solid var(--ledger);background:var(--ledger);color:var(--on-brand);cursor:pointer;font-weight:500}
