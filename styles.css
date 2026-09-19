@@ -264,7 +264,7 @@ footer .base{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--rule-so
 @media (hover:hover){.lightswitch:hover{color:var(--ink)}}
 .lightswitch.on{color:var(--ink);border-bottom-color:var(--ink)}
 @media (max-width:720px){footer .cols{grid-template-columns:1fr}}
-@media (max-width:860px){.hdr nav{gap:0}}
+@media (max-width:1079px){.hdr nav{gap:0}}
 [hidden]{display:none!important}
 
 /* ── v0.2: the room, the file, the reader ─────────────────────────────── */
@@ -675,22 +675,26 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
    the masthead is STICKY on a phone again. At 52px it costs 6% of the screen
    and the way out of a page is always within reach, where before it was one
    scroll to the top away. */
-/* 860 rather than 720 since a seventh section joined the band, and 860 rather
-   than a number of its own because that is already the site's wide/narrow line
-   — `.two`, `.side`, `.docrow` and `.recbox` all turn there.
-   Measured with the seven labels: below 811 the band cannot hold them together
-   with the group's address and the way out, and pushes the last of them off
-   the screen; from 811 to 860 it holds them but breaks the address and the way
-   out across two lines each, which is worse than what six labels did there.
-   From 861 to about 1050 each label sits on two lines, which is what six of
-   them already did from 800 up, and above 1050 the band is one clean row.
-   The compact masthead carries all seven from 320 to 860 with nothing
-   off-screen, so the range the band cannot hold cleanly is the range the
-   toggle owns. */
-@media (max-width:860px){
-  /* The masthead already chose 14px here while the page kept 22, so the two
-     disagreed by eight pixels between 561 and 720. One variable now. */
-  :root{--gutter:14px}
+/* The band shows only while every word in it holds ONE line. That is the whole
+   rule, and it decides the number rather than the number being chosen and the
+   wrapping tolerated: a masthead whose seven sections, the group's address and
+   the way out are all broken in two reads as a bar that has run out of room,
+   which is what a toggle is for.
+   Measured across 320–1120 with the longest group code the editions actually
+   carry (five characters): the last width at which something still wraps is
+   1064, and 1065 is the first clean one. The breakpoint is 1079 — `--page`
+   minus one — so the band appears exactly when the viewport can hold the
+   page's own column, which puts fourteen pixels of slack over the measurement
+   for font metrics that are not Chromium's. Below it the compact masthead
+   carries all seven sections from 320 up with nothing off-screen.
+   Note this is deliberately NOT the site's 860 wide/narrow line, which `.two`,
+   `.side`, `.docrow` and `.recbox` still turn on: how wide a column reads well
+   and how many words fit on a bar are different questions. */
+/* The page's own gutter, which is not a masthead decision and does not move
+   with it: the masthead already chose 14px here while the page kept 22, so the
+   two disagreed by eight pixels between 561 and 720. One variable now. */
+@media (max-width:860px){ :root{--gutter:14px} }
+@media (max-width:1079px){
   .hdr{height:var(--hdr-h);flex-wrap:nowrap;gap:12px;padding:0 var(--gutter)}
   /* Measured, not guessed: a 26px mark makes this bar taller than the
      wordmark it replaced. 22px is the height it has always been. */
