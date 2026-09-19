@@ -750,7 +750,10 @@
     // thing the page can give a team about someone who refused. The transcript
     // is one click on from there.
     const href = p.state === "in_progress" ? `#/room/${p.session_id}` : `#/interview/${p.code}`;
-    const label = { in_progress: "Return to the room", completed: "Records and transcript", declined: "The records" }[p.state]
+    // "Transcript" and not "Records and transcript": two words wrapped the row,
+    // and the records are the page this lands on rather than a second place to
+    // go. A refusal has no transcript, so that one says what it does have.
+    const label = { in_progress: "Return to the room", completed: "Transcript", declined: "The records" }[p.state]
       || "Begin the interview";
     const action = shut
       ? `<span class="pbtn off">${interviewsOpen ? "None left" : "Not open yet"}</span>`
