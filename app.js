@@ -1034,14 +1034,19 @@
       // same one the desk page and the roster use. She was a 52px thumbnail
       // beside a label here, which made the one human being on the page the
       // smallest thing on it.
+      // The same four lines her own page gives her, including what the team has
+      // left to spend. This is the page where a group decides whether to ask,
+      // so the count belongs here at least as much as it does at the desk.
+      const regCap = registry.questions_total || registry.turn_cap;
       $("#reg-aside").innerHTML = `<div class="whocard">${whoCard({
         name: registry.name, portrait_url: registry.portrait_url,
         role: registry.subtitle || "the document registry",
         facts: "the case archive",
+        state: regCap ? `${Math.max(0, regCap - (registry.asked || 0))} of ${regCap} requests left in the course` : "",
       })}</div>
-        <div class="card">
+        <div class="card deskbrief">
           <div class="prose"><p>Keeps the archive. Ask for a record by name and, if it is there, it goes into this file. She remembers what you asked.</p></div>
-          <p><a class="btn quiet" href="#/desk/${esc(registry.code)}">Ask ${esc(registry.name.split(" ")[0])}</a></p>
+          <p class="boxact"><a class="btn quiet" href="#/desk/${esc(registry.code)}">Ask ${esc(registry.name.split(" ")[0])}</a></p>
         </div>`;
       return;
     }
@@ -1928,7 +1933,6 @@
     if (!skipIntro && !threadId && !d.turns.length && !courseGate(S.me)) return deskIntro(d, code);
     render("t-desk");
     const desk = d.desk;
-    $("#dk-label").textContent = desk.subtitle || "The literature";
     const registry = desk.desk_kind === "registry";
     const deskBrief = desk.brief || (registry
       ? "Ask for a record by name. If the archive holds it, it goes into your case file."
@@ -1938,7 +1942,14 @@
       : "Ask about the literature, not about the family";
     $("#dk-go").textContent = registry ? "Ask for it" : "Ask the desk";
     $("#dk-srclabel").textContent = registry ? "What this desk holds" : "What this desk reads";
-    $("#dk-brief").textContent = deskBrief;
+    $("#dk-brief").innerHTML = `<p>${esc(deskBrief)}</p>`;
+    // The column's head, for the one state that has none: a desk opened with
+    // nothing asked yet has no request on screen, so neither the request list
+    // nor the request head is showing. It used to be the desk's subtitle, which
+    // the card beside it already prints — and on a phone, where the card is
+    // hoisted above this column, printed twice in consecutive lines.
+    $("#dk-label").hidden = !!d.thread;
+    if (!d.thread) $("#dk-label").textContent = "A new request";
     $("#dk-note").textContent = registry
       ? "The archive is large and most of it is not listed. Name a year, a party to it, or who would have kept it."
       : "Answers cite what they used. Follow the citation and read the source before you rely on it.";
