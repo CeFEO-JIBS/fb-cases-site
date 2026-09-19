@@ -48,7 +48,7 @@ padding:0 max(var(--gutter), calc((100% - var(--page))/2 + var(--gutter)));borde
 .hdr .mark:focus-visible{outline-color:var(--stamp-wash)}
 .hdr nav{display:flex;gap:2px;margin-left:auto;align-items:center}
 .hdr nav a,.hdr nav button{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;text-decoration:none;padding:6px 11px;border-radius:2px;color:var(--on-band-dim);background:transparent;border:0;cursor:pointer}
-.hdr nav a:hover,.hdr nav button:hover{background:rgba(255,255,255,.09);color:var(--on-band-hi)}
+@media (hover:hover){.hdr nav a:hover,.hdr nav button:hover{background:rgba(255,255,255,.09);color:var(--on-band-hi)}}
 .hdr .who{display:flex;align-items:center;align-self:stretch;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;color:var(--on-band-dim);border-left:1px solid rgba(255,255,255,.2);padding-left:14px;margin-left:8px}
 
 main{flex:1 0 auto;width:100%;max-width:var(--page);margin:0 auto;padding:34px var(--gutter)}
@@ -160,7 +160,7 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .cpapers:empty{display:none}
 .cpapers a{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
            color:var(--ledger);text-decoration:none;border-bottom:1px solid var(--rule);padding-bottom:2px}
-.cpapers a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+@media (hover:hover){.cpapers a:hover{color:var(--ink);border-bottom-color:var(--ink)}}
 .cpapers .sep{color:var(--muted)}
 @media (max-width:860px){
   .cmeet>.whocard{display:block}
@@ -193,7 +193,7 @@ footer .base{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--rule-so
 .appearance .aplabel{color:var(--muted)}
 .lightswitch{font:inherit;letter-spacing:inherit;text-transform:uppercase;color:var(--muted);
   background:none;border:0;border-bottom:1px solid transparent;padding:0 0 1px;cursor:pointer}
-.lightswitch:hover{color:var(--ink)}
+@media (hover:hover){.lightswitch:hover{color:var(--ink)}}
 .lightswitch.on{color:var(--ink);border-bottom-color:var(--ink)}
 @media (max-width:720px){footer .cols{grid-template-columns:1fr}.hdr nav{gap:0}}
 [hidden]{display:none!important}
@@ -251,23 +251,23 @@ textarea{width:100%;padding:9px 10px;border:1px solid var(--rule);border-radius:
    because a button inside a link is neither. */
 .docitem{display:grid;grid-template-columns:20px minmax(0,1fr);border-bottom:1px solid var(--rule-soft)}
 .docitem:last-child{border-bottom:0}
-.docitem:hover{background:var(--wash)}
+@media (hover:hover){.docitem:hover{background:var(--wash)}}
 .docitem.open{background:var(--wash)}
 .docmore{grid-area:1/1;align-self:center;justify-self:center;width:20px;height:22px;padding:0;border:0;background:none;
          cursor:pointer;color:var(--muted);font-family:var(--mono);font-size:11px;line-height:1}
 .docmore::before{content:"▸"}
 .docitem.open .docmore::before{content:"▾"}
-.docmore:hover{color:var(--ink)}
+@media (hover:hover){.docmore:hover{color:var(--ink)}}
 .docmore.none{cursor:default}
 .docblurb{grid-column:2;margin:0 0 11px;padding-right:12px;font-family:var(--read);font-size:14.5px;line-height:1.5;color:var(--muted);max-width:74ch}
 .docrow{display:grid;grid-template-columns:162px minmax(0,1fr) 120px 90px;gap:12px;padding:10px 12px;
         border-bottom:1px solid var(--rule-soft);align-items:center;text-decoration:none}
 .docrow:last-child{border-bottom:0}
-.docrow:hover{background:var(--wash)}
+@media (hover:hover){.docrow:hover{background:var(--wash)}}
 /* Inside a foldable item the chevron holds the left gutter and the wrapper
    draws the rule, so the row gives both up. */
 .docitem>.docrow{grid-area:1/2;padding-left:0;border-bottom:0}
-.docitem>.docrow:hover{background:none}
+@media (hover:hover){.docitem>.docrow:hover{background:none}}
 .docrow .code{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
 .docrow .ttl{font-family:var(--read);font-size:15.5px}
 /* The record's other name, under its own: quieter, but there to be read. */
@@ -337,7 +337,7 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
    next visit is a bug, not a feature. */
 .docitem.landed{box-shadow:inset 3px 0 0 var(--stamp);background:var(--card);transition:background .5s ease,box-shadow .5s ease}
 .backrow{text-decoration:none;border-bottom:1px dotted var(--rule)}
-.backrow:hover{border-bottom-color:var(--stamp)}
+@media (hover:hover){.backrow:hover{border-bottom-color:var(--stamp)}}
 .turn.working{display:flex;align-items:center;gap:9px;font-family:var(--ui);font-size:13px;color:var(--muted)}
 .turn.working .dot{width:7px;height:7px;border-radius:50%;background:var(--stamp);animation:pulse 1.15s ease-in-out infinite;flex:none}
 .turn.working .secs{font-family:var(--mono);font-size:12px;opacity:.7}
@@ -371,7 +371,7 @@ select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;backgroun
 .thchip{display:block;max-width:260px;text-decoration:none;background:var(--card);
         border:1px solid var(--rule);border-radius:2px;padding:6px 10px;
         font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.thchip:hover{border-color:var(--ledger)}
+@media (hover:hover){.thchip:hover{border-color:var(--ledger)}}
 .thchip.on{border-color:var(--ink);color:var(--ink)}
 .thchip.new{border-style:dashed;color:var(--ledger)}
 /* The question a conversation opened with, in the reading face: it is the only
@@ -404,7 +404,7 @@ select{padding:8px 10px;border:1px solid var(--rule);border-radius:2px;backgroun
 
 /* the research desks */
 .desk-card{display:block;background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:16px 18px;margin:0 0 10px;text-decoration:none;color:inherit}
-.desk-card:hover{border-color:var(--ledger)}
+@media (hover:hover){.desk-card:hover{border-color:var(--ledger)}}
 .desk-card .nm{font-weight:600;font-size:16px}
 .desk-card .sub{color:var(--muted);font-size:13px;margin-top:2px}
 .desk-card .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);margin-top:8px}
@@ -432,14 +432,14 @@ li.packgrp>details>summary::-webkit-details-marker{display:none}
 li.packgrp>details>summary::before{content:"\25b8";font-family:var(--mono);font-size:11px;
   color:var(--muted);flex:none}
 li.packgrp>details[open]>summary::before{content:"\25be"}
-li.packgrp>details>summary:hover .fname{color:var(--ledger)}
+@media (hover:hover){li.packgrp>details>summary:hover .fname{color:var(--ledger)}}
 li.packgrp .fname{font-family:var(--ui);font-size:13.5px;font-weight:600}
 li.packgrp .n{margin-left:auto}
 ul.packdocs{list-style:none;margin:0 0 6px;padding:0 0 0 21px}
 ul.packdocs li{padding:0;border-top:1px solid var(--rule-soft)}
 ul.packdocs a{display:grid;grid-template-columns:20ch minmax(0,1fr);gap:12px;align-items:baseline;
   padding:7px 0;text-decoration:none}
-ul.packdocs a:hover .ttl{border-bottom-color:var(--ledger)}
+@media (hover:hover){ul.packdocs a:hover .ttl{border-bottom-color:var(--ledger)}}
 ul.packdocs .code{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted)}
 ul.packdocs .ttl{font-family:var(--read);font-size:15.5px;color:var(--ledger);
   border-bottom:1px solid transparent;padding-bottom:1px;justify-self:start}
@@ -469,7 +469,7 @@ ul.packdocs .ttl{font-family:var(--read);font-size:15.5px;color:var(--ledger);
 .exrow .excode{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);flex:none}
 .exrow .exttl{font-family:var(--read);font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .exdrop{margin-left:auto;flex:none;border:0;background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--muted);padding:0 2px}
-.exdrop:hover{color:var(--stamp)}
+@media (hover:hover){.exdrop:hover{color:var(--stamp)}}
 .expick{margin-top:8px;padding:12px 14px}
 .expick input{width:100%;margin-top:5px;-webkit-appearance:none;appearance:none;
               padding:8px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-size:14.5px}
@@ -477,7 +477,7 @@ ul.packdocs .ttl{font-family:var(--read);font-size:15.5px;color:var(--ledger);
 .exhit{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;cursor:pointer;
        border:0;border-bottom:1px solid var(--rule-soft);background:none;padding:8px 2px}
 .exhit:last-child{border-bottom:0}
-.exhit:hover{background:var(--wash-2)}
+@media (hover:hover){.exhit:hover{background:var(--wash-2)}}
 .exhit .excode{font-family:var(--mono);font-size:10.5px;color:var(--muted);flex:none;min-width:108px}
 .exhit .exttl{font-family:var(--read);font-size:15px;min-width:0}
 /* The window has not started yet, said where the team is about to start it. */
@@ -642,11 +642,11 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 .rmark{flex:none;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
        color:var(--ledger);text-decoration:none;background:none;border:1px solid var(--rule);border-radius:2px;
        padding:5px 9px;white-space:nowrap;cursor:pointer}
-.rmark:hover{border-color:var(--ink);color:var(--ink)}
+@media (hover:hover){.rmark:hover{border-color:var(--ink);color:var(--ink)}}
 .rmark.ask{color:var(--stamp);border-color:var(--stamp)}
-.rmark.ask:hover{background:var(--stamp);color:var(--on-brand)}
+@media (hover:hover){.rmark.ask:hover{background:var(--stamp);color:var(--on-brand)}}
 .rmark:disabled{opacity:.5;cursor:default}
-.rmark:disabled:hover{background:none;color:var(--stamp)}
+@media (hover:hover){.rmark:disabled:hover{background:none;color:var(--stamp)}}
 @media (max-width:860px){
   /* One column, and the registrar goes on top — the same order the desk and
      the room use on a narrow screen — laid out as a row so she costs a strip
@@ -672,7 +672,7 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
    quiet that it is missed — this is the line that explains why a change is
    not visible. */
 .lnk.stale{background:none;border:0;padding:0;font:inherit;color:var(--stamp);cursor:pointer;text-decoration:underline}
-.lnk.stale:hover{text-decoration:none}
+@media (hover:hover){.lnk.stale:hover{text-decoration:none}}
 
 /* ── Dictation ─────────────────────────────────────────────────────────────
    The microphone beside a composer, switched on per course run. Purple is the
@@ -743,7 +743,7 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 .treeline>.label{margin:0 0 4px}
 .treeline a{font-family:var(--read);font-size:15px;color:var(--ledger);text-decoration:none;
   border-bottom:1px solid var(--rule);padding-bottom:1px}
-.treeline a:hover{border-bottom-color:var(--ledger)}
+@media (hover:hover){.treeline a:hover{border-bottom-color:var(--ledger)}}
 .treeline .sep{color:var(--muted);margin:0 9px}
 @media (max-width:560px){
   /* One per line on a phone: four titles separated by dots wrap into a
@@ -779,3 +779,61 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 /* A refusal on the page before a conversation: not an error, an answer. */
 #c-err .declined { color: var(--ink, #1c1c1c); font-weight: 600; }
 #c-err q { font-style: italic; }
+
+
+/* ── Touch ─────────────────────────────────────────────────────────────────
+   A phone is here to run one thing: an interview. The path it has to survive
+   is sign in, the roster, the room, the composer, end. Everything below is
+   scoped to a coarse pointer, so a trackpad sees none of it. */
+
+/* iOS raises a keyboard and zooms the page when a field under 16px takes
+   focus, and does not zoom back out. Every field on that path is lifted. */
+@media (pointer:coarse){
+  input,select,textarea,.field input,.expick input,.findbar input{font-size:16px}
+
+  /* No grey flash on the tap of a row, a card or a link. */
+  a,button,summary,label,.exhit,.docrow{-webkit-tap-highlight-color:transparent}
+
+  /* Nothing to press is smaller than a fingertip. */
+  .btn,.pbtn{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  .rmark{min-height:44px;padding:5px 12px;display:inline-flex;align-items:center}
+  .exhit{min-height:44px;align-items:center}
+  .exdrop{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;margin-right:-6px}
+  .docmore{height:44px}
+  .docrow{min-height:44px}
+  /* Beyond the interview path, but it is the only control on the site still
+     under a fingertip and it is pressed in the middle of reading a facsimile,
+     which is a thing people do standing up. The pair keeps its own width. */
+  .seg button{min-height:44px}
+
+  /* The composer sits at the bottom of the screen; the home indicator sits
+     under it, not over the Send button. */
+  .compose{padding-bottom:max(6px,env(safe-area-inset-bottom))}
+  footer{padding-bottom:max(18px,env(safe-area-inset-bottom))}
+
+  /* A flick that reaches the end of the record list should not then drag the
+     page out from under the composer. */
+  .exlist{overscroll-behavior:contain}
+}
+/* Landscape on a notched phone puts the notch in the margin, not in the text. */
+@media (pointer:coarse) and (orientation:landscape){
+  body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+}
+
+/* The browser chrome on a phone grows and shrinks as you scroll; 100vh is the
+   tall state and leaves a gap, dvh is what is actually there. */
+@supports (min-height:100dvh){body{min-height:100dvh}}
+html{-webkit-text-size-adjust:100%}
+
+/* The clock strip is sticky above the thread on a phone and it is competing
+   for the screen with the conversation. Tightened, not removed: the two
+   numbers are the one thing a team cannot afford not to see. */
+@media (max-width:560px){
+  .room>aside.side>.clock{padding:8px 12px}
+  .room>aside.side>.clock .v{font-size:17px}
+}
+
+/* An answer the connection cut short. Marked, so a partial turn is never read
+   as a short one — and never silently re-asked. */
+.turn.cut>div:last-child::after{content:" \2014 cut off";white-space:pre;font-family:var(--mono);font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--stamp)}

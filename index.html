@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The case room</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,12 +13,12 @@
      markup has arrived and show a half-updated page. The query makes the
      three files move together: it carries the version in config.js, so it
      moves whenever the site does. -->
-<link rel="stylesheet" href="styles.css?v=1.32">
+<link rel="stylesheet" href="styles.css?v=1.33">
 <!-- Before anything is drawn. The case's palette was cached by the last visit,
      so a returning student's first paint is already in their case's colours
      and their own dark-mode choice — rather than a flash of the platform's
      defaults, which after dark is what people actually mind about. -->
-<script src="theme.js?v=1.32"></script>
+<script src="theme.js?v=1.33"></script>
 <!-- The genogram mark: square, circle, marriage line, descent line, three
      stems. The SVG carries its own prefers-color-scheme rule and turns white
      in a dark tab, so there is deliberately no second <link media=…> here —
@@ -26,17 +26,21 @@
      query is this site's usual one, and it matters more here than anywhere:
      a browser holds a favicon far longer than the ten minutes GitHub Pages
      asks for, and without it the old blank tab can outlive several deploys. -->
-<link rel="icon" href="favicon.svg?v=1.32" type="image/svg+xml">
-<link rel="icon" href="favicon-32.png?v=1.32" sizes="32x32" type="image/png">
-<link rel="icon" href="favicon-16.png?v=1.32" sizes="16x16" type="image/png">
-<link rel="icon" href="favicon-48.png?v=1.32" sizes="48x48" type="image/png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.32">
-<link rel="manifest" href="site.webmanifest?v=1.32">
+<link rel="icon" href="favicon.svg?v=1.33" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png?v=1.33" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon-16.png?v=1.33" sizes="16x16" type="image/png">
+<link rel="icon" href="favicon-48.png?v=1.33" sizes="48x48" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.33">
+<link rel="manifest" href="site.webmanifest?v=1.33">
 <!-- The masthead's own colour, so a phone's browser chrome continues the band
      rather than sitting a shade off it. A case may re-livery --band and this
      cannot follow — a meta tag is read once, before the palette arrives — so
      it holds the platform default rather than pretending to track it. -->
 <meta name="theme-color" content="#003865">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Case room">
 </head>
 <body>
 <header class="hdr">
@@ -81,7 +85,7 @@
     <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
     <div id="foot-edition"></div>
   </div>
-  <div class="base">CASE ROOM · <span id="stamp">v1.32</span>
+  <div class="base">CASE ROOM · <span id="stamp">v1.33</span>
     <span class="appearance" id="appearance" hidden></span>
   </div>
 </footer>
@@ -189,8 +193,8 @@
     <h1 style="font-size:24px">Your team's room</h1>
     <p class="lede" style="font-size:16px">One account per team. Your instructor gave you the details.</p>
     <form id="form">
-      <div class="field"><label class="label" for="email">Team email</label><input id="email" type="email" autocomplete="username" required></div>
-      <div class="field"><label class="label" for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <div class="field"><label class="label" for="email">Team email</label><input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" required></div>
+      <div class="field"><label class="label" for="password">Password</label><input id="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" required></div>
       <button class="btn" id="go" type="submit">Enter</button>
       <div class="err" id="err" aria-live="polite"></div>
     </form>
@@ -244,7 +248,7 @@
       <p class="lede">Everything your team holds. The onboarding pack is yours from the moment the course opens; the rest reaches you as you work. What is not listed here is not yours yet: if you believe a record exists, ask the registry for it by name.</p>
       <div class="findbar" id="doc-filter" hidden>
         <label class="label" for="doc-q">Find a record</label>
-        <input id="doc-q" type="search" autocomplete="off" spellcheck="false"
+        <input id="doc-q" type="search" autocomplete="off" spellcheck="false" autocapitalize="none" autocorrect="off" enterkeyhint="search"
                placeholder="a code, a title, a year, who holds it">
         <span class="fcount" id="doc-count" aria-live="polite"></span>
       </div>
@@ -256,7 +260,7 @@
       <p class="label">Write to the registry</p>
       <div class="prose" id="reg-reply"><p>The registry answers requests for specific records. Say which document you are looking for, and if you can, its year and who would hold it.</p></div>
       <form id="reg-form">
-        <div class="field"><textarea id="reg-text" rows="4" maxlength="1000" placeholder="e.g. the will of the founder, or the articles of association from the year the holding company was formed" required minlength="5"></textarea></div>
+        <div class="field"><textarea id="reg-text" rows="4" enterkeyhint="enter" autocapitalize="sentences" autocorrect="on" maxlength="1000" placeholder="e.g. the will of the founder, or the articles of association from the year the holding company was formed" required minlength="5"></textarea></div>
         <button class="btn quiet" type="submit" id="reg-go">Send request</button>
       </form>
       </div>
@@ -329,12 +333,12 @@
           <button class="pbtn quiet" type="button" id="ex-open">Discuss a document</button>
           <div class="expick card" id="ex-pick" hidden>
             <label class="label" for="ex-q">Which record</label>
-            <input id="ex-q" type="search" autocomplete="off" spellcheck="false" placeholder="a code, a title, a year">
+            <input id="ex-q" type="search" autocomplete="off" spellcheck="false" autocapitalize="none" autocorrect="off" enterkeyhint="search" placeholder="a code, a title, a year">
             <div class="exlist" id="ex-list"></div>
           </div>
         </div>
         <div class="field">
-          <textarea id="question" rows="3" placeholder="Your question — Enter sends, Shift+Enter for a new line" required></textarea>
+          <textarea id="question" rows="3" placeholder="Your question" enterkeyhint="enter" autocapitalize="sentences" autocorrect="on" required></textarea>
           <div class="counter"><span id="count">0</span> / <span id="cap">500</span></div>
         </div>
         <div class="composebar">
@@ -378,7 +382,7 @@
   <p class="lede">Released when a conversation ends, never before.</p>
   <div class="findbar" id="tr-tools" hidden>
     <label class="label" for="tr-q">Search every transcript</label>
-    <input id="tr-q" type="search" autocomplete="off" spellcheck="false"
+    <input id="tr-q" type="search" autocomplete="off" spellcheck="false" autocapitalize="none" autocorrect="off" enterkeyhint="search"
            placeholder="a word, a name, a year">
     <span class="fcount" id="tr-count" aria-live="polite"></span>
     <button type="button" class="btn quiet" id="tr-all">Download all</button>
@@ -432,7 +436,7 @@
       <div id="dk-thread" class="turns"></div>
       <div id="dk-gate" class="empty" hidden></div>
       <form id="dk-form" class="compose">
-        <div class="field"><textarea id="dk-q" rows="3" placeholder="Ask about the literature, not about the family" required minlength="5"></textarea></div>
+        <div class="field"><textarea id="dk-q" rows="3" placeholder="Ask about the literature, not about the family" enterkeyhint="enter" autocapitalize="sentences" autocorrect="on" required minlength="5"></textarea></div>
         <div class="composebar"><button class="btn" type="submit" id="dk-go">Ask the desk</button><button class="btn quiet mic" type="button" id="dk-mic" aria-label="Dictate your question" aria-pressed="false" hidden><svg viewBox="0 0 34 24" width="21" height="15" aria-hidden="true" focusable="false"><g class="mic-body" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 4a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V7a3 3 0 0 1 3-3zM11 11v1a6 6 0 0 0 12 0v-1M17 19v2"/></g><g class="mic-waves" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path class="w1" d="M7.3 10.2a5 5 0 0 0 0 3.6"/><path class="w1" d="M26.7 10.2a5 5 0 0 1 0 3.6"/><path class="w2" d="M3.4 8a9.5 9.5 0 0 0 0 8"/><path class="w2" d="M30.6 8a9.5 9.5 0 0 1 0 8"/></g></svg><span>Dictate</span></button><span class="prov" id="dk-left"></span></div>
         <p class="micnote" id="dk-mic-note" role="status" aria-live="polite" hidden></p>
         <div class="notice" id="dk-full" hidden><strong>This request is full.</strong>
@@ -452,7 +456,7 @@
   </div>
 </template>
 
-<script src="config.js?v=1.32"></script>
-<script src="app.js?v=1.32"></script>
+<script src="config.js?v=1.33"></script>
+<script src="app.js?v=1.33"></script>
 </body>
 </html>

@@ -5,7 +5,13 @@
   const C = window.FB;
   const $ = (s, r = document) => r.querySelector(s);
   const view = $("#view");
-  const S = { me: null, personas: null, interviews: null, docs: null, poll: null, age: null, wake: null, voice: null };
+  const S = { me: null, personas: null, interviews: null, docs: null, poll: null, age: null, wake: null, voice: null, kb: null };
+
+  // A finger, not a pointer. Everything that differs on a phone or a tablet —
+  // what Enter does, what the keyboard covers, how big a target has to be —
+  // is decided here once rather than guessed from the screen width, because a
+  // narrow window on a laptop is still a laptop.
+  const COARSE = !!(window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
 
   // ── auth ────────────────────────────────────────────────────────────────
   const store = {
@@ -612,6 +618,10 @@
    * so a keystroke mid-composition is left alone.
    */
   function sendOnEnter(el, formSel) {
+    // On a soft keyboard there is no Shift+Enter, so taking Enter for send
+    // would leave a student with no way to write a second paragraph — and the
+    // Send button is already under their thumb. Enter stays a newline there.
+    if (COARSE) return;
     let composing = false;
     el.addEventListener("compositionstart", () => { composing = true; });
     el.addEventListener("compositionend", () => { composing = false; });
@@ -622,6 +632,40 @@
       e.preventDefault();
       form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit", { cancelable: true }));
     });
+  }
+
+  /**
+   * The composer, kept above the keyboard.
+   *
+   * A phone does not resize the page when the keyboard comes up: it shrinks
+   * the visual viewport and leaves the layout alone, so the Send button ends
+   * up behind the keys with nothing on screen saying so. visualViewport is
+   * the only thing that reports the change, so the field is brought back into
+   * view on focus and on every resize while it holds focus.
+   *
+   * One listener at a time: a team moves between rooms all session, and a
+   * listener per visit would still be running after the tenth.
+   */
+  function keyboardAware(el) {
+    if (S.kb) { window.visualViewport?.removeEventListener("resize", S.kb); S.kb = null; }
+    if (!COARSE || !el) return;
+    const bring = () => el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.addEventListener("focus", () => setTimeout(bring, 260));
+    S.kb = () => { if (document.activeElement === el) bring(); };
+    window.visualViewport?.addEventListener("resize", S.kb);
+  }
+
+  /**
+   * Hold the screen awake while a person is speaking.
+   *
+   * An answer takes the better part of a minute to arrive. A phone left alone
+   * for that long locks itself, the stream is suspended mid-sentence and the
+   * turn is lost — so the lock is held for exactly as long as the answer is
+   * being spoken, and released the moment it lands. Unsupported everywhere it
+   * matters less; unsupported browsers get the old behaviour.
+   */
+  async function holdScreen() {
+    try { return await navigator.wakeLock?.request("screen") || null; } catch { return null; }
   }
 
   function whoCard(a) {
@@ -1472,6 +1516,9 @@
     const q = $("#question"), cnt = $("#count");
     q.addEventListener("input", () => { cnt.textContent = q.value.length; const cap = Number($("#cap").textContent); cnt.parentElement.classList.toggle("over", cap && q.value.length > cap); });
     sendOnEnter(q, "#ask");
+    keyboardAware(q);
+    // The hint belongs to the keyboard that has the keys for it.
+    if (!COARSE) q.placeholder = "Your question — Enter sends, Shift+Enter for a new line";
     // The microphone, if this course run allows one. It appends into the same
     // box the student types in, so everything downstream — the counter, the cap,
     // Enter to send — is unchanged and unaware of it.
@@ -1493,6 +1540,8 @@
       // be had at all — an old browser, a proxy that will not pass it — the
       // buffered route still answers, and the only difference is the wait.
       const payload = { question: text, silence_seconds: silence, document_code: shown ? shown.code : undefined };
+      // Declared out here so the release in `finally` can reach it.
+      let awake = null;
       try {
         let live = null;
         let r;
@@ -1503,6 +1552,7 @@
         // slow answer and a dead service are never the same blank pause — and
         // it is removed the instant the first fragment lands.
         const thinking = working(box, `${p.name} is thinking`);
+        awake = await holdScreen();
         try {
           r = await askStreamed(`/sessions/${id}/ask/stream`, payload, (chunk) => {
             if (!live) { thinking.stop(); live = addTurn(box, p.name, ""); live.turn.classList.add("speaking"); }
@@ -1514,7 +1564,25 @@
           if (streamErr.code === "sign_in_required") throw streamErr;
           // Nothing was shown yet: fall back rather than fail. Something was
           // shown: the turn was spoken and asking again would double it.
-          if (live) throw streamErr;
+          //
+          // This is the common failure on a phone — a locked screen, a call, a
+          // tunnel — so it is answered precisely rather than with the generic
+          // error. The partial answer stays on screen and is marked as partial,
+          // and the student is told what they cannot see from here: the turn
+          // reached the engine, so asking again spends a second question for an
+          // answer they may already have.
+          if (live) {
+            // The student is told what it means for them; the console keeps
+            // what it was, because since v1.12 every failure path here names
+            // its own failure and a report of "it cut off" is otherwise
+            // indistinguishable from a network drop, a 502 and a bad frame.
+            console.warn("[room] stream cut mid-answer", streamErr);
+            live.turn.classList.remove("speaking");
+            live.turn.classList.add("cut");
+            throw Object.assign(new Error(
+              "The connection dropped while the answer was being spoken. What is above is partial \u2014 the rest is in the transcript when this interview ends. Asking again spends another question."),
+              { code: "stream_cut" });
+          }
           console.warn("[room] stream unavailable, falling back", streamErr);
           r = await post(`/sessions/${id}/ask`, payload);
         }
@@ -1534,7 +1602,13 @@
         if (!clock.closesAt) void refresh();
         if (r.kind === "closed" || (r.state && !r.state.allowed && String(r.state.reason || "").startsWith("session_"))) setTimeout(() => { location.hash = `#/transcripts/${id}`; }, 1500);
       } catch (err) { $("#r-err").textContent = err.message; }
-      finally { b.disabled = !st.state.allowed ? true : false; q.focus(); }
+      finally {
+        try { await awake?.release(); } catch { /* already gone with the tab */ }
+        b.disabled = !st.state.allowed ? true : false;
+        // Focusing the box on a phone throws the keyboard back up over the
+        // answer that just arrived. Let them read it first.
+        if (!COARSE) q.focus();
+      }
     });
     $("#end").addEventListener("click", async () => {
       if (!confirm("End the conversation? It does not reopen. The transcript is released when it ends.")) return;
@@ -1930,6 +2004,7 @@
     });
 
     sendOnEnter($("#dk-q"), "#dk-form");
+    keyboardAware($("#dk-q"));
     // A request to the archive is as worth dictating as a question to a person,
     // and it is the same composer, so it gets the same button.
     voiceFor(me, "dk-mic", "dk-q", "dk-mic-note");
