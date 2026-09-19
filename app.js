@@ -2682,9 +2682,54 @@
     lightswitch();
     location.hash = "#/"; signin();
   });
+  /**
+   * Replace a stale shell, once.
+   *
+   * Every `?v=` cache-buster on this site lives INSIDE index.html, and Pages
+   * serves index.html with a ten-minute max-age that a phone — a home-screen
+   * web app above all — will outlive by days. A stale shell then asks for the
+   * stylesheet and script versions it remembers and is handed them from its
+   * own cache, so a team can be several versions behind the seminar it is
+   * sitting in with no way to tell. Reloading does not help: the reload is
+   * served the same cached document.
+   *
+   * So the page checks itself. config.js is read from the network, and if the
+   * version there is not the one this page booted with, the shell is stale.
+   * The only way to get past a cached document is to ask for a URL the cache
+   * has never seen, so the navigation carries a one-time query, stripped again
+   * below once the new shell is running.
+   *
+   * Loop safety matters more here than freshness, because a tab that reloads
+   * forever during an interview is far worse than a tab that is a version
+   * behind. The navigation happens AT MOST ONCE per tab: the guard is written
+   * to sessionStorage before navigating and never cleared, and a browser that
+   * will not give us sessionStorage at all gets no navigation whatsoever.
+   */
+  const FRESH = "fb.freshened";
+  async function freshen() {
+    let tried;
+    try { tried = sessionStorage.getItem(FRESH); } catch { return; }
+    if (tried) return;
+    try {
+      const r = await fetch(`config.js?fresh=${Date.now()}`, { cache: "no-store" });
+      if (!r.ok) return;
+      const m = (await r.text()).match(/VERSION:\s*"([^"]+)"/);
+      if (!m || m[1] === C.VERSION) return;
+      sessionStorage.setItem(FRESH, m[1]);
+      console.info(`[fb] shell is ${C.VERSION}, the site is ${m[1]} — reloading once`);
+      location.replace(`${location.pathname}?fresh=${Date.now()}${location.hash}`);
+    } catch { /* offline, or blocked: the page it has is the page it keeps */ }
+  }
+  // The one-time query has done its job by the time anything runs; take it out
+  // of the address bar so a shared or bookmarked link never carries it.
+  if (/[?&]fresh=/.test(location.search)) {
+    try { history.replaceState(null, "", location.pathname + location.hash); } catch {}
+  }
+
   // The palette was already applied by theme.js, before any of this ran; the
   // switch only needs to catch up with what it did.
   lightswitch();
   route();
   stamp();
+  freshen();
 })();
