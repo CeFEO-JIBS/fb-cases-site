@@ -271,15 +271,18 @@ footer .base{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--rule-so
 .two{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:22px;align-items:start}
 /* ── Two columns on a phone ────────────────────────────────────────────────
    The right-hand column is a person: the registrar beside the papers she hands
-   over, the desk beside the sources it reads. Stacked in document order she
-   ends up a whole document list below the team that wants to write to her, so
-   on a narrow screen the person comes first — and only the person.
-   `display:contents` lifts the aside's children into the same flow, which lets
-   the face rise to the top while the reading list stays under the thread where
-   it belongs. */
+   over, the desk beside the sources it reads.
+   On a desk's own page she still comes first on a narrow screen, because the
+   page IS the conversation with her and her card is its head; `display:contents`
+   lifts the aside's children into the same flow so the face can rise while the
+   reading list stays under the thread where it belongs.
+   On the case file she does NOT. That page is the team's own papers, and the
+   list of them is what a team came to read; her card had been standing in front
+   of it, so the first screen of the file was a person rather than the file. She
+   now sits where the source puts her, under the list — which is also where the
+   list sends a team that cannot find what it is looking for. */
 @media (max-width:860px){
   .two{display:flex;flex-direction:column;align-items:stretch;gap:16px}
-  .two>aside.registry{order:-1}
   .two>aside.side{display:contents}
   .two>aside.side>.whocard{order:-1}
 }
