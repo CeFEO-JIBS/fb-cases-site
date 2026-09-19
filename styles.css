@@ -883,6 +883,23 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
   /* A flick that reaches the end of the record list should not then drag the
      page out from under the composer. */
   .exlist{overscroll-behavior:contain}
+
+  /* A guard, and labelled as one: measured at 320, 344, 360, 375, 390, 393,
+     402, 414, 428, 430 and 440, driven by the app itself against authored data,
+     no page on this site overflows sideways by a pixel. What this stops is the
+     NEXT one — a single element a gutter too wide makes the whole page pannable
+     on a phone, and the first thing a pan costs is the left margin: the page
+     looks cut off rather than broken, so nobody reports it as a bug.
+     `clip` and not `hidden` on purpose. `hidden` makes this a scroll container
+     and would break the masthead's `position:sticky` and clip the fixed menu
+     panel; `clip` creates no scroll container and leaves both alone. It is
+     scoped to a coarse pointer so a laptop still shows the scrollbar — there a
+     stray 14px is a visible bug report, and it should stay one.
+     Note what this does NOT do: it has no effect on the browser's own page
+     zoom, which pans the visual viewport rather than scrolling the layout. A
+     zoomed phone can still be slid sideways off the margin, and only the
+     browser's zoom control puts that back. */
+  body{overflow-x:clip}
 }
 /* Landscape on a notched phone puts the notch in the margin, not in the text. */
 @media (pointer:coarse) and (orientation:landscape){
