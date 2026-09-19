@@ -44,8 +44,32 @@ padding:0 max(var(--gutter), calc((100% - var(--page))/2 + var(--gutter)));borde
 .hdr .mark .gm{width:26px;height:26px;flex:none}
 .hdr .mark .t{font-weight:600;font-size:13.5px;white-space:nowrap}
 /* The page-wide ring is --stamp, which is purple on a blue band and hard to
-   see; the pale end of the same purple reads against it. */
-.hdr .mark:focus-visible{outline-color:var(--stamp-wash)}
+   see; the pale end of the same purple reads against it. Same for the menu
+   button, which sits on the same band. */
+.hdr .mark:focus-visible,.navtoggle:focus-visible{outline-color:var(--stamp-wash)}
+/* The menu button belongs to the phone layout alone: on a pointer the six
+   destinations fit the bar and a button that hides them would be a click in
+   the way of every one of them. It is shown by the breakpoint, not by JS, so
+   there is no state to get wrong on a resize. */
+.navtoggle{display:none;margin-left:auto;align-items:center;gap:9px;flex:none;
+  background:transparent;border:0;cursor:pointer;color:var(--on-band-dim);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  padding:0 2px;border-radius:2px}
+.navtoggle .lb{line-height:1}
+/* Three rules and one element: the middle bar IS the span, the outer two are
+   its pseudo-elements, so the open state is two rotations and nothing to
+   draw. The global prefers-reduced-motion rule turns the transition off. */
+.navtoggle .bars,.navtoggle .bars::before,.navtoggle .bars::after{
+  display:block;width:17px;height:2px;background:currentColor;border-radius:1px}
+.navtoggle .bars{position:relative;transition:background .12s linear}
+.navtoggle .bars::before,.navtoggle .bars::after{content:"";position:absolute;left:0;
+  transition:transform .16s ease,top .16s ease}
+.navtoggle .bars::before{top:-6px}
+.navtoggle .bars::after{top:6px}
+.navtoggle[aria-expanded="true"] .bars{background:transparent}
+.navtoggle[aria-expanded="true"] .bars::before{top:0;transform:rotate(45deg)}
+.navtoggle[aria-expanded="true"] .bars::after{top:0;transform:rotate(-45deg)}
+.navtoggle[aria-expanded="true"]{color:var(--on-band-hi)}
 .hdr nav{display:flex;gap:2px;margin-left:auto;align-items:center}
 .hdr nav a,.hdr nav button{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;text-decoration:none;padding:6px 11px;border-radius:2px;color:var(--on-band-dim);background:transparent;border:0;cursor:pointer}
 @media (hover:hover){.hdr nav a:hover,.hdr nav button:hover{background:rgba(255,255,255,.09);color:var(--on-band-hi)}}
@@ -305,7 +329,12 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
   .room{display:flex;flex-direction:column;align-items:stretch;gap:16px}
   .room>aside.side{display:contents}
   .room>aside.side>.whocard{order:-1}
-  .room>aside.side>.clock{order:-1;position:sticky;top:0;z-index:10;
+  /* Sticky under the masthead, not behind it. The header is sticky at top:0
+     with a higher z-index, so a strip that sticks at 0 slides under it and
+     the two numbers a team cannot afford not to see are the ones covered.
+     (True in this whole range, not only on a phone: it was wrong between 721
+     and 860 before the masthead became sticky below 720 as well.) */
+  .room>aside.side>.clock{order:-1;position:sticky;top:var(--hdr-h);z-index:10;
     display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;text-align:left;padding:10px 14px}
   .room>aside.side>.clock>svg{display:none}
   .room>aside.side>.clock>:nth-child(2){grid-area:1/1}
@@ -556,25 +585,62 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
 .textswitch .label{margin:0}
 
 /* ── On a phone ────────────────────────────────────────────────────────────
-   Five destinations, a team name and a way out do not fit on one 390px line.
-   They wrap onto a second, and the bar stops being sticky: a header tall
-   enough for two rows of navigation would otherwise take a fifth of the
-   screen on every page a team reads. */
+   Six destinations, a team name and a way out do not fit one 390px line. They
+   used to wrap into three rows — 110px of masthead above every page a team
+   reads, a third of a phone before a word of the case — so they go behind the
+   menu button and the bar is one row again.
+
+   Which buys back the thing that had to be given up when it was three rows:
+   the masthead is STICKY on a phone again. At 52px it costs 6% of the screen
+   and the way out of a page is always within reach, where before it was one
+   scroll to the top away. */
 @media (max-width:720px){
   /* The masthead already chose 14px here while the page kept 22, so the two
      disagreed by eight pixels between 561 and 720. One variable now. */
   :root{--gutter:14px}
-  .hdr{position:static;height:auto;min-height:var(--hdr-h);flex-wrap:wrap;gap:0;row-gap:2px;padding:6px var(--gutter) 4px}
-  /* Measured, not guessed: the 26px mark makes this multi-row bar 5.8px taller
-     than the wordmark it replaced, at every width below 720. At 22px with 3px
-     of padding it is the height it has always been, to within half a pixel. */
-  .hdr .mark{padding:3px 0;gap:10px}
+  .hdr{height:var(--hdr-h);flex-wrap:nowrap;gap:12px;padding:0 var(--gutter)}
+  /* Measured, not guessed: a 26px mark makes this bar taller than the
+     wordmark it replaced. 22px is the height it has always been. */
+  .hdr .mark{gap:10px;min-width:0}
   .hdr .mark .gm{width:22px;height:22px}
-  .hdr nav{width:100%;flex-wrap:wrap;gap:0;row-gap:2px;margin:5px 0 0;padding-top:4px;
-           border-top:1px solid rgba(255,255,255,.16)}
-  .hdr nav a,.hdr nav button{padding:6px 9px}
-  .hdr nav a:first-child{padding-left:0}
-  .hdr .who{margin-left:auto;border-left:0;padding-left:10px}
+  .hdr .mark .t{overflow:hidden;text-overflow:ellipsis}
+  .navtoggle{display:inline-flex}
+
+  /* A panel under the bar rather than more rows in it. `fixed` and not
+     `absolute`: absolute insets resolve against the header's PADDING box, so
+     left:0 would start the panel a gutter in and it would read as a floating
+     card; fixed resolves against the viewport, which is the full-bleed bar
+     this wants — and sticky does not create a containing block for it. It
+     paints over the page instead of pushing it down, so opening the menu
+     never moves the sentence someone was reading. */
+  .hdr nav{position:fixed;top:var(--hdr-h);left:0;right:0;width:auto;
+    display:none;flex-direction:column;align-items:stretch;gap:0;margin:0;
+    padding:4px 0 max(6px,env(safe-area-inset-bottom));
+    background:var(--band);border-bottom:2px solid var(--rule-hard);
+    max-height:calc(100dvh - var(--hdr-h));overflow-y:auto;overscroll-behavior:contain}
+  .hdr.navopen nav{display:flex}
+  /* One destination per line, read as a list rather than a row of chips. The
+     gutter is written plainly here because below 720 the page column is wider
+     than the screen and the masthead's max() always resolves to it anyway. */
+  .hdr nav a,.hdr nav button{display:flex;align-items:center;min-height:46px;
+    padding:0 var(--gutter);font-size:11.5px;border-radius:0;text-align:left;
+    border-bottom:1px solid rgba(255,255,255,.10)}
+  /* The page you are on, marked down the edge the eye comes back to. The same
+     inset bar the case file uses for a record that has just landed. */
+  .hdr nav a[aria-current]{background:rgba(255,255,255,.10);
+    box-shadow:inset 3px 0 0 var(--stamp-wash)}
+  /* Who you are, and the way out, below a rule: they are not destinations.
+     The last destination gives up its own rule, or the two draw a double line
+     with six pixels of band between them. */
+  .hdr nav a:last-of-type{border-bottom:0}
+  .hdr .who{margin:6px 0 0;padding:12px var(--gutter) 2px;border-left:0;
+    border-top:1px solid rgba(255,255,255,.22)}
+  .hdr nav button{min-height:44px;border-bottom:0;color:var(--on-band)}
+
+  /* With the bar sticky again, anything scrolled to needs to clear it —
+     addTurn() brings each new turn into view and would otherwise tuck it
+     under the masthead. */
+  html{scroll-padding-top:calc(var(--hdr-h) + 10px)}
 }
 @media (max-width:560px){
   main{padding:22px var(--gutter)}
@@ -801,6 +867,9 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
   .exdrop{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;margin-right:-6px}
   .docmore{height:44px}
   .docrow{min-height:44px}
+  /* The masthead's own row, which in landscape is the full set of links. */
+  .navtoggle{min-height:44px;padding:0 4px}
+  .hdr nav a,.hdr nav button{min-height:44px;display:inline-flex;align-items:center}
   /* Beyond the interview path, but it is the only control on the site still
      under a fingertip and it is pressed in the middle of reading a facsimile,
      which is a thing people do standing up. The pair keeps its own width. */

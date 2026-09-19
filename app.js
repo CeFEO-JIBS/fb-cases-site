@@ -65,10 +65,48 @@
   const paras = (t) => lines(t).split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
   function render(id) { const t = document.getElementById(id); view.replaceChildren(t.content.cloneNode(true)); }
   function nav(key) {
-    $("#nav").hidden = false;
+    menu.show(true);
     document.querySelectorAll("[data-nav]").forEach((a) => a.toggleAttribute("aria-current", a.dataset.nav === key));
   }
-  function recording(name) { const r = $("#rec"); r.hidden = !name; $("#rec-name").textContent = name || ""; $("#nav").hidden = !!name; }
+  function recording(name) { const r = $("#rec"); r.hidden = !name; $("#rec-name").textContent = name || ""; menu.show(!name); }
+
+  /**
+   * The navigation, and on a phone the button that holds it.
+   *
+   * One owner for both: the links and the button are shown and hidden
+   * together, because there is no state in which one of them is right on its
+   * own — signed out there is nowhere to go, and while an interview is live
+   * the destinations are deliberately taken away rather than offered beside a
+   * conversation that does not reopen.
+   *
+   * Whether the button is USED is the stylesheet's decision, not this code's:
+   * it is displayed by the breakpoint alone. So there is no width to test
+   * here and nothing to recompute on a resize — only the open class to clear
+   * on the way out of the phone layout, so a rotation into landscape cannot
+   * leave the pointer bar carrying a phone's state.
+   */
+  const menu = (() => {
+    const btn = $("#navtoggle"), bar = $(".hdr"), panel = $("#nav");
+    const open = () => btn.getAttribute("aria-expanded") === "true";
+    const set = (on) => { bar.classList.toggle("navopen", on); btn.setAttribute("aria-expanded", on ? "true" : "false"); };
+    btn.addEventListener("click", () => set(!open()));
+    // Anything acted on in the panel closes it — including a link to the page
+    // already on screen, which changes no hash and so fires no route.
+    panel.addEventListener("click", (e) => { if (e.target.closest("a,button")) set(false); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !open()) return;
+      set(false); btn.focus();            // back to what was pressed, not to the top of the page
+    });
+    // A tap anywhere off the masthead is a dismissal, the way a menu behaves
+    // everywhere else. The panel is a child of the header, so its own taps
+    // are excluded by the same test.
+    document.addEventListener("pointerdown", (e) => { if (open() && !e.target.closest(".hdr")) set(false); });
+    window.matchMedia("(max-width:720px)").addEventListener("change", (e) => { if (!e.matches) set(false); });
+    return {
+      close: () => set(false),
+      show: (on) => { btn.hidden = !on; panel.hidden = !on; if (!on) set(false); },
+    };
+  })();
   // A record carries its name twice: the language it was filed in and the
   // language the team works in. Either may be absent, in which case the
   // authored title stands for both, and identical names are shown once.
@@ -496,7 +534,7 @@
 
   // ── screens ─────────────────────────────────────────────────────────────
   function signin(msg) {
-    stopPoll(); recording(null); $("#nav").hidden = true;
+    stopPoll(); recording(null); menu.show(false);
     render("t-signin"); $("#err").textContent = msg || "";
     $("#form").addEventListener("submit", async (e) => {
       e.preventDefault(); const b = $("#go"); b.disabled = true; $("#err").textContent = "";
@@ -2530,7 +2568,9 @@
     if (stale) set("", true);
   }
 
-  window.addEventListener("hashchange", route);
+  // The panel closes on anything pressed inside it; this catches the rest —
+  // a back gesture, a hash typed in, one of the redirects the room does.
+  window.addEventListener("hashchange", () => { menu.close(); route(); });
   $("#out").addEventListener("click", () => {
     store.set(null); S.me = S.personas = S.docs = null;
     // A shared laptop is the normal case in a seminar room. The next group may
