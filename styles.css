@@ -797,13 +797,17 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
  * An adjacent sibling, so no :has() and no change to the markup: the mark
  * already follows the </details> it belongs to.
  *
- * Only the ASK is hidden. `read it` — the plain mark on a record already in the
- * file — stays visible folded, because it is not only an action: it is the
- * only thing that says at a glance which of these a team already holds, and
- * hiding it would put a document they own one fold further away. Which leaves
- * the list saying more than it did: a row with a mark is theirs, a row without
- * one is a fold away from being asked for. */
-.recrow:not([open]) + .rmark.ask{display:none}
+ * BOTH marks fold, the ask and `read it` alike. A first version hid only the
+ * ask, on the argument that `read it` is not merely an action — it is also the
+ * one thing that says at a glance which of these a team already holds. That
+ * was decided against: a folded row is a title and a reference, and nothing
+ * else, because a list whose job is to be scanned should be one shape all the
+ * way down rather than two. What a team holds is still on the page, in the
+ * count above the list; what is lost is only which rows, until one is opened.
+ * If that turns out to matter, the answer is a quiet word in the meta line and
+ * not a button — a mark you can press belongs with the description that tells
+ * you whether to press it. */
+.recrow:not([open]) + .rmark{display:none}
 @media (hover:hover){.rmark.ask:hover{background:var(--stamp);color:var(--on-brand)}}
 .rmark:disabled{opacity:.5;cursor:default}
 @media (hover:hover){.rmark:disabled:hover{background:none;color:var(--stamp)}}
