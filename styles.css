@@ -44,9 +44,12 @@ padding:0 max(var(--gutter), calc((100% - var(--page))/2 + var(--gutter)));borde
 .hdr .mark .gm{width:26px;height:26px;flex:none}
 .hdr .mark .t{font-weight:600;font-size:13.5px;white-space:nowrap}
 /* The page-wide ring is --stamp, which is purple on a blue band and hard to
-   see; the pale end of the same purple reads against it. Same for the menu
-   button, which sits on the same band. */
-.hdr .mark:focus-visible,.navtoggle:focus-visible{outline-color:var(--stamp-wash)}
+   see; the pale end of the same purple reads against it. Everything focusable
+   ON THE BAND, not only the lock-up: the destinations and the way out had been
+   wearing the hard-to-see ring on both layouts, which only showed up once the
+   phone menu made them a thing anyone tabs through. */
+.hdr .mark:focus-visible,.navtoggle:focus-visible,
+.hdr nav a:focus-visible,.hdr nav button:focus-visible{outline-color:var(--stamp-wash)}
 /* The menu button belongs to the phone layout alone: on a pointer the six
    destinations fit the bar and a button that hides them would be a click in
    the way of every one of them. It is shown by the breakpoint, not by JS, so
@@ -738,6 +741,24 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
        padding:5px 9px;white-space:nowrap;cursor:pointer}
 @media (hover:hover){.rmark:hover{border-color:var(--ink);color:var(--ink)}}
 .rmark.ask{color:var(--stamp);border-color:var(--stamp)}
+/* The ask appears with the description, not before it.
+ *
+ * Twenty records is twenty purple buttons down the side of a list whose job is
+ * to be SCANNED — and each one offers a decision the student has not been
+ * given the means to make yet, because the description that would inform it is
+ * still folded. Unfolding a record now reveals both: what it is, and the way
+ * to ask for it.
+ *
+ * An adjacent sibling, so no :has() and no change to the markup: the mark
+ * already follows the </details> it belongs to.
+ *
+ * Only the ASK is hidden. `read it` — the plain mark on a record already in the
+ * file — stays visible folded, because it is not only an action: it is the
+ * only thing that says at a glance which of these a team already holds, and
+ * hiding it would put a document they own one fold further away. Which leaves
+ * the list saying more than it did: a row with a mark is theirs, a row without
+ * one is a fold away from being asked for. */
+.recrow:not([open]) + .rmark.ask{display:none}
 @media (hover:hover){.rmark.ask:hover{background:var(--stamp);color:var(--on-brand)}}
 .rmark:disabled{opacity:.5;cursor:default}
 @media (hover:hover){.rmark:disabled:hover{background:none;color:var(--stamp)}}
