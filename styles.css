@@ -156,7 +156,14 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
 .pstate{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 12px}
 .person.live .pstate{color:var(--stamp)}
 
-.pacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid var(--rule-soft)}
+/* One line, always. The two doors on a card sit side by side whatever the
+   label says — "Records and transcript" beside "CV (PDF)" as much as "Begin the
+   interview" — so a row of cards keeps one baseline after an interview as
+   before it. The primary door takes the room and its words wrap inside it; the
+   CV button keeps its width. */
+.pacts{display:flex;flex-wrap:nowrap;align-items:stretch;gap:6px;margin-top:auto;padding-top:12px;border-top:1px solid var(--rule-soft)}
+.pacts .pbtn{flex:1 1 auto;min-width:0;text-align:center}
+.pacts .cv-get{flex:0 0 auto;white-space:nowrap}
 .pbtn{display:inline-block;font-family:var(--ui);font-size:12.5px;font-weight:500;text-decoration:none;background:var(--ledger);color:var(--on-brand);border:1px solid var(--ledger);padding:6px 11px;border-radius:2px;cursor:pointer}
 .pbtn.quiet{background:none;color:var(--ledger)}
 .pbtn.off{background:none;border-color:var(--rule);color:var(--muted);cursor:default}
