@@ -1026,49 +1026,12 @@
         setTimeout(() => row.classList.remove("landed"), 2600);
       }
     }
-    let deskList = [];
-    try { deskList = (await api("/desks")).desks; } catch { /* the desks are optional */ }
-    const registry = deskList.find((d) => d.desk_kind === "registry");
-    if (registry) {
-      // The registrar is a person, and she gets the card a person gets — the
-      // same one the desk page and the roster use. She was a 52px thumbnail
-      // beside a label here, which made the one human being on the page the
-      // smallest thing on it.
-      // The same four lines her own page gives her, including what the team has
-      // left to spend. This is the page where a group decides whether to ask,
-      // so the count belongs here at least as much as it does at the desk.
-      const regCap = registry.questions_total || registry.turn_cap;
-      $("#reg-aside").innerHTML = `<div class="whocard">${whoCard({
-        name: registry.name, portrait_url: registry.portrait_url,
-        role: registry.subtitle || "the document registry",
-        facts: "the case archive",
-        state: regCap ? `${Math.max(0, regCap - (registry.asked || 0))} of ${regCap} requests left in the course` : "",
-      })}</div>
-        <div class="card deskbrief">
-          <div class="prose"><p>Keeps the archive. Ask for a record by name and, if it is there, it goes into this file. She remembers what you asked.</p></div>
-          <p class="boxact"><a class="btn quiet" href="#/desk/${esc(registry.code)}">Ask ${esc(registry.name.split(" ")[0])}</a></p>
-        </div>`;
-      return;
-    }
-    // The third composer on the site, and it had been left out of the phone
-    // pass: on a soft keyboard Send goes behind the keys here exactly as it did
-    // in the room and at a desk.
-    keyboardAware($("#reg-text"));
-    $("#reg-form").addEventListener("submit", async (e) => {
-      e.preventDefault(); const b = $("#reg-go"); b.disabled = true;
-      try {
-        const r = await post("/registry/request", { text: $("#reg-text").value });
-        const say = {
-          granted: `<p>I have found it. <strong>${esc(docName(r))}</strong> is now in your file under ${esc(r.code)}.</p>`,
-          already: `<p>That one is already in your file: <strong>${esc(docName(r))}</strong>, ${esc(r.code)}.</p>`,
-          ambiguous: `<p>That could be more than one record. Give me a year, a party to it, or who would have kept it, and I will look again.</p>`,
-          not_found: `<p>I have nothing under that description. If you believe the record exists, tell me who would have produced it and roughly when.</p>`,
-        }[r.outcome] || `<p>${esc(r.outcome)}</p>`;
-        $("#reg-reply").innerHTML = `<p class="label">The registry replies</p>${say}`;
-        if (r.outcome === "granted") await file();
-      } catch (err) { $("#reg-reply").innerHTML = `<p>${esc(err.message)}</p>`; }
-      finally { b.disabled = false; }
-    });
+    // The registrar is not on this page. She had a card in the right-hand
+    // column, and before that an inline form for writing to her; both are gone
+    // now that the document desk is a section of the site in its own right.
+    // A team asks her for a record at her desk, in a conversation she
+    // remembers, and the papers she releases arrive in this list. The page is
+    // the list, and the lede says where to go when what you want is not on it.
   }
 
   async function doc(code) {

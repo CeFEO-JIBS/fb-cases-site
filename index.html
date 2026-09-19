@@ -13,12 +13,12 @@
      markup has arrived and show a half-updated page. The query makes the
      three files move together: it carries the version in config.js, so it
      moves whenever the site does. -->
-<link rel="stylesheet" href="styles.css?v=1.47">
+<link rel="stylesheet" href="styles.css?v=1.48">
 <!-- Before anything is drawn. The case's palette was cached by the last visit,
      so a returning student's first paint is already in their case's colours
      and their own dark-mode choice — rather than a flash of the platform's
      defaults, which after dark is what people actually mind about. -->
-<script src="theme.js?v=1.47"></script>
+<script src="theme.js?v=1.48"></script>
 <!-- The genogram mark: square, circle, marriage line, descent line, three
      stems. The SVG carries its own prefers-color-scheme rule and turns white
      in a dark tab, so there is deliberately no second <link media=…> here —
@@ -26,12 +26,12 @@
      query is this site's usual one, and it matters more here than anywhere:
      a browser holds a favicon far longer than the ten minutes GitHub Pages
      asks for, and without it the old blank tab can outlive several deploys. -->
-<link rel="icon" href="favicon.svg?v=1.47" type="image/svg+xml">
-<link rel="icon" href="favicon-32.png?v=1.47" sizes="32x32" type="image/png">
-<link rel="icon" href="favicon-16.png?v=1.47" sizes="16x16" type="image/png">
-<link rel="icon" href="favicon-48.png?v=1.47" sizes="48x48" type="image/png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.47">
-<link rel="manifest" href="site.webmanifest?v=1.47">
+<link rel="icon" href="favicon.svg?v=1.48" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png?v=1.48" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon-16.png?v=1.48" sizes="16x16" type="image/png">
+<link rel="icon" href="favicon-48.png?v=1.48" sizes="48x48" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.48">
+<link rel="manifest" href="site.webmanifest?v=1.48">
 <!-- The masthead's own colour, so a phone's browser chrome continues the band
      rather than sitting a shade off it. A case may re-livery --band and this
      cannot follow — a meta tag is read once, before the palette arrives — so
@@ -96,7 +96,7 @@
     <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
     <div id="foot-edition"></div>
   </div>
-  <div class="base">CASE ROOM · <span id="stamp">v1.47</span>
+  <div class="base">CASE ROOM · <span id="stamp">v1.48</span>
     <span class="appearance" id="appearance" hidden></span>
   </div>
 </footer>
@@ -254,29 +254,15 @@
 <template id="t-file">
   <p class="label">Your papers</p>
   <h1>Your case file</h1>
-  <div class="two">
-    <div>
-      <p class="lede">Everything your team holds. The onboarding pack is yours from the moment the course opens; the rest reaches you as you work. What is not listed here is not yours yet: if you believe a record exists, ask the registry for it by name.</p>
-      <div class="findbar" id="doc-filter" hidden>
-        <label class="label" for="doc-q">Find a record</label>
-        <input id="doc-q" type="search" autocomplete="off" spellcheck="false" autocapitalize="none" autocorrect="off" enterkeyhint="search"
-               placeholder="a code, a title, a year, who holds it">
-        <span class="fcount" id="doc-count" aria-live="polite"></span>
-      </div>
-      <div class="genbar" id="doc-kinds" hidden></div>
-      <div id="docs"></div>
-    </div>
-    <aside class="registry" id="reg-aside">
-      <div class="card">
-      <p class="label">Write to the registry</p>
-      <div class="prose" id="reg-reply"><p>The registry answers requests for specific records. Say which document you are looking for, and if you can, its year and who would hold it.</p></div>
-      <form id="reg-form">
-        <div class="field"><textarea id="reg-text" rows="4" enterkeyhint="enter" autocapitalize="sentences" autocorrect="on" maxlength="1000" placeholder="e.g. the will of the founder, or the articles of association from the year the holding company was formed" required minlength="5"></textarea></div>
-        <button class="btn quiet" type="submit" id="reg-go">Send request</button>
-      </form>
-      </div>
-    </aside>
+  <p class="lede">Everything your team holds. The onboarding pack is yours from the moment the course opens; the rest reaches you as you work. What is not listed here is not yours yet: if you believe a record exists, ask the document desk for it by name.</p>
+  <div class="findbar" id="doc-filter" hidden>
+    <label class="label" for="doc-q">Find a record</label>
+    <input id="doc-q" type="search" autocomplete="off" spellcheck="false" autocapitalize="none" autocorrect="off" enterkeyhint="search"
+           placeholder="a code, a title, a year, who holds it">
+    <span class="fcount" id="doc-count" aria-live="polite"></span>
   </div>
+  <div class="genbar" id="doc-kinds" hidden></div>
+  <div id="docs"></div>
 </template>
 
 <template id="t-doc">
@@ -467,7 +453,7 @@
   </div>
 </template>
 
-<script src="config.js?v=1.47"></script>
-<script src="app.js?v=1.47"></script>
+<script src="config.js?v=1.48"></script>
+<script src="app.js?v=1.48"></script>
 </body>
 </html>
