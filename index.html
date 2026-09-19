@@ -13,12 +13,12 @@
      markup has arrived and show a half-updated page. The query makes the
      three files move together: it carries the version in config.js, so it
      moves whenever the site does. -->
-<link rel="stylesheet" href="styles.css?v=1.55">
+<link rel="stylesheet" href="styles.css?v=1.56">
 <!-- Before anything is drawn. The case's palette was cached by the last visit,
      so a returning student's first paint is already in their case's colours
      and their own dark-mode choice — rather than a flash of the platform's
      defaults, which after dark is what people actually mind about. -->
-<script src="theme.js?v=1.55"></script>
+<script src="theme.js?v=1.56"></script>
 <!-- The genogram mark: square, circle, marriage line, descent line, three
      stems. The SVG carries its own prefers-color-scheme rule and turns white
      in a dark tab, so there is deliberately no second <link media=…> here —
@@ -26,12 +26,12 @@
      query is this site's usual one, and it matters more here than anywhere:
      a browser holds a favicon far longer than the ten minutes GitHub Pages
      asks for, and without it the old blank tab can outlive several deploys. -->
-<link rel="icon" href="favicon.svg?v=1.55" type="image/svg+xml">
-<link rel="icon" href="favicon-32.png?v=1.55" sizes="32x32" type="image/png">
-<link rel="icon" href="favicon-16.png?v=1.55" sizes="16x16" type="image/png">
-<link rel="icon" href="favicon-48.png?v=1.55" sizes="48x48" type="image/png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.55">
-<link rel="manifest" href="site.webmanifest?v=1.55">
+<link rel="icon" href="favicon.svg?v=1.56" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png?v=1.56" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon-16.png?v=1.56" sizes="16x16" type="image/png">
+<link rel="icon" href="favicon-48.png?v=1.56" sizes="48x48" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.56">
+<link rel="manifest" href="site.webmanifest?v=1.56">
 <!-- The masthead's own colour, so a phone's browser chrome continues the band
      rather than sitting a shade off it. A case may re-livery --band and this
      cannot follow — a meta tag is read once, before the palette arrives — so
@@ -96,7 +96,7 @@
     <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
     <div id="foot-edition"></div>
   </div>
-  <div class="base">CASE ROOM · <span id="stamp">v1.55</span>
+  <div class="base">CASE ROOM · <span id="stamp">v1.56</span>
     <span class="appearance" id="appearance" hidden></span>
   </div>
 </footer>
@@ -210,7 +210,7 @@
          sealed drawing. Not a link — there is nowhere else to be until you
          are in — and the aspect is on the tag so the card does not reflow
          when the file lands. -->
-    <img class="signmark" src="thecaseroom.svg?v=1.55" alt="The Case Room" width="517" height="223">
+    <img class="signmark" src="thecaseroom.svg?v=1.56" alt="The Case Room" width="517" height="223">
     <p class="label">Sign in</p>
     <h1 style="font-size:24px">Your team's room</h1>
     <p class="lede" style="font-size:16px">One account per team. Your instructor gave you the details.</p>
@@ -293,7 +293,12 @@
 </template>
 
 <template id="t-confirm">
-  <p class="label">Before the conversation</p>
+  <!-- The page is reached in three states, and says which it is: before a
+       conversation, while one is running, and after one is held or refused.
+       The kicker and the block below are written from the state; everything
+       else on the page — the person, the papers, the dossier — is the same
+       whichever it is, which is the whole reason the page stays reachable. -->
+  <p class="label" id="c-kicker">Before the conversation</p>
   <div class="cmeet">
     <div class="whocard">
       <div id="c-portrait"></div>
@@ -308,11 +313,13 @@
     </div>
   </div>
   <div class="card">
-    <p>You are about to open your team's one conversation with this person. You will have <strong id="c-virtual"></strong> minutes of their time, inside a <strong id="c-wall"></strong>-minute window. Their time is spent by talking, yours by the clock. When either runs out, the conversation ends and does not reopen.</p>
-    <p><strong>The window starts with your first question, not with this button.</strong> Open the room, read it, agree who asks what — none of that is charged. The clock begins the moment you send.</p>
-    <p>There is no live transcript: take notes.</p>
+    <div id="c-prose">
+      <p>You are about to open your team's one conversation with this person. You will have <strong id="c-virtual"></strong> minutes of their time, inside a <strong id="c-wall"></strong>-minute window. Their time is spent by talking, yours by the clock. When either runs out, the conversation ends and does not reopen.</p>
+      <p><strong>The window starts with your first question, not with this button.</strong> Open the room, read it, agree who asks what — none of that is charged. The clock begins the moment you send.</p>
+      <p>There is no live transcript: take notes.</p>
+    </div>
     <p class="warn" id="c-budget"></p>
-    <div class="toolbar"><button class="btn" id="c-go" type="button">Begin the conversation</button><a class="btn quiet" href="#/people">Not yet</a></div>
+    <div class="toolbar"><button class="btn" id="c-go" type="button">Begin the conversation</button><a class="btn quiet" id="c-back" href="#/people">Not yet</a></div>
     <div class="err" id="c-err"></div>
   </div>
   <section class="recbox" id="c-records" hidden>
@@ -466,7 +473,7 @@
   </div>
 </template>
 
-<script src="config.js?v=1.55"></script>
-<script src="app.js?v=1.55"></script>
+<script src="config.js?v=1.56"></script>
+<script src="app.js?v=1.56"></script>
 </body>
 </html>

@@ -741,16 +741,23 @@
     const st = shut ? (interviewsOpen ? "no conversations left" : "not open yet")
       : { not_started: "not yet interviewed", in_progress: "conversation running", completed: "conversation held", declined: "declined to be interviewed" }[p.state] || p.state;
     const mins = p.budget && p.budget.virtual_minutes ? `${p.budget.virtual_minutes} minutes` : "";
-    const href = p.state === "in_progress" ? `#/room/${p.session_id}`
-      : p.state === "completed" ? `#/transcripts/${p.session_id}`
-      : `#/interview/${p.code}`;
+    // A conversation that is running is the one case where the card goes
+    // straight through: mid-interview the room is where a team wants to be,
+    // and a preparation page in front of it costs them the clock. Every other
+    // state lands on the person's own page, because that page carries the
+    // dossier — the records the case says bear on this person, which are as
+    // worth reading after a conversation as before one, and are the only
+    // thing the page can give a team about someone who refused. The transcript
+    // is one click on from there.
+    const href = p.state === "in_progress" ? `#/room/${p.session_id}` : `#/interview/${p.code}`;
+    const label = { in_progress: "Return to the room", completed: "Records and transcript", declined: "The records" }[p.state]
+      || "Begin the interview";
     const action = shut
       ? `<span class="pbtn off">${interviewsOpen ? "None left" : "Not open yet"}</span>`
-      // A refusal is the whole of that conversation: nothing opens, and nothing
-      // is spent. The card says so instead of offering the door again.
-      : p.state === "declined"
-      ? `<span class="pbtn off" title="${esc(p.declined && p.declined.message ? p.declined.message : "")}">Declined</span>`
-      : `<a class="pbtn" href="${href}">${p.state === "in_progress" ? "Return to the room" : p.state === "completed" ? "Read the transcript" : "Begin the interview"}</a>`;
+      // A refusal has no primary action to offer, so its door is a quiet one:
+      // there is nothing to begin and no conversation to return to, only the
+      // papers. The other three states each have something to do.
+      : `<a class="pbtn${p.state === "declined" ? " quiet" : ""}" href="${href}"${p.state === "declined" && p.declined && p.declined.message ? ` title="${esc(p.declined.message)}"` : ""}>${label}</a>`;
     // Direct access: the CV of someone you may interview is yours, so the button
     // fetches the file rather than sending you to a desk to ask for it.
     const cv = p.cv
@@ -1160,7 +1167,10 @@
       ? `<img class="portrait" src="${esc(p.portrait_url)}" alt="${esc(p.name)}">`
       : `<div class="portrait none" aria-hidden="true">${esc(initials(p.name))}</div>`;
     $("#c-facts").textContent = personFacts(p).join(" · ");
-    $("#c-virtual").textContent = p.budget.virtual_minutes ?? "–"; $("#c-wall").textContent = p.budget.wall_minutes ?? "–";
+    // The engine's two numbers, and only while the block that names them is on
+    // the page: after a conversation the block is rewritten and they are gone.
+    const put = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    put("#c-virtual", p.budget.virtual_minutes ?? "–"); put("#c-wall", p.budget.wall_minutes ?? "–");
     // When the team is the one choosing, this button spends a choice. Say so
     // here, on the last page before it, with the engine's own numbers.
     const bs = budgetState();
@@ -1180,7 +1190,9 @@
     // A refusal already given: the answer stands, and the button is not offered
     // twice. The words are the person's own, as recorded the first time.
     const declined = (msg) => {
-      $("#c-go").disabled = true;
+      // Not a greyed-out "Begin the conversation": there is no conversation to
+      // begin, and a disabled button still offers one. It goes.
+      $("#c-go").hidden = true; $("#c-go").disabled = true;
       $("#c-err").innerHTML = `<span class="declined">${esc(p.name)} has declined to be interviewed.</span>`
         + (msg ? ` <q>${esc(msg)}</q>` : "")
         + ` <span class="muted">Nothing was spent. What you learn about ${esc(p.name.split(" ")[0])} comes from the others, and from the records.</span>`;
@@ -1200,6 +1212,50 @@
     if (going) {
       $("#c-go").textContent = p.state === "in_progress" ? "Return to the room" : "Read the transcript";
       $("#c-go").dataset.go = going;
+      // A team that has spent its last conversation had this button disabled a
+      // few lines up, which is right while it opens a room and wrong now that
+      // it is a door to something already held. Spending the budget does not
+      // take back what the team heard.
+      $("#c-go").disabled = false;
+    }
+    // Three states, three headings, and a block that is true in each. The
+    // "before" copy stays in the template because that is the state a team
+    // meets first and most often; the other two are written over it. What the
+    // page says about the conversation changes; what it holds about the person
+    // does not, and that is the point of coming back to it.
+    if (p.state === "completed" || p.state === "in_progress" || p.state === "declined") {
+      put("#c-kicker", p.state === "in_progress" ? "The conversation"
+        : p.state === "declined" ? "Instead of the conversation" : "After the conversation");
+      put("#c-back", "Back to the people");
+      // What is left of the team's budget is a sentence about a room that will
+      // open. No room opens from here any more, so it is not one of the things
+      // this page still has to say.
+      put("#c-budget", "");
+      // The refusal is the message of this page, not a complaint about a click,
+      // so on arrival it reads before the way out rather than under it. The
+      // element keeps its place in the template for the other case: a refusal
+      // discovered at the moment of opening, which belongs after the button
+      // that was just pressed.
+      if (p.state === "declined") {
+        const err = $("#c-err"), bar = err && err.parentNode.querySelector(".toolbar");
+        if (err && bar) bar.parentNode.insertBefore(err, bar);
+      }
+      const box = $("#c-prose");
+      if (box) box.innerHTML = p.state === "in_progress"
+        ? "<p>Your team's conversation with this person is open. The room is where the clock is —"
+          + " this page is not, so read what you need here and go back to it.</p>"
+          + "<p>There is no live transcript: take notes.</p>"
+        : p.state === "declined"
+        // The refusal, and that nothing was spent for it, are both stated below
+        // in this person's own words. Neither is said twice here. This block is
+        // about the one thing the page still has to offer: the papers.
+        ? "<p>The records below are what the case says bears on this person — still yours to read,"
+          + " and still yours to ask the registry for by name.</p>"
+        : "<p>Your team's one conversation with this person has been held. It does not reopen, and the"
+          + " transcript was released when it ended.</p>"
+          + "<p>The records below stay with you. What the case says is worth putting to this person is"
+          + " worth as much once you have heard them as it was before — and anything you did not ask for"
+          + " then, you can still ask the registry for by name.</p>";
     }
 
     $("#c-go").addEventListener("click", async () => {
