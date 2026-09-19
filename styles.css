@@ -222,7 +222,12 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
      narrow enough to wrap. A full-bleed 3/2 crop is handsome and costs 104px
      before the first line of the brief, on the page whose job is to be read
      and then acted on. This is the one that changes least and reads best. */
-  .cmeet>.whocard{align-self:flex-start;width:230px;max-width:100%}
+  /* Centred, not ranged left. At 230px in a column the card is narrower than
+     everything under it, and against a left edge it read as an element that
+     had failed to fill its row rather than a portrait with a caption. On its
+     own axis it reads as the plate it is. The brief below keeps the full
+     width — its own measure is what shapes it — so only the card moves. */
+  .cmeet>.whocard{align-self:center;width:230px;max-width:100%}
   /* A desk has a bare portrait and no card, so there is nothing to sit beside
      it: it takes the width, on the wider crop the interview room's sidebar
      already uses for a portrait that is wider than it is tall. */
