@@ -193,6 +193,42 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
   .cmeet>.whocard{display:block}
   .cmeet>.whocard .portrait{width:100%;border-bottom:1px solid var(--rule);border-right:0}
 }
+/* The brief reads BESIDE the card only while there is a measure to read it in.
+   Measured, and it is worse than it looks: the column holds 48 characters a
+   line down to 790px and drops to 38 at 785, then 32 by 640 — and on a phone
+   it collapses, 24 characters at 390 and 15 at 320, which is two or three
+   words a line against a portrait that is taking 40% of the screen.
+
+   So below 790 the card goes on top and the brief follows it at the full
+   width, where its own max-width:64ch is what stops it. `align-self:stretch`
+   is needed because the container aligns its items to the start, which in a
+   column means shrink-to-fit. */
+@media (max-width:790px){
+  .cmeet{flex-direction:column;gap:14px}
+  /* The container aligns its items to the start, which in a column means
+     shrink-to-fit, so every child has to be told to take the width. */
+  .cmeet>*{align-self:stretch}
+  .cmeet>.cbrief{padding-top:0}
+  /* The card keeps its shape — the portrait with the name under it — and takes
+     back the width the side-by-side layout had been costing it: --face drops to
+     150px below 560 only because the brief had to fit beside it, and nothing
+     sits beside it now. --face itself is left alone, because the registrar's
+     portrait further down this same page is a fixed fraction of it.
+
+     Two other treatments were built and measured first. Turning the card into
+     the portrait-beside-the-name strip that every other whocard on this site
+     becomes on a narrow screen fills the row, but the card is then 44% empty at
+     390px and 64% at 560, because the name only fills that column when it is
+     narrow enough to wrap. A full-bleed 3/2 crop is handsome and costs 104px
+     before the first line of the brief, on the page whose job is to be read
+     and then acted on. This is the one that changes least and reads best. */
+  .cmeet>.whocard{align-self:flex-start;width:230px;max-width:100%}
+  /* A desk has a bare portrait and no card, so there is nothing to sit beside
+     it: it takes the width, on the wider crop the interview room's sidebar
+     already uses for a portrait that is wider than it is tall. */
+  .cmeet>.deskface{width:100%}
+  .cmeet>.deskface .portrait{aspect-ratio:3/2;max-height:230px}
+}
 @media (max-width:560px){
   .cmeet{gap:14px}
   .cmeet .whobody{padding:10px 11px 12px}
