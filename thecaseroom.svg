@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 517.54 248.22">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-2 {
+        font-size: 70.23px;
+      }
+
+      .cls-2, .cls-3 {
+        fill: #003865;
+      }
+
+      .cls-4 {
+        letter-spacing: 0em;
+      }
+
+      .cls-5 {
+        font-family: Montserrat-Regular, Montserrat;
+        font-variation-settings: 'wght' 400;
+      }
+
+      .cls-6 {
+        font-family: Montserrat-Bold, Montserrat;
+        font-variation-settings: 'wght' 700;
+        font-weight: 700;
+      }
+
+      .cls-7 {
+        letter-spacing: 0em;
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="159.53" y1="243.81" x2="159.53" y2="167.38" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".24" stop-color="#a3b7c7" stop-opacity=".36"/>
+      <stop offset=".52" stop-color="#4a7292" stop-opacity=".71"/>
+      <stop offset=".74" stop-color="#134771" stop-opacity=".92"/>
+      <stop offset=".89" stop-color="#003865"/>
+    </linearGradient>
+  </defs>
+  <g id="l6GCc4">
+    <g>
+      <polygon class="cls-3" points="56.83 191.28 0 222.4 0 0 56.89 35.01 56.83 191.28"/>
+      <path class="cls-3" d="M88.34,160.33l-.14-30.62c-.03-5.72,4.72-9.19,10.49-9.19l55.51.08.18-32.15h-14.05s-.41,8.27-.41,8.27c-.18,3.5-4.17,6.35-7.98,6.35h-36.67c-4.3,0-7.85-3.65-7.84-7.53l.09-34.96c.01-3.94,3.82-6.74,7.71-6.73l37.54.04c4.03,0,7.33,3.24,7.32,6.7l-.02,16.66h44.29c.43-13.88,12.11-24.04,26.75-23.91,15.44.15,27.25,11.41,27.59,25.15.35,14.27-11.84,25.94-27.58,26.11-11.36.12-21.22-6-24.99-16.16l-19.75.06.12,32.04,59.11.03c5.03,0,9.31,3.58,9.3,8.38l-.04,30.91c0,3-3.78,4.82-6.28,4.79-2.47-.03-6.29-1.84-6.3-4.77l-.11-27.79h-55.62s-.13,28.26-.13,28.26c-.01,2.56-3.87,4.24-5.96,4.24-2.49,0-6.21-1.83-6.22-4.74l-.11-27.73-53.33.02-.05,27.9c0,2.63-3.73,4.37-5.89,4.55-1.96.16-6.49-1.35-6.5-4.23ZM127.99,65.08h-28.43s.01,26.88.01,26.88h28.43s-.01-26.88-.01-26.88ZM226.13,79.09c0-7.74-6.72-14.01-15.01-14.01s-15.01,6.27-15.01,14.01,6.72,14.01,15.01,14.01,15.01-6.27,15.01-14.01Z"/>
+      <polygon class="cls-3" points="263.96 190.87 263.95 11.28 30.49 11.29 13.29 .2 275.1 .14 275.14 199.16 263.96 190.87"/>
+      <polygon class="cls-1" points="242.79 191.39 275.14 248.22 43.93 248.22 80.32 191.33 242.79 191.39"/>
+      <text class="cls-2" transform="translate(304.2 65.08)"><tspan class="cls-5"><tspan x="0" y="0">The</tspan></tspan><tspan class="cls-6"><tspan class="cls-7" x="0" y="62.88">C</tspan><tspan class="cls-4" x="50.56" y="62.88">ase</tspan></tspan><tspan class="cls-5"><tspan x="0" y="125.77">Room</tspan></tspan></text>
+    </g>
+  </g>
+</svg>
