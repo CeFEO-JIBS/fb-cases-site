@@ -89,8 +89,24 @@ h2{font-size:16.5px;font-weight:600;margin:28px 0 10px}
    on the site with nothing else to look at, so the mark gets the middle and
    the fields keep their own left edge below it. Its aspect is given in the
    tag, so the space is reserved before the file arrives and nothing below it
-   moves when it lands. */
-.signmark{display:block;width:152px;height:auto;margin:2px auto 18px}
+   moves when it lands.
+
+   Two files, one shown: ink on the light ground, reversed on the dark one.
+   The switch is this site's own data-dark and not prefers-color-scheme,
+   because the palette is the course's policy, this device's override and the
+   hour together, and the attribute is the only thing that knows all three. */
+/* The space around it is the space under the button: measured at 47px from
+   the bottom of "Enter" to the card's lower border, so the mark is given the
+   same above and below and the box reads as one piece of paper with a margin
+   rather than a header crowded onto fields. The top figure is 24 because the
+   card's own 22px of padding and its hairline are already in that gap; the
+   bottom is the whole 47, because nothing sits between the mark and the
+   label. Both are plain numbers rather than a calc: they answer to the
+   card's padding, and if that moves these want re-measuring, not scaling. */
+.signmark{display:block;width:152px;height:auto;margin:24px auto 47px}
+.signmark.dark{display:none}
+[data-dark] .signmark{display:none}
+[data-dark] .signmark.dark{display:block}
 .signin{max-width:400px;margin:40px auto 0}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .field input{padding:9px 10px;border:1px solid var(--rule);border-radius:2px;background:var(--field);font-size:15px}

@@ -13,12 +13,12 @@
      markup has arrived and show a half-updated page. The query makes the
      three files move together: it carries the version in config.js, so it
      moves whenever the site does. -->
-<link rel="stylesheet" href="styles.css?v=1.58">
+<link rel="stylesheet" href="styles.css?v=1.59">
 <!-- Before anything is drawn. The case's palette was cached by the last visit,
      so a returning student's first paint is already in their case's colours
      and their own dark-mode choice — rather than a flash of the platform's
      defaults, which after dark is what people actually mind about. -->
-<script src="theme.js?v=1.58"></script>
+<script src="theme.js?v=1.59"></script>
 <!-- The genogram mark: square, circle, marriage line, descent line, three
      stems. The SVG carries its own prefers-color-scheme rule and turns white
      in a dark tab, so there is deliberately no second <link media=…> here —
@@ -26,12 +26,12 @@
      query is this site's usual one, and it matters more here than anywhere:
      a browser holds a favicon far longer than the ten minutes GitHub Pages
      asks for, and without it the old blank tab can outlive several deploys. -->
-<link rel="icon" href="favicon.svg?v=1.58" type="image/svg+xml">
-<link rel="icon" href="favicon-32.png?v=1.58" sizes="32x32" type="image/png">
-<link rel="icon" href="favicon-16.png?v=1.58" sizes="16x16" type="image/png">
-<link rel="icon" href="favicon-48.png?v=1.58" sizes="48x48" type="image/png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.58">
-<link rel="manifest" href="site.webmanifest?v=1.58">
+<link rel="icon" href="favicon.svg?v=1.59" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png?v=1.59" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon-16.png?v=1.59" sizes="16x16" type="image/png">
+<link rel="icon" href="favicon-48.png?v=1.59" sizes="48x48" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1.59">
+<link rel="manifest" href="site.webmanifest?v=1.59">
 <!-- The masthead's own colour, so a phone's browser chrome continues the band
      rather than sitting a shade off it. A case may re-livery --band and this
      cannot follow — a meta tag is read once, before the palette arrives — so
@@ -96,7 +96,7 @@
     <div>The people, firms and documents in this case are fictional. Any resemblance to real persons or companies is unintended.</div>
     <div id="foot-edition"></div>
   </div>
-  <div class="base">CASE ROOM · <span id="stamp">v1.58</span>
+  <div class="base">CASE ROOM · <span id="stamp">v1.59</span>
     <span class="appearance" id="appearance" hidden></span>
   </div>
 </footer>
@@ -203,14 +203,28 @@
     <!-- The supplied lock-up, inside the box and hanging off the same left
          edge as everything else in it: the card is a form, and every line in
          it — the kicker, the title, both field labels, the button — ranges
-         left. A centred mark would put a second axis in a 400px box.
+         left, and the mark takes the middle over them.
          Served as a FILE rather than inlined: the SVG's own <style> block
          names its classes .cls-1 … .cls-7 and it carries three ids, which
          inlined would join the document and apply to it. In an <img> it is a
          sealed drawing. Not a link — there is nowhere else to be until you
          are in — and the aspect is on the tag so the card does not reflow
-         when the file lands. -->
-    <img class="signmark" src="thecaseroom.svg?v=1.58" alt="The Case Room" width="517" height="223">
+         when the file lands.
+
+         Two drawings, one shown at a time, because the lock-up is ink on the
+         light ground and reversed on the dark one and no single file is both:
+         the dark card is #1D211D, where the navy of the light mark is very
+         nearly invisible. Swapped in CSS on the site's own data-dark rather
+         than by a media query or by script — the palette is the instructor's
+         policy, this device's override and the hour of the day, and only the
+         attribute knows all three. Doing it in CSS also means it is right on
+         every repaint, including the hourly one and the one a system change
+         fires, with nothing to keep in step. The second file costs a fetch on
+         the one page that has nothing else to fetch. The alt text is on the
+         light one alone; two images of one wordmark would say the name twice
+         to a screen reader, and the hidden one is decoration by then. -->
+    <img class="signmark" src="thecaseroom.svg?v=1.59" alt="The Case Room" width="517" height="223">
+    <img class="signmark dark" src="thecaseroom-dark.svg?v=1.59" alt="" aria-hidden="true" width="517" height="223">
     <p class="label">Sign in</p>
     <h1 style="font-size:24px">Your team's room</h1>
     <p class="lede" style="font-size:16px">One account per team. Your instructor gave you the details.</p>
@@ -479,7 +493,7 @@
   </div>
 </template>
 
-<script src="config.js?v=1.58"></script>
-<script src="app.js?v=1.58"></script>
+<script src="config.js?v=1.59"></script>
+<script src="app.js?v=1.59"></script>
 </body>
 </html>
