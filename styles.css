@@ -485,7 +485,9 @@ ul.packdocs .ttl{font-family:var(--read);font-size:15.5px;color:var(--ledger);
 .compose{margin-top:20px;padding-top:16px;border-top:2px solid var(--rule-hard)}
 .compose .field{margin-bottom:10px}
 .composebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.composebar .prov{margin-left:auto}
+/* A meter, so it takes the mono the rest of the platform's meters take. It had
+   no size of its own — see the base .prov rule below for what that cost. */
+.composebar .prov{margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.04em}
 .compose .err:empty{display:none}
 .compose .err{margin:10px 0 0}
 
@@ -659,6 +661,14 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
   .doc{padding:18px 16px;font-size:16px}
   .textswitch{margin-top:22px}
   .composebar select{flex:1 1 100%;max-width:none}
+  /* Wrapped onto its own line, `margin-left:auto` pinned the counter to the
+     right edge under two left-aligned buttons, which reads as a mistake rather
+     than a choice. On a phone it is a caption under the box it belongs to. */
+  .composebar .prov{flex:1 1 100%;margin-left:0;text-align:left}
+  /* A request per line. Two chips capped at 260px in a 362px column come out
+     ragged, and the list of your own requests is a list. */
+  .threadrow{flex-direction:column;align-items:stretch}
+  .thchip{max-width:none}
   /* A roster of full-width 4:5 portraits is fifteen screens of scrolling. On a
      phone a person takes the shape the interview room already gives them: the
      face at thumbnail size, the facts and the buttons beside it. */
@@ -923,3 +933,13 @@ html{-webkit-text-size-adjust:100%}
    as a short one — and never silently re-asked. */
 .turn.cut>div:last-child::after{content:" \2014 cut off";white-space:pre;font-family:var(--mono);font-size:10px;
   letter-spacing:.12em;text-transform:uppercase;color:var(--stamp)}
+
+/* ── The caption that had no size ───────────────────────────────────────────
+   `.prov` is provenance: where a record is held, what a desk read, how many
+   questions are left, what the browser does with your voice. It is used in
+   eleven places and had exactly one rule anywhere — `.docrow .prov` — so in
+   the other ten it inherited the page and came out at reading size. In the
+   desk's composer that made the question counter the loudest thing in the box,
+   louder than the button beside it; in the sources card it made a footnote
+   compete with the list above it. A caption, everywhere. */
+.prov{font-size:12px;line-height:1.5;color:var(--muted)}

@@ -1045,6 +1045,10 @@
         </div>`;
       return;
     }
+    // The third composer on the site, and it had been left out of the phone
+    // pass: on a soft keyboard Send goes behind the keys here exactly as it did
+    // in the room and at a desk.
+    keyboardAware($("#reg-text"));
     $("#reg-form").addEventListener("submit", async (e) => {
       e.preventDefault(); const b = $("#reg-go"); b.disabled = true;
       try {
@@ -2072,6 +2076,11 @@
       // because a desk that is thinking and a desk that has died look identical
       // for the first few of them.
       const waiting = working(box, registry ? `${desk.name} is searching the archive` : `${desk.name} is reading`);
+      // Declared out here so the release in `finally` can reach it. A desk
+      // answer takes as long as an interviewee's and often longer — a search
+      // and then a reading — and a phone left alone that long locks itself and
+      // suspends the stream mid-sentence. Same treatment the room gets.
+      let awake = await holdScreen();
       try {
         // Streamed, like the interview room: the desk's answer appears as it is
         // written. The registry desk is the one that most needs it — a search
@@ -2091,7 +2100,28 @@
             live.turn.scrollIntoView({ block: "nearest" });
           });
         } catch (streamErr) {
-          if (streamErr.code === "sign_in_required" || live) throw streamErr;
+          if (streamErr.code === "sign_in_required") throw streamErr;
+          // Something was already on screen: the question reached the desk and
+          // the answer was being written when the connection went. Falling
+          // back would ask it twice.
+          //
+          // This was leaving the partial answer sitting under a blinking
+          // caret — the page claiming the desk was still writing, for ever —
+          // and reporting the generic error beside it. It is marked as cut
+          // instead, and the remedy is the desk's own and better than the
+          // room's: a desk thread is on the server the moment it is answered
+          // and is redrawn from `done` on every load, so the whole answer AND
+          // its citations — which only arrive with `done`, and so are always
+          // lost by a cut — are there as soon as the page is reloaded. Asking
+          // again would spend a second question for something already filed.
+          if (live) {
+            console.warn("[desk] stream cut mid-answer", streamErr);
+            live.turn.classList.remove("speaking");
+            live.turn.classList.add("cut");
+            throw Object.assign(new Error(
+              "The connection dropped while the answer was being written. What is above is partial and its sources are missing \u2014 reload this request and the whole answer will be there. Asking again spends another question."),
+              { code: "stream_cut" });
+          }
           console.warn("[desk] stream unavailable, falling back", streamErr);
           r = await post(`/desks/${encodeURIComponent(code)}/ask`, { question: q });
         }
@@ -2122,6 +2152,7 @@
         // A failed answer costs nothing now, so the counter must not move.
         left(err.body && err.body.state);
       } finally {
+        try { await awake?.release(); } catch { /* already gone with the tab */ }
         // left() is the only authority on whether the button is usable. The old
         // guard here read `if (!#dk-go.disabled)` -- but b IS #dk-go and had just
         // been disabled two lines above, so it could never fire.
