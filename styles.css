@@ -258,7 +258,8 @@ footer .base{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--rule-so
   background:none;border:0;border-bottom:1px solid transparent;padding:0 0 1px;cursor:pointer}
 @media (hover:hover){.lightswitch:hover{color:var(--ink)}}
 .lightswitch.on{color:var(--ink);border-bottom-color:var(--ink)}
-@media (max-width:720px){footer .cols{grid-template-columns:1fr}.hdr nav{gap:0}}
+@media (max-width:720px){footer .cols{grid-template-columns:1fr}}
+@media (max-width:860px){.hdr nav{gap:0}}
 [hidden]{display:none!important}
 
 /* ── v0.2: the room, the file, the reader ─────────────────────────────── */
@@ -403,8 +404,8 @@ h1 .alt{display:block;font-family:var(--read);font-style:italic;font-weight:400;
   /* Sticky under the masthead, not behind it. The header is sticky at top:0
      with a higher z-index, so a strip that sticks at 0 slides under it and
      the two numbers a team cannot afford not to see are the ones covered.
-     (True in this whole range, not only on a phone: it was wrong between 721
-     and 860 before the masthead became sticky below 720 as well.) */
+     (True in this whole range, not only on a phone: it was wrong between 811
+     and 860 before the masthead became sticky below 811 as well.) */
   .room>aside.side>.clock{order:-1;position:sticky;top:var(--hdr-h);z-index:10;
     display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;text-align:left;padding:10px 14px}
   .room>aside.side>.clock>svg{display:none}
@@ -667,7 +668,19 @@ section.pack h2,section.start h2{font-size:16px;margin:0 0 8px}
    the masthead is STICKY on a phone again. At 52px it costs 6% of the screen
    and the way out of a page is always within reach, where before it was one
    scroll to the top away. */
-@media (max-width:720px){
+/* 860 rather than 720 since a seventh section joined the band, and 860 rather
+   than a number of its own because that is already the site's wide/narrow line
+   — `.two`, `.side`, `.docrow` and `.recbox` all turn there.
+   Measured with the seven labels: below 811 the band cannot hold them together
+   with the group's address and the way out, and pushes the last of them off
+   the screen; from 811 to 860 it holds them but breaks the address and the way
+   out across two lines each, which is worse than what six labels did there.
+   From 861 to about 1050 each label sits on two lines, which is what six of
+   them already did from 800 up, and above 1050 the band is one clean row.
+   The compact masthead carries all seven from 320 to 860 with nothing
+   off-screen, so the range the band cannot hold cleanly is the range the
+   toggle owns. */
+@media (max-width:860px){
   /* The masthead already chose 14px here while the page kept 22, so the two
      disagreed by eight pixels between 561 and 720. One variable now. */
   :root{--gutter:14px}

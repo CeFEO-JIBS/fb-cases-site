@@ -1868,6 +1868,38 @@
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([head + txt], { type: "text/plain" })); a.download = `${safe}-${id}.txt`; a.click();
     });
   }
+  /**
+   * The document desk, by a name that does not change with the case.
+   *
+   * The registrar's desk has a different code in every case — she is a person
+   * with a name, and the code is hers — so the menu cannot link straight to
+   * it. This resolves the registry desk from /desks and forwards, which keeps
+   * one stable address in the menu and works in any case the site is pointed
+   * at without the site knowing anything about which.
+   *
+   * It is a forward and not a page: the desk's own address stays the one a
+   * team sees and can return to, so a reload or a shared link lands on the
+   * desk itself rather than going through here again.
+   */
+  async function registryDesk() {
+    const me = await ensureMe(); nav("registry");
+    const shut = courseGate(me);
+    if (shut) { render("t-desks"); $("#desk-list").innerHTML = gateBanner(shut); watchGate((m) => !!courseGate(m), registryDesk); return; }
+    let reg = null;
+    try { reg = (await api("/desks")).desks.find((d) => d.desk_kind === "registry") || null; }
+    catch (err) {
+      render("t-desks");
+      $("#desk-list").innerHTML = `<div class="empty"><span class="tag">not reachable</span><p>${esc(err.message)}</p></div>`;
+      return;
+    }
+    if (!reg) {
+      render("t-desks");
+      $("#desk-list").innerHTML = `<div class="empty"><span class="tag">no document desk</span><p>This course has no document desk. Records reach your team as the case releases them.</p><p><a href="#/file">Your case file</a></p></div>`;
+      return;
+    }
+    location.hash = `#/desk/${reg.code}`;
+  }
+
   async function desks() {
     const me = await ensureMe(); nav("desk"); render("t-desks");
     const shut = courseGate(me);
@@ -1918,6 +1950,8 @@
   }
 
   async function deskPage(code, skipIntro, threadId) {
+    // The menu entry is set again once the desk is known: which of the two it
+    // is decides which entry is current, and that cannot be told from the code.
     const me = await ensureMe(); nav("desk");
     let d;
     // `new` is the blank page: no request on screen, the composer ready. It
@@ -1929,6 +1963,7 @@
     const at = fresh ? "?thread=new" : threadId ? `?thread=${encodeURIComponent(threadId)}` : "";
     try { d = await api(`/desks/${encodeURIComponent(code)}${at}`); }
     catch (err) { render("t-desk"); view.innerHTML = `<div class="empty"><span class="tag">no such desk</span><p>${esc(err.message)}</p><p><a href="#/desk">The desks</a></p></div>`; return; }
+    nav(d.desk.desk_kind === "registry" ? "registry" : "desk");
     // Nothing asked yet, and the course is open: meet the desk first.
     if (!skipIntro && !threadId && !d.turns.length && !courseGate(S.me)) return deskIntro(d, code);
     render("t-desk");
@@ -2561,6 +2596,8 @@
       // #/desk/CODE reads the request the group is working in;
       // #/desk/CODE/t/<id> reads one it has closed;
       // #/desk/CODE/new is the blank one, waiting for the first question.
+      // One address for the document desk whatever the case calls its keeper.
+      if (a === "registry") return await registryDesk();
       if (a === "desk") {
         if (!b) return await desks();
         const dk = decodeURIComponent(b);
