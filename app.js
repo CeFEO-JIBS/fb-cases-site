@@ -1956,6 +1956,15 @@
     $("#di-brief").textContent = desk.brief || (registry
       ? "Keeps the archive. Ask for a record by name and, if it is there, it goes into your case file."
       : "Reads the literature of the field and answers from it, citing what it used.");
+    // The greeting, where the desk carries one. Not invented if it does not:
+    // a desk with nothing authored simply does not greet, which is the same
+    // rule the rest of this page follows about a field the case leaves empty.
+    const hello = $("#di-hello");
+    if (hello) {
+      const line = (desk.opening_line || "").trim();
+      hello.textContent = line;
+      hello.hidden = !line;
+    }
     $("#di-rules").innerHTML = registry
       ? `<p>You are about to write to the archive. Ask for <strong>one record at a time</strong>, by name — a year, a party to it, or who would have kept it will narrow a request that is too broad. A record that is found and released to your team goes straight into your case file.</p>
          <p>The registrar will not describe what is inside a document she is not releasing, and every request you make is recorded${cap ? `. Your team has <strong>${cap}</strong> request${cap === 1 ? "" : "s"} in this course` : ""}.</p>
