@@ -26,7 +26,7 @@
 (function () {
   var KEY = "fb.theme", MINE = "fb.theme.mine";
   var TOKEN = /^[a-z][a-z0-9-]{1,30}$/, HEX = /^#[0-9a-fA-F]{6}$/;
-  var timer = null, watching = false;
+  var timer = null, watching = false, painted = [];
 
   function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function write(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
@@ -66,11 +66,24 @@
    */
   function paint() {
     var r = document.documentElement, t = stored();
-    if (!t) { r.removeAttribute("data-dark"); return false; }
+    // No palette: take back the one that was painted as well as the flag. These
+    // are inline properties on the root and nothing else clears them, so
+    // dropping only the attribute left a signed-out page still wearing the
+    // case's night colours while every rule keyed on data-dark had stopped
+    // firing — a dark card with the light-ground lock-up on it. The stylesheet
+    // owns the default; the way back to it is to remove what was set over it.
+    if (!t) { unpaint(r); r.removeAttribute("data-dark"); return false; }
     var dark = wanted(t), p = dark ? t.dark : t.light, k;
-    for (k in p) if (TOKEN.test(k) && HEX.test(p[k])) r.style.setProperty("--" + k, p[k]);
+    unpaint(r);
+    for (k in p) if (TOKEN.test(k) && HEX.test(p[k])) { r.style.setProperty("--" + k, p[k]); painted.push(k); }
     if (dark) r.setAttribute("data-dark", ""); else r.removeAttribute("data-dark");
     return dark;
+  }
+
+  /** Remove every property this file set, so a repaint never leaves a mixture. */
+  function unpaint(r) {
+    for (var i = 0; i < painted.length; i++) r.style.removeProperty("--" + painted[i]);
+    painted.length = 0;
   }
 
   /** Keep what the API served, for the next first paint. */
