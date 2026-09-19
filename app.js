@@ -1219,8 +1219,25 @@
     };
     if (p.state === "declined") declined(p.declined && p.declined.message);
 
+    // A conversation that is already running, or already held, is not an error
+    // to report on this page: it is a door. The button becomes that door
+    // rather than offering to open a room that cannot be opened twice.
+    //
+    // The page is NOT skipped for it. Its records list — what the case says is
+    // worth putting to this person, and what the team would have to ask the
+    // registry for by name — is worth as much during a conversation as before
+    // one, and a redirect would take it away to fix a button.
+    const going = p.session_id && (p.state === "in_progress" ? `#/room/${p.session_id}`
+      : p.state === "completed" ? `#/transcripts/${p.session_id}` : null);
+    if (going) {
+      $("#c-go").textContent = p.state === "in_progress" ? "Return to the room" : "Read the transcript";
+      $("#c-go").dataset.go = going;
+    }
+
     $("#c-go").addEventListener("click", async () => {
-      const b = $("#c-go"); b.disabled = true;
+      const b = $("#c-go");
+      if (b.dataset.go) { location.hash = b.dataset.go; return; }
+      b.disabled = true;
       try {
         const r = await post("/sessions", { persona_code: code }); S.personas = null;
         try { if (r.opening_line) sessionStorage.setItem(`fb.opening.${r.session_id}`, r.opening_line); } catch {}
@@ -1228,6 +1245,18 @@
       }
       catch (err) {
         if (err.code === "declined" || err.code === "declined_closed") { S.personas = null; declined(err.message); return; }
+        // The roster this tab is holding can be older than the truth — a
+        // teammate on another device opens the room, and this tab still thinks
+        // nothing has started. The engine says which session it means, so go
+        // there rather than printing a sentence with no way out of it. The
+        // roster is dropped on the way so the next page is drawn from the
+        // state that just corrected us.
+        const sid = err.body && err.body.session_id;
+        if (sid && (err.code === "already_open" || err.code === "already_held")) {
+          S.personas = null;
+          location.hash = err.code === "already_open" ? `#/room/${sid}` : `#/transcripts/${sid}`;
+          return;
+        }
         $("#c-err").textContent = err.message; b.disabled = false;
       }
     });
