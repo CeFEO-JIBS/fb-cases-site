@@ -1932,6 +1932,12 @@
     render("t-desk");
     const desk = d.desk;
     const registry = desk.desk_kind === "registry";
+    // The page's own head, in the shape every other page uses: a kicker and a
+    // title. Named for what the desk IS and not for who keeps it — the keeper's
+    // name is on her card, and these two words have to be the same in every
+    // case, because they are what the menu calls the page.
+    $("#dk-kicker").textContent = registry ? "The archive" : "The literature";
+    $("#dk-title").textContent = registry ? "Document desk" : "Research desk";
     const deskBrief = desk.brief || (registry
       ? "Ask for a record by name. If the archive holds it, it goes into your case file."
       : "Ask about the literature. The desk answers from what it reads, and cites it.");
