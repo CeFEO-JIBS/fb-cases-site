@@ -1127,3 +1127,8 @@ html{-webkit-text-size-adjust:100%}
    louder than the button beside it; in the sources card it made a footnote
    compete with the list above it. A caption, everywhere. */
 .prov{font-size:12px;line-height:1.5;color:var(--muted)}
+
+/* A destination a closed course no longer has. Greyed and inert rather than
+   removed: a team that reaches for Transcripts should see that it was there
+   and is now shut, not wonder whether it was ever there at all. */
+.hdr nav a.off{opacity:.38;pointer-events:none;text-decoration:none;background:transparent}

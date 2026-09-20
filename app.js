@@ -64,9 +64,27 @@
   }).join("");
   const paras = (t) => lines(t).split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
   function render(id) { const t = document.getElementById(id); view.replaceChildren(t.content.cloneNode(true)); }
+  /**
+   * A closed course leaves the case page and nothing else. Every other
+   * destination is taken away rather than offered and then refused: the
+   * exercise is over, and a link that answers "this course has closed" three
+   * times in a row is worse than no link.
+   *
+   * Cosmetic only. The rule is the server's — the API answers `course_closed`
+   * on everything but the case page and the onboarding pack — because this is
+   * a static file and an address bar is not a locked door.
+   */
+  const SHUT = (m) => !!m && (m.edition.status === "closed" || m.edition.status === "archived");
   function nav(key) {
     menu.show(true);
-    document.querySelectorAll("[data-nav]").forEach((a) => a.toggleAttribute("aria-current", a.dataset.nav === key));
+    const shut = SHUT(S.me);
+    document.querySelectorAll("[data-nav]").forEach((a) => {
+      a.toggleAttribute("aria-current", a.dataset.nav === key);
+      const off = shut && a.dataset.nav !== "landing";
+      a.classList.toggle("off", off);
+      if (off) { a.setAttribute("aria-disabled", "true"); a.setAttribute("tabindex", "-1"); }
+      else { a.removeAttribute("aria-disabled"); a.removeAttribute("tabindex"); }
+    });
   }
   function recording(name) { const r = $("#rec"); r.hidden = !name; $("#rec-name").textContent = name || ""; menu.show(!name); }
 
@@ -556,7 +574,7 @@
     if (!open) {
       $("#ld-status").hidden = false;
       $("#ld-status").innerHTML = me.edition.status === "closed" || me.edition.status === "archived"
-        ? "<strong>This course is closed.</strong> No new conversation can start. Your transcripts stay here."
+        ? "<strong>This course is closed.</strong> The onboarding pack below stays open to read. Everything else \u2014 the interviews, the desks, the rest of your file and your transcripts \u2014 has been put away."
         : "<strong>This course has not opened yet.</strong> Your file and the interviews open when your instructor opens it.";
     }
     // The notice the instructor's press produces. It says what the documents
@@ -635,7 +653,7 @@
   function courseGate(me) {
     if (me.edition.status === "open") return null;
     return me.edition.status === "closed"
-      ? "This course has closed. You can still read your case file and your transcripts."
+      ? "This course has closed. The onboarding pack on the case page stays open to read; nothing else does."
       : "This course has not opened yet. Your instructor opens it when the engagement begins.";
   }
   function gateBanner(text) {
@@ -2650,6 +2668,16 @@
     stopGate(); stopVoice();
     try {
       if (!a) return await landing();
+      // The same rule as the API's, so a typed address lands on the page that
+      // explains itself instead of on a page that fails. One exception, and
+      // it is the one the case page needs: a single record, because the pack
+      // is listed there and offering a paper that cannot be opened is worse
+      // than not listing it. Which papers those are is the server's to say —
+      // a closed course reaches the onboarding pack and nothing else.
+      if (SHUT(await ensureMe()) && !(a === "file" && b && b !== "stage")) {
+        location.hash = "#/";
+        return await landing();
+      }
       if (a === "people") return await people();
       if (a === "how") return await how();
       // Unlinked, deliberately: a diagnostic, not a page of the course.
