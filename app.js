@@ -559,9 +559,30 @@
         ? "<strong>This course is closed.</strong> No new conversation can start. Your transcripts stay here."
         : "<strong>This course has not opened yet.</strong> Your file and the interviews open when your instructor opens it.";
     }
+    // The notice the instructor's press produces. It says what the documents
+    // are, not only that they exist — a team that has not met them yet has no
+    // way to know an "engagement document" is the advisers' own report — and
+    // it links to the place they are, filtered to them, so the sentence and
+    // the click agree.
+    //
+    // It stays until it is dismissed. A notice that goes away on its own is
+    // one a team can miss entirely by reloading at the wrong moment, and this
+    // is the one announcement in the course that changes what they can read.
+    // The dismissal is remembered per edition, so a second release in another
+    // course is announced again.
     if (me.engagement_released) {
-      $("#ld-released").hidden = false;
-      $("#ld-released").innerHTML = "<strong>The engagement documents have been released.</strong> They are in your case file, under Engagement.";
+      const box = $("#ld-released");
+      const key = `fb.seen.engagement.${me.edition.code}`;
+      let seen = false; try { seen = localStorage.getItem(key) === "1"; } catch {}
+      box.hidden = seen;
+      box.innerHTML = `<div class="notice-body"><strong>The engagement documents have been released.</strong>`
+        + ` These are the advisers' own memoranda: what the engagement found, written up question by question.`
+        + ` <a href="#/file/stage/engagement_only">Read them in your case file</a>.</div>`
+        + `<button type="button" class="notice-x" aria-label="Dismiss this notice">\u00d7</button>`;
+      box.querySelector(".notice-x").addEventListener("click", () => {
+        box.hidden = true;
+        try { localStorage.setItem(key, "1"); } catch {}
+      });
     }
     $("#ld-films").innerHTML = p.videos.length
       ? `<div class="films">${p.videos.map((v) => `<figure class="film">${v.title ? `<div class="ttl">${esc(v.title)}</div>` : ""}<div class="embed"><iframe src="${esc(v.embed_url)}" title="${esc(v.title || "Film")}" allow="fullscreen; picture-in-picture" allowfullscreen loading="lazy" referrerpolicy="strict-origin"></iframe></div>${v.caption ? `<figcaption class="cap">${esc(v.caption)}</figcaption>` : ""}</figure>`).join("")}</div>`
@@ -925,7 +946,7 @@
    * that just came in is the wrong experience. The row is scrolled to the middle
    * and marked, and the mark fades rather than persisting into the next visit.
    */
-  async function file(at) {
+  async function file(at, atStage) {
     const me = await ensureMe(); nav("file"); render("t-file");
     const ds = await documents(true);
     const stage = { brief: "Onboarding pack", roster: "The people you may interview", engagement_only: "The engagement", discovery: "Released to your team", deep: "From the registry" };
@@ -949,7 +970,7 @@
       // description, which is the cheaper question — "what is this?" — and
       // does not spend a click on the wrong paper. The toggle sits outside
       // the anchor because a button inside a link is neither.
-      `<div class="docitem" id="row-${esc(d.code)}" data-find="${esc(findable(d))}" data-kind="${esc(d.doc_class || "other")}" data-new="${d.first_opened ? "" : "1"}">${
+      `<div class="docitem" id="row-${esc(d.code)}" data-find="${esc(findable(d))}" data-kind="${esc(d.doc_class || "other")}" data-stage="${esc(d.release_stage || "")}" data-new="${d.first_opened ? "" : "1"}">${
         d.blurb_en ? `<button type="button" class="docmore" aria-expanded="false" aria-label="What this record is"></button>` : `<span class="docmore none"></span>`
       }<a class="docrow" href="#/file/${esc(d.code)}"><span class="code">${esc(d.code)}</span><span>${titleHtml(d)}<div class="prov">${esc(d.holding_institution || "")}${d.doc_year ? " · " + d.doc_year : ""}</div></span><span class="prov">${esc(d.record_class || "")}${d.granted_via && via[d.granted_via] ? `<div class="via">${esc(via[d.granted_via])}</div>` : ""}</span><span class="st ${d.first_opened ? "" : "new"}">${d.first_opened ? `opened ${d.opens}×` : "not yet opened"}</span></a>${
         d.blurb_en ? `<p class="docblurb" hidden>${esc(d.blurb_en)}</p>` : ""}</div>`).join("")).join("")}</div>`
@@ -988,14 +1009,25 @@
     for (const r of rows) tally[r.dataset.kind] = (tally[r.dataset.kind] || 0) + 1;
     const kinds = kindOrder.filter((k) => tally[k]).concat(Object.keys(tally).filter((k) => !kindOrder.includes(k)).sort());
     const unopened = rows.filter((r) => r.dataset.new).length;
-    let pick = "";                                     // "" is everything
+    // The engagement is a chip of its own, beside the kinds rather than among
+    // them. It is not a kind of record — the advisers' memoranda happen to be
+    // memoranda, and a case could write them as letters — it is the one
+    // release the instructor makes by hand, and after the press it is the
+    // thing a team goes looking for. Offered only once the file holds some,
+    // which is the same as saying only once it has been released.
+    const engaged = rows.filter((r) => r.dataset.stage === "engagement_only").length;
+    // The stage the notice's link asks for, if it asked for one it can fill.
+    let pick = atStage && rows.some((r) => r.dataset.stage === atStage) ? `stage:${atStage}` : "";
     if (rows.length) {
       const bar = $("#doc-kinds");
       if (kinds.length > 1) {
         bar.hidden = false;
-        bar.innerHTML = `<button type="button" class="gen on" data-pick="">Everything · ${rows.length}</button>`
-          + kinds.map((k) => `<button type="button" class="gen" data-pick="kind:${esc(k)}">${esc(kindName[k] || k.replace(/_/g, " "))} · ${tally[k]}</button>`).join("")
-          + (unopened && unopened < rows.length ? `<button type="button" class="gen" data-pick="new">Not yet opened · ${unopened}</button>` : "");
+        const chip = (v, label, n) =>
+          `<button type="button" class="gen${v === pick ? " on" : ""}" data-pick="${esc(v)}">${esc(label)} · ${n}</button>`;
+        bar.innerHTML = chip("", "Everything", rows.length)
+          + kinds.map((k) => chip(`kind:${k}`, kindName[k] || k.replace(/_/g, " "), tally[k])).join("")
+          + (engaged ? chip("stage:engagement_only", stage.engagement_only, engaged) : "")
+          + (unopened && unopened < rows.length ? chip("new", "Not yet opened", unopened) : "");
       }
       $("#doc-filter").hidden = false;
       const q = $("#doc-q");
@@ -1003,7 +1035,10 @@
         const terms = fold(q.value).split(/\s+/).filter(Boolean);
         let shown = 0;
         for (const r of rows) {
-          const kindOk = !pick || (pick === "new" ? !!r.dataset.new : r.dataset.kind === pick.slice(5));
+          const kindOk = !pick
+            || (pick === "new" ? !!r.dataset.new
+              : pick.startsWith("stage:") ? r.dataset.stage === pick.slice(6)
+              : r.dataset.kind === pick.slice(5));
           const hit = kindOk && terms.every((t) => r.dataset.find.includes(t));
           r.hidden = !hit;
           if (hit) shown++;
@@ -2619,11 +2654,17 @@
       if (a === "how") return await how();
       // Unlinked, deliberately: a diagnostic, not a page of the course.
       if (a === "voice-check") return await voiceCheck();
-      // #/file            the whole file
-      // #/file/CODE       that document
-      // #/file/CODE/at    the file, landed on that document's line
+      // #/file                    the whole file
+      // #/file/CODE               that document
+      // #/file/CODE/at            the file, landed on that document's line
+      // #/file/stage/STAGE        the file, filtered to one release stage
+      //
+      // "stage" as the second segment rather than a query string: the router
+      // splits the hash on "/" and a "?" would land inside a segment. No
+      // record code is the word stage, so the two forms cannot collide.
       if (a === "file") {
         if (!b) return await file();
+        if (b === "stage" && c) return await file(null, decodeURIComponent(c));
         const code = decodeURIComponent(b);
         return c === "at" ? await file(code) : await doc(code);
       }
