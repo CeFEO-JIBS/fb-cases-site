@@ -609,6 +609,11 @@
     const total = d.pack.reduce((a, x) => a + x.n, 0);
     if (total) {
       $("#ld-pack").hidden = false;
+      // The door into the whole file, which a closed course does not have:
+      // the pack is still listed and each paper still opens, but there is no
+      // file left to browse. A button that bounces straight back here is
+      // worse than no button.
+      $("#ld-packopen").hidden = SHUT(me);
       $("#ld-packnote").textContent = p.pack_note || "What the family, its companies and the public registers would hand you on the first day.";
       // The papers themselves, not a count of them. A team lands here and the
       // pack is the first thing it is meant to read; a folder name with a
