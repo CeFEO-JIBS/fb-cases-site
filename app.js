@@ -65,16 +65,21 @@
   const paras = (t) => lines(t).split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
   function render(id) { const t = document.getElementById(id); view.replaceChildren(t.content.cloneNode(true)); }
   /**
-   * A closed course leaves the case page and nothing else. Every other
-   * destination is taken away rather than offered and then refused: the
-   * exercise is over, and a link that answers "this course has closed" three
-   * times in a row is worse than no link.
+   * A course that is not open leaves the case page and nothing else. Every
+   * other destination is taken away rather than offered and then refused: a
+   * link that answers "this course is not open" three times in a row is worse
+   * than no link.
    *
-   * Cosmetic only. The rule is the server's — the API answers `course_closed`
-   * on everything but the case page and the onboarding pack — because this is
-   * a static file and an address bar is not a locked door.
+   * Not only closed. A held course is shut to a team too — that is what a hold
+   * is — and a draft one has never been open. What separates them is whether
+   * what the team earned comes back, and that is the instructor's business,
+   * not this function's.
+   *
+   * Cosmetic only. The rule is the server's — the API answers
+   * `course_not_open` on everything but the case page and the onboarding pack
+   * — because this is a static file and an address bar is not a locked door.
    */
-  const SHUT = (m) => !!m && (m.edition.status === "closed" || m.edition.status === "archived");
+  const SHUT = (m) => !!m && m.edition.status !== "open";
   function nav(key) {
     menu.show(true);
     const shut = SHUT(S.me);
@@ -573,9 +578,15 @@
     $("#ld-standfirst").textContent = p.standfirst || "Interview the people. Read the record. Advise the family.";
     if (!open) {
       $("#ld-status").hidden = false;
-      $("#ld-status").innerHTML = me.edition.status === "closed" || me.edition.status === "archived"
-        ? "<strong>This course is closed.</strong> The onboarding pack below stays open to read. Everything else \u2014 the interviews, the desks, the rest of your file and your transcripts \u2014 has been put away."
-        : "<strong>This course has not opened yet.</strong> Your file and the interviews open when your instructor opens it.";
+      const shutText = {
+        closed: "<strong>This course is closed.</strong> The onboarding pack below stays open to read. Everything else \u2014 the interviews, the desks, the rest of your file and your transcripts \u2014 has been put away.",
+        archived: "<strong>This course is closed.</strong> The onboarding pack below stays open to read. Everything else \u2014 the interviews, the desks, the rest of your file and your transcripts \u2014 has been put away.",
+        // A hold, not an ending, and it must not read as one: what the team
+        // earned is still theirs and comes back when the course is resumed.
+        paused: "<strong>This course is on hold.</strong> Your instructor has paused it. The onboarding pack below stays open to read; the interviews, the desks and the rest of your file come back when the course resumes.",
+      };
+      $("#ld-status").innerHTML = shutText[me.edition.status]
+        || "<strong>This course has not opened yet.</strong> Your file and the interviews open when your instructor opens it.";
     }
     // The notice the instructor's press produces. It says what the documents
     // are, not only that they exist — a team that has not met them yet has no
@@ -607,7 +618,11 @@
       : "";
     $("#ld-history").innerHTML = p.history ? prose(p.history) : "";
     const total = d.pack.reduce((a, x) => a + x.n, 0);
-    if (total) {
+    // Not before the course opens. The count comes from the case, not from
+    // what this team can reach, so a draft course would list the pack and
+    // then fail to open any of it — the same fault as offering a door that
+    // bounces back, one state earlier.
+    if (total && me.edition.status !== "draft") {
       $("#ld-pack").hidden = false;
       // The door into the whole file, which a closed course does not have:
       // the pack is still listed and each paper still opens, but there is no
@@ -657,9 +672,13 @@
   // write a question and refusing it on submit.
   function courseGate(me) {
     if (me.edition.status === "open") return null;
-    return me.edition.status === "closed"
-      ? "This course has closed. The onboarding pack on the case page stays open to read; nothing else does."
-      : "This course has not opened yet. Your instructor opens it when the engagement begins.";
+    if (me.edition.status === "closed" || me.edition.status === "archived") {
+      return "This course has closed. The onboarding pack on the case page stays open to read; nothing else does.";
+    }
+    if (me.edition.status === "paused") {
+      return "This course is on hold. The onboarding pack on the case page stays open to read; the rest comes back when your instructor resumes it.";
+    }
+    return "This course has not opened yet. Your instructor opens it when the engagement begins.";
   }
   function gateBanner(text) {
     return `<div class="empty"><span class="tag">not open yet</span><p>${esc(text)}</p></div>`;
